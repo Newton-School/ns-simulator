@@ -1,4 +1,4 @@
-# my-dsds-app
+# ns-simulator
 
 An Electron application with React and TypeScript
 
