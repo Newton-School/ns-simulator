@@ -6,3 +6,9 @@ declare global {
     api: unknown
   }
 }
+
+export interface NsSimulatorApi {
+  saveScenario: (data: string) => void;
+  loadScenario: () => Promise<any>;
+  runSimulation: (config: any) => void;
+}

@@ -1,8 +1,14 @@
-import { contextBridge } from 'electron'
+import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 
 // Custom APIs for renderer
-const api = {}
+const api = {
+  saveScenario: (data: string) => ipcRenderer.send('nssimulator:save-scenario', data),
+
+  loadScenario: () => ipcRenderer.invoke('nssimulator:load-scenario'),
+
+  runSimulation: (config: any) => ipcRenderer.send('nssimulator:run-simulation', config)
+}
 
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise
@@ -10,7 +16,7 @@ const api = {}
 if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('electron', electronAPI)
-    contextBridge.exposeInMainWorld('api', api)
+    contextBridge.exposeInMainWorld('nssimulator', api)
   } catch (error) {
     console.error(error)
   }

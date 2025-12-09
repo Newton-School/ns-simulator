@@ -3,6 +3,15 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 
+// Listen for the 'save' event
+ipcMain.on('nssimulator:save-scenario', (_, data) => {
+  console.log('Received scenario data:', data); 
+});
+
+ipcMain.handle('nssimulator:load-scenario', async () => {
+    return { data: 'data' };
+});
+
 function createWindow(): void {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
