@@ -3,15 +3,6 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 
-// Listen for the 'save' event
-ipcMain.on('nssimulator:save-scenario', (_, data) => {
-  console.log('Received scenario data:', data); 
-});
-
-ipcMain.handle('nssimulator:load-scenario', async () => {
-    return { data: 'data' };
-});
-
 function createWindow(): void {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
@@ -68,6 +59,15 @@ app.whenReady().then(() => {
     // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
+
+  // Listen for the 'save' event
+  ipcMain.on('nssimulator:save-scenario', (_, data) => {
+    console.log('Received scenario data:', data);
+  });
+
+  ipcMain.handle('nssimulator:load-scenario', async () => {
+    return { data: 'data' };
+  });
 })
 
 // Quit when all windows are closed, except on macOS. There, it's common
