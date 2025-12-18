@@ -7,24 +7,53 @@ import { Canvas } from './Canvas';
 import { CommandBar } from './CommandBar';
 
 // --- Shared Components ---
+
 type ResizeHandleProps = {
     className?: string;
     vertical?: boolean;
+    id?: string; // Added ID for accessibility labeling
 };
 
-const ResizeHandle = ({ className = "", vertical = false }: ResizeHandleProps) => (
+const ResizeHandle = ({ className = "", vertical = false, id }: ResizeHandleProps) => (
     <PanelResizeHandle
+        id={id}
+        /* 1. Keyboard Navigation: tabIndex=0 makes it focusable */
+        tabIndex={0}
+        
+        /* 2. Accessibility Roles */
+        role="separator"
+        aria-orientation={vertical ? "vertical" : "horizontal"}
+        aria-label="Resize Panel" 
+        
         className={`
-      bg-gray-700 hover:bg-blue-500 transition-colors group flex justify-center items-center
-      ${vertical ? "w-1 flex-col h-full" : "h-1 w-full flex-row"} 
-      ${className}
-    `}
+            bg-gray-700 
+            hover:bg-blue-500 
+            transition-colors 
+            group 
+            flex 
+            justify-center 
+            items-center
+            
+            /* 3. Visual Focus Indicator (Critical for keyboard users) */
+            outline-none
+            focus-visible:bg-blue-500
+            focus-visible:ring-2
+            focus-visible:ring-blue-300
+            focus-visible:ring-opacity-50
+            
+            ${vertical ? "w-1 flex-col h-full cursor-col-resize" : "h-1 w-full flex-row cursor-row-resize"} 
+            ${className}
+        `}
     >
         <div
             className={`
-        bg-gray-500 group-hover:bg-white rounded
-        ${vertical ? "h-4 w-0.5" : "w-8 h-0.5"}
-      `}
+                bg-gray-500 
+                group-hover:bg-white 
+                rounded
+                /* 4. Ensure inner bar lights up when handle has focus */
+                group-focus-visible:bg-white
+                ${vertical ? "h-4 w-0.5" : "w-8 h-0.5"}
+            `}
         />
     </PanelResizeHandle>
 );
@@ -60,7 +89,8 @@ export const MainLayout = () => {
                             <Panel defaultSize={20} minSize={10} maxSize={30} order={1} id="left-panel">
                                 <ComponentCatalog />
                             </Panel>
-                            <ResizeHandle vertical />
+                            {/* Added ID for specificity */}
+                            <ResizeHandle vertical id="resize-left-catalog" />
                         </>
                     )}
 
@@ -76,7 +106,8 @@ export const MainLayout = () => {
                             {/* Pane D: Bottom Panel */}
                             {isBottomOpen && (
                                 <>
-                                    <ResizeHandle />
+                                    {/* Added ID for specificity */}
+                                    <ResizeHandle id="resize-bottom-telemetry" />
                                     <Panel defaultSize={30} minSize={10} order={2}>
                                         <TelemetryDeck />
                                     </Panel>
@@ -89,7 +120,8 @@ export const MainLayout = () => {
                     {/* Pane C: Right Sidebar */}
                     {isRightOpen && (
                         <>
-                            <ResizeHandle vertical />
+                            {/* Added ID for specificity */}
+                            <ResizeHandle vertical id="resize-right-inspector" />
                             <Panel defaultSize={25} minSize={15} maxSize={40} order={3} id="right-panel">
                                 <PropertyInspector />
                             </Panel>
