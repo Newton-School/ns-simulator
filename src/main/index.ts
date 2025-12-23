@@ -59,6 +59,15 @@ app.whenReady().then(() => {
     // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
+
+  // Listen for the 'save' event
+  ipcMain.on('nssimulator:save-scenario', (_, data) => {
+    console.log('Received scenario data:', data);
+  });
+
+  ipcMain.handle('nssimulator:load-scenario', async () => {
+    return { data: 'data' };
+  });
 })
 
 // Quit when all windows are closed, except on macOS. There, it's common
