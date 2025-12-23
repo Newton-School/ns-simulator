@@ -68,6 +68,10 @@ app.whenReady().then(() => {
   ipcMain.handle('nssimulator:load-scenario', async () => {
     return { data: 'data' };
   });
+
+  ipcMain.on('nssimulator:run-simulation', (_, config) => {
+    console.log('Received simulation config:', config);
+  });
 })
 
 // Quit when all windows are closed, except on macOS. There, it's common
