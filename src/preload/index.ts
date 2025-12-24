@@ -3,24 +3,24 @@ import { electronAPI } from '@electron-toolkit/preload'
 
 // Custom APIs for renderer
 const api = {
-  saveScenario: (data: string) => {
+  saveScenario: (jsonString: string) => {
     // Validate that data is a non-empty string and not excessively long
-    if (typeof data !== 'string') {
+    if (typeof jsonString !== 'string') {
       console.error('saveScenario: data must be a string');
       return;
     }
-    if (data.length === 0) {
+    if (jsonString.length === 0) {
       console.error('saveScenario: data must not be empty');
       return;
     }
-    if (data.length > 1000000) {
+    if (jsonString.length > 1000000) {
       console.error('saveScenario: data is too large');
       return;
     }
-    ipcRenderer.send('nssimulator:save-scenario', data);
+    ipcRenderer.invoke('dialog:save', jsonString);
   },
 
-  loadScenario: () => ipcRenderer.invoke('nssimulator:load-scenario').catch((error) => {
+  loadScenario: () => ipcRenderer.invoke('dialog:open').catch((error) => {
     console.error('Error in loadScenario:', error);
     throw error;
   }),
