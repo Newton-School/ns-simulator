@@ -17,7 +17,10 @@ const api = {
       console.error('saveScenario: data is too large');
       return;
     }
-    ipcRenderer.invoke('dialog:save', jsonString);
+    return ipcRenderer.invoke('dialog:save', jsonString).catch((error) => {
+      console.error('Error in saveScenario:', error);
+      throw error;
+    });
   },
 
   loadScenario: () => ipcRenderer.invoke('dialog:open').catch((error) => {

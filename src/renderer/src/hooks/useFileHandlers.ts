@@ -12,21 +12,29 @@ export const useFileHandlers = (
             if (isMod && e.key.toLowerCase() === 's') {
                 e.preventDefault();
                 const content = onSaveRequested();
-                const path = await window.nssimulator.saveScenario(content);
-                console.log(`Saved to: ${path}`);
+                try {
+                    const path = await window.nssimulator.saveScenario(content);
+                    console.log(`Saved to: ${path}`);
+                } catch (err) {
+                    console.error("Failed to save scenario", err);
+                }
             }
 
             // --- Cmd/Ctrl + O (Open) ---
             if (isMod && e.key.toLowerCase() === 'o') {
                 e.preventDefault();
-                const content = await window.nssimulator.loadScenario();
-                if (content) {
-                    try {
-                        const parsed = JSON.parse(content);
-                        onDataLoaded(parsed);
-                    } catch (err) {
-                        console.error("Failed to parse loaded file", err);
+                try {
+                    const content = await window.nssimulator.loadScenario();
+                    if (content) {
+                        try {
+                            const parsed = JSON.parse(content);
+                            onDataLoaded(parsed);
+                        } catch (err) {
+                            console.error("Failed to parse loaded file", err);
+                        }
                     }
+                } catch (err) {
+                    console.error("Failed to load scenario file", err);
                 }
             }
         };

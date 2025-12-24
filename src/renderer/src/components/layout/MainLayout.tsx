@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Panel, PanelGroup } from 'react-resizable-panels';
 import { useFileHandlers } from '../../hooks/useFileHandlers';
 
@@ -15,10 +15,17 @@ export const MainLayout = () => {
     const [isRightOpen, setIsRightOpen] = useState(true);
     const [isBottomOpen, setIsBottomOpen] = useState(true);
 
-    useFileHandlers(
-        () => JSON.stringify({ nodes: [], edges: [] }), // Get current data, I am using dummy data right now. Replace it with actual scenario data.
-        (data) => console.log("File content returned to UI:", data) // Update state
-    );
+    //Memoize the "Getter" function for saving
+    const handleGetFileData = useCallback(() => {
+        return JSON.stringify({ nodes: [], edges: [] }); //I am using dummydata, need to change this once we have scenario data
+    }, []);
+
+    // Memoize the "Setter" function for opening
+    const handleLoadFileData = useCallback((data: any) => {
+        console.log("File content returned to UI:", data);
+    }, []);
+
+    useFileHandlers(handleGetFileData, handleLoadFileData);
 
     return (
         <div className="h-screen w-screen flex flex-col overflow-hidden bg-gray-900 text-gray-200">
