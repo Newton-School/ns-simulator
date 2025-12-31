@@ -15,12 +15,10 @@ export const MainLayout = () => {
     const [isRightOpen, setIsRightOpen] = useState(true);
     const [isBottomOpen, setIsBottomOpen] = useState(true);
 
-    //Memoize the "Getter" function for saving
     const handleGetFileData = useCallback(() => {
-        return JSON.stringify({ nodes: [], edges: [] }); //I am using dummydata, need to change this once we have scenario data
+        return JSON.stringify({ nodes: [], edges: [] });
     }, []);
 
-    // Memoize the "Setter" function for opening
     const handleLoadFileData = useCallback((data: any) => {
         console.log("File content returned to UI:", data);
     }, []);
@@ -28,7 +26,7 @@ export const MainLayout = () => {
     useFileHandlers(handleGetFileData, handleLoadFileData);
 
     return (
-        <div className="h-screen w-screen flex flex-col overflow-hidden bg-gray-900 text-gray-200">
+        <div className="h-screen w-screen flex flex-col overflow-hidden bg-white text-gray-900">
 
             {/* Pane A: Header (Fixed) */}
             <CommandBar
@@ -41,7 +39,7 @@ export const MainLayout = () => {
             />
 
             {/* Main Content Area */}
-            <div className="flex-1 overflow-hidden relative">
+            <div className="flex-1 overflow-hidden relative h-full">
                 <PanelGroup direction="horizontal" autoSaveId="main-layout-horizontal">
 
                     {/* Pane B: Left Sidebar */}
@@ -50,7 +48,6 @@ export const MainLayout = () => {
                             <Panel defaultSize={20} minSize={10} maxSize={30} order={1} id="left-panel">
                                 <ComponentCatalog />
                             </Panel>
-                            {/* Added ID for specificity */}
                             <ResizeHandle vertical id="resize-left-catalog" />
                         </>
                     )}
@@ -67,7 +64,6 @@ export const MainLayout = () => {
                             {/* Pane D: Bottom Panel */}
                             {isBottomOpen && (
                                 <>
-                                    {/* Added ID for specificity */}
                                     <ResizeHandle id="resize-bottom-telemetry" />
                                     <Panel defaultSize={30} minSize={10} order={2}>
                                         <TelemetryDeck />
@@ -81,7 +77,6 @@ export const MainLayout = () => {
                     {/* Pane C: Right Sidebar */}
                     {isRightOpen && (
                         <>
-                            {/* Added ID for specificity */}
                             <ResizeHandle vertical id="resize-right-inspector" />
                             <Panel defaultSize={25} minSize={15} maxSize={40} order={3} id="right-panel">
                                 <PropertyInspector />
