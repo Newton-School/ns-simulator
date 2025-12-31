@@ -10,21 +10,20 @@ import 'reactflow/dist/style.css';
 import { useShallow } from 'zustand/react/shallow'; 
 
 import useStore from '../../store/useStore'; 
-import DummyNode from '../nodes/DummyNode'; 
+import ServiceNode from '@renderer/features/nodes/ServiceNode';
 
-// Mapping all types to DummyNode for now
 const nodeTypes = {
-  server: DummyNode,
-  database: DummyNode,
-  router: DummyNode,
-  loadBalancer: DummyNode
+  server: ServiceNode,
+  database: ServiceNode,
+  router: ServiceNode,
+  loadBalancer: ServiceNode
 };
 
 // Simple ID generator
 let id = 1;
 const getId = () => `node_${id++}`;
 
-export const Canvas = () => {
+export const FlowCanvas = () => {
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
 
   // Zustand Selectors

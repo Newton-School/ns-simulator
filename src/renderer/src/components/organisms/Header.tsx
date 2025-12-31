@@ -42,7 +42,7 @@ const ToggleButton = ({ onClick, isOpen, icon, label }: ToggleButtonProps) => {
 
 // --- Main Component ---
 
-export const CommandBar = ({
+export const Header = ({
     toggleLeft, isLeftOpen,
     toggleRight, isRightOpen,
     toggleBottom, isBottomOpen
