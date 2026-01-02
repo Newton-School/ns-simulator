@@ -6,28 +6,7 @@ import {
   Network, 
 } from 'lucide-react';
 
-// Define the shape of a library item
-export interface CatalogItem {
-  id: string;
-  type: 'serviceNode' | 'gatewayNode' | 'databaseNode'; // Maps to React Flow nodeTypes
-  label: string;
-  subLabel: string;
-  icon: any; // Lucide Icon Component
-  color: string; // Tailwind class for the icon background
-  data: {
-    // Default data when dropped on canvas
-    status: 'healthy' | 'degraded' | 'critical';
-    throughput?: number;
-    errorRate?: number;
-    load?: number;
-  };
-}
-
-export interface CatalogCategory {
-  id: string;
-  title: string;
-  items: CatalogItem[];
-}
+import { CatalogCategory } from '@renderer/types/ui';
 
 export const CATALOG_CONFIG: CatalogCategory[] = [
   {
@@ -41,7 +20,7 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
         subLabel: 'Ingress Controller',
         icon: Globe,
         color: 'bg-purple-500',
-        data: { status: 'healthy', throughput: 1200, errorRate: 0.01, load: 45 }
+        data: { status: 'critical', throughput: 1200, errorRate: 2, load: 45, queueDepth: 12 }
       },
       {
         id: 'worker-pool',

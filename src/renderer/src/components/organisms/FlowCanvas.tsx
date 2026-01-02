@@ -4,29 +4,28 @@ import ReactFlow, {
   Controls, 
   BackgroundVariant, 
   ReactFlowInstance,
+  ReactFlowProvider,
   Node
 } from 'reactflow';
 import 'reactflow/dist/style.css'; 
 import { useShallow } from 'zustand/react/shallow'; 
 
 import useStore from '../../store/useStore'; 
-import ServiceNode from '@renderer/features/nodes/ServiceNode';
+import ServiceNode from '../../features/nodes/ServiceNode';
+
+// nss-border = #2A303C
+const GRID_COLOR = '#2A303C'; 
 
 const nodeTypes = {
-  server: ServiceNode,
-  database: ServiceNode,
-  router: ServiceNode,
-  loadBalancer: ServiceNode
+  serviceNode: ServiceNode,
 };
 
-// Simple ID generator
 let id = 1;
 const getId = () => `node_${id++}`;
 
-export const FlowCanvas = () => {
+const FlowCanvasInternal = () => {
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
 
-  // Zustand Selectors
   const { nodes, edges, onNodesChange, onEdgesChange, onConnect, addNode } = useStore(
     useShallow((state) => ({
       nodes: state.nodes,
@@ -47,29 +46,22 @@ export const FlowCanvas = () => {
     (event: React.DragEvent) => {
       event.preventDefault();
 
-      const rawData = event.dataTransfer.getData('application/reactflow');
-      
-      // 1. Validate data
-      if (!rawData) return;
+      const type = event.dataTransfer.getData('application/reactflow/type');
+      const dataString = event.dataTransfer.getData('application/reactflow/data');
 
-      // 2. Parse the JSON sent from Catalog
-      const { type, label, color } = JSON.parse(rawData);
+      if (!type || !dataString) return;
 
-      // 3. Calculate Position
+      const data = JSON.parse(dataString);
       const position = reactFlowInstance?.screenToFlowPosition({
         x: event.clientX,
         y: event.clientY,
-      });
+      }) || { x: 0, y: 0 };
 
-      // 4. Create New Node
       const newNode: Node = {
         id: getId(),
-        type, // e.g. 'server'
-        position: position || { x: 0, y: 0 },
-        data: { 
-            label, // e.g. 'Server'
-            color  // e.g. 'bg-blue-500'
-        },
+        type, 
+        position,
+        data: { ...data },
       };
 
       addNode(newNode);
@@ -78,7 +70,8 @@ export const FlowCanvas = () => {
   );
 
   return (
-    <div style={{ width: '100%', height: '100%' }}>
+    // Used nss-bg (#0B0E11)
+    <div style={{ width: '100%', height: '100%' }} className="bg-nss-bg">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -93,12 +86,19 @@ export const FlowCanvas = () => {
       >
         <Background 
             variant={BackgroundVariant.Dots} 
-            gap={12} 
+            gap={20} 
             size={1}
-            color="#aaa" 
+            color={GRID_COLOR} 
         />
-        <Controls style={{ fill: '#333' }} />
+        {/* Styled Controls to match nss-surface (#1F242C) */}
+        <Controls className="!bg-nss-surface !border-nss-border [&>button]:!fill-nss-muted hover:[&>button]:!fill-white" />
       </ReactFlow>
     </div>
   );
 };
+
+export const FlowCanvas = () => (
+  <ReactFlowProvider>
+    <FlowCanvasInternal />
+  </ReactFlowProvider>
+);

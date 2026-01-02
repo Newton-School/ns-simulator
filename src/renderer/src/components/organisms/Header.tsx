@@ -1,46 +1,15 @@
-// --- Types ---
+import { Play, Sidebar, PanelBottom } from 'lucide-react';
 
-type HeaderProps = {
+import { ToggleButton } from '../atoms/ToggleButton';
+
+interface HeaderProps {
     toggleLeft: () => void;
     isLeftOpen: boolean;
     toggleRight: () => void;
     isRightOpen: boolean;
     toggleBottom: () => void;
     isBottomOpen: boolean;
-};
-
-type ToggleButtonProps = {
-    onClick: () => void;
-    isOpen: boolean;
-    icon: React.ReactNode;
-    label: string;
-};
-
-// --- Sub-Components ---
-
-const ToggleButton = ({ onClick, isOpen, icon, label }: ToggleButtonProps) => {
-    const baseClass = "p-2 rounded transition-colors duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 focus:ring-offset-gray-800";
-    const activeClass = "bg-gray-700 text-white shadow-inner";
-    const inactiveClass = "text-gray-400 hover:bg-gray-700 hover:text-white";
-
-    return (
-        <button
-            type="button"
-            onClick={onClick}
-            // Accessibility: Label the action and describe the state
-            aria-label={label}
-            aria-expanded={isOpen}
-            className={`${baseClass} ${isOpen ? activeClass : inactiveClass}`}
-        >
-            {/* Hide icon from screen readers to prevent duplicate/noisy announcements */}
-            <span aria-hidden="true" className="flex items-center justify-center">
-                {icon}
-            </span>
-        </button>
-    );
-};
-
-// --- Main Component ---
+}
 
 export const Header = ({
     toggleLeft, isLeftOpen,
@@ -48,64 +17,73 @@ export const Header = ({
     toggleBottom, isBottomOpen
 }: HeaderProps) => {
     return (
-        <header className="h-12 bg-gray-800 text-white flex items-center justify-between px-4 shrink-0 border-b border-gray-700 select-none">
+        <header className="h-12 bg-nss-panel text-nss-text flex items-center justify-between px-4 shrink-0 border-b border-nss-border select-none">
 
-            {/* LEFT SECTION */}
+            {/* LEFT SECTION: Branding & Left Toggle */}
             <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 mr-2">
+                    {/* Logo Box: Uses nss-primary */}
+                    <div className="w-6 h-6 bg-nss-primary rounded flex items-center justify-center font-bold text-[10px] text-white">
+                        NS
+                    </div>
+                    {/* Brand Text: Uses nss-text (inherited from header) */}
+                    <span className="font-bold text-sm tracking-tight text-nss-text">
+                        Simulator
+                    </span>
+                </div>
+
+                {/* Divider: Uses nss-border */}
+                <div className="h-4 w-px bg-nss-border mx-1" role="presentation" />
+
                 <ToggleButton
                     onClick={toggleLeft}
                     isOpen={isLeftOpen}
                     label="Toggle left sidebar"
-                    icon={
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-                            <line x1="9" x2="9" y1="3" y2="21" />
-                        </svg>
-                    }
+                    icon={<Sidebar size={18} />}
                 />
             </div>
 
-            {/* CENTER SECTION */}
+            {/* CENTER SECTION: Main Actions */}
             <div className="flex items-center gap-2">
                 <button
                     type="button"
-                    className="flex items-center gap-2 px-4 py-1.5 bg-green-700 hover:bg-green-600 active:bg-green-800 text-white rounded text-xs font-bold transition-colors uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-1 focus:ring-offset-gray-800"
-                    aria-label="Run simulation"
-                    onClick={() => { /* click handler here */ }}
+                    className="
+                        flex items-center gap-2 px-6 py-1.5 rounded text-xs font-bold uppercase tracking-wider transition-all
+                        
+                        /* Primary Colors: nss-primary / nss-primaryHover */
+                        bg-nss-primary hover:bg-nss-primaryHover text-white 
+                        
+                        /* Shadow: Uses nss-bg (darkest) for depth */
+                        shadow-lg shadow-nss-bg/50
+                        
+                        /* Focus Ring: nss-primary */
+                        focus:outline-none focus:ring-2 focus:ring-nss-primary 
+                        
+                        hover:scale-105 active:scale-95
+                    "
+                    onClick={() => console.log('Sim Started')}
                 >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
-                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                    </svg>
-                    Run
+                    <Play size={12} fill="currentColor" />
+                    Run Sim
                 </button>
 
-                <div className="w-px h-4 bg-gray-600 mx-1" role="presentation" />
+                <div className="w-px h-4 bg-nss-border mx-2" role="presentation" />
 
                 <ToggleButton
                     onClick={toggleBottom}
                     isOpen={isBottomOpen}
                     label="Toggle bottom panel"
-                    icon={
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-                            <line x1="3" x2="21" y1="15" y2="15" />
-                        </svg>
-                    }
+                    icon={<PanelBottom size={18} />}
                 />
             </div>
 
-            {/* RIGHT SECTION */}
+            {/* RIGHT SECTION: Properties Toggle */}
             <div className="flex items-center gap-3">
                 <ToggleButton
                     onClick={toggleRight}
                     isOpen={isRightOpen}
                     label="Toggle right sidebar"
-                    icon={
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-                            <line x1="15" x2="15" y1="3" y2="21" />
-                        </svg>
-                    }
+                    icon={<Sidebar size={18} className="rotate-180" />}
                 />
             </div>
         </header>

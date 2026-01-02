@@ -1,5 +1,5 @@
 import React from 'react';
-import { CatalogItem } from '../../config/catalogConfig';
+import { CatalogItem } from '@renderer/types/ui';
 
 interface LibraryItemProps {
   item: CatalogItem;
@@ -9,13 +9,8 @@ export const LibraryItem = ({ item }: LibraryItemProps) => {
   const { icon: Icon, label, subLabel, color, type, data } = item;
 
   const onDragStart = (event: React.DragEvent) => {
-    // 1. Set the Node Type (for React Flow to know what component to render)
     event.dataTransfer.setData('application/reactflow/type', type);
-    
-    // 2. Set the Node Data (Initial state like status, metrics, etc.)
-    // We include the label here so the node knows its name immediately
     event.dataTransfer.setData('application/reactflow/data', JSON.stringify({ label, ...data }));
-    
     event.dataTransfer.effectAllowed = 'move';
   };
 
@@ -26,21 +21,22 @@ export const LibraryItem = ({ item }: LibraryItemProps) => {
       className="
         group flex items-start gap-3 p-3 rounded 
         cursor-grab active:cursor-grabbing select-none 
-        hover:bg-[#1F242C] transition-all duration-200
-        border border-transparent hover:border-[#2A303C]
+        bg-transparent hover:bg-nss-surface 
+        border border-transparent hover:border-nss-border
+        transition-all duration-200
       "
     >
       {/* Icon Well */}
-      <div className={`p-2 rounded bg-opacity-40 ${color} shrink-0 transition-transform group-hover:scale-110`}>
+      <div className={`p-2 rounded bg-opacity-40 group-hover:bg-opacity-20 ${color} shrink-0 transition-all`}>
         <Icon size={18} className={color.replace('bg-', 'text-')} />
       </div>
 
       {/* Text Content */}
       <div className="flex flex-col overflow-hidden">
-        <span className="text-sm font-medium text-slate-200 truncate group-hover:text-white transition-colors">
+        <span className="text-sm font-medium text-nss-text truncate group-hover:text-white transition-colors">
           {label}
         </span>
-        <span className="text-[10px] text-slate-500 truncate mt-0.5">
+        <span className="text-[10px] text-nss-muted truncate mt-0.5 group-hover:text-slate-400">
           {subLabel}
         </span>
       </div>
