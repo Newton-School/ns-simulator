@@ -1,4 +1,4 @@
-import { Play, Sidebar, PanelBottom } from 'lucide-react';
+import { Play, Sidebar } from 'lucide-react';
 import { ToggleButton } from '../atoms/ToggleButton';
 import { ThemeToggle } from '../features/ThemeToggle';
 
@@ -7,14 +7,11 @@ interface HeaderProps {
     isLeftOpen: boolean;
     toggleRight: () => void;
     isRightOpen: boolean;
-    toggleBottom: () => void;
-    isBottomOpen: boolean;
 }
 
 export const Header = ({
     toggleLeft, isLeftOpen,
     toggleRight, isRightOpen,
-    toggleBottom, isBottomOpen
 }: HeaderProps) => {
     return (
         <header className="h-12 bg-nss-panel text-nss-text flex items-center justify-between px-4 shrink-0 border-b border-nss-border select-none transition-colors duration-200">
@@ -56,15 +53,6 @@ export const Header = ({
                     <Play size={12} fill="currentColor" />
                     Run Sim
                 </button>
-
-                <div className="w-px h-4 bg-nss-border mx-2" role="presentation" />
-
-                <ToggleButton
-                    onClick={toggleBottom}
-                    isOpen={isBottomOpen}
-                    label="Toggle bottom panel"
-                    icon={<PanelBottom size={18} />}
-                />
             </div>
 
             {/* RIGHT SECTION: Properties Toggle & Theme */}

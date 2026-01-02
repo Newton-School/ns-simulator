@@ -5,7 +5,6 @@ import { useFileHandlers } from '../../hooks/useFileHandlers';
 //Organisms
 import { LibrarySidebar } from '../organisms/LibrarySidebar';
 import { PropertiesPanel } from '../organisms/PropertiesPanel';
-import { TelemetryPanel } from '../organisms/TelemetryPanel';
 import { FlowCanvas } from '../organisms/FlowCanvas';
 import { Header } from '../organisms/Header';
 
@@ -16,7 +15,6 @@ export const WorkspaceLayout = () => {
 
     const [isLeftOpen, setIsLeftOpen] = useState(true);
     const [isRightOpen, setIsRightOpen] = useState(true);
-    const [isBottomOpen, setIsBottomOpen] = useState(true);
 
     const handleGetFileData = useCallback(() => {
         return JSON.stringify({ nodes: [], edges: [] });
@@ -38,10 +36,8 @@ export const WorkspaceLayout = () => {
             <Header
                 toggleLeft={() => setIsLeftOpen(prev => !prev)}
                 toggleRight={() => setIsRightOpen(prev => !prev)}
-                toggleBottom={() => setIsBottomOpen(prev => !prev)}
                 isLeftOpen={isLeftOpen}
                 isRightOpen={isRightOpen}
-                isBottomOpen={isBottomOpen}
 
             />
 
@@ -58,22 +54,13 @@ export const WorkspaceLayout = () => {
                         </>
                     )}
 
-                    {/* Center Column (Workspace + Bottom Panel) */}
+                    {/* Center Column Workspace */}
                     <Panel order={2} minSize={30} id="center-panel">
                         <PanelGroup direction="vertical" autoSaveId="main-layout-vertical">
                             {/* Pane E: Center Workspace */}
-                            <Panel defaultSize={isBottomOpen ? 70 : 100} minSize={20} order={1}>
+                            <Panel defaultSize={100} minSize={20} order={1}>
                                 <FlowCanvas />
                             </Panel>
-                            {/* Pane D: Bottom Panel */}
-                            {isBottomOpen && (
-                                <>
-                                    <ResizeHandle id="resize-bottom-telemetry" />
-                                    <Panel defaultSize={30} minSize={10} order={2}>
-                                        <TelemetryPanel />
-                                    </Panel>
-                                </>
-                            )}
                         </PanelGroup>
                     </Panel>
                     {/* Pane C: Right Sidebar */}

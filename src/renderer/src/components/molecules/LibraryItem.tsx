@@ -33,10 +33,10 @@ export const LibraryItem = ({ item }: LibraryItemProps) => {
 
       {/* Text Content */}
       <div className="flex flex-col overflow-hidden">
-        <span className="text-sm font-medium text-nss-text truncate group-hover:text-white transition-colors">
+        <span className="text-sm font-medium text-nss-text truncate transition-colors">
           {label}
         </span>
-        <span className="text-[10px] text-nss-muted truncate mt-0.5 group-hover:text-slate-400">
+        <span className="text-[10px] text-nss-muted truncate mt-0.5">
           {subLabel}
         </span>
       </div>

@@ -29,7 +29,7 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
         subLabel: 'Async processing',
         icon: Cpu,
         color: 'bg-blue-500',
-        data: { status: 'healthy', throughput: 800, errorRate: 0.00, load: 20 }
+        data: { status: 'healthy', throughput: 800, load: 20 }
       }
     ]
   },
