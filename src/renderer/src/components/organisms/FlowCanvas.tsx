@@ -1,17 +1,19 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react'; // Added useMemo
 import ReactFlow, { 
   Background, 
   Controls, 
   BackgroundVariant, 
-  ReactFlowInstance,
+  ReactFlowInstance, 
   ReactFlowProvider,
-  Node
+  Node,
+  EdgeTypes // Import Type
 } from 'reactflow';
 import 'reactflow/dist/style.css'; 
 import { useShallow } from 'zustand/react/shallow'; 
 
 import useStore from '../../store/useStore'; 
 import ServiceNode from '../../features/nodes/ServiceNode';
+import { PacketEdge } from '../molecules/flow/edges/PacketEdge';
 
 // nss-border = #2A303C
 const GRID_COLOR = '#2A303C'; 
@@ -25,6 +27,18 @@ const getId = () => `node_${id++}`;
 
 const FlowCanvasInternal = () => {
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
+
+  // Define Edge Types (Memoized to prevent re-renders)
+  const edgeTypes = useMemo<EdgeTypes>(() => ({
+    packet: PacketEdge,
+  }), []);
+
+  // Default options: Every new connection becomes a 'packet' edge
+  const defaultEdgeOptions = useMemo(() => ({
+    type: 'packet',
+    animated: false, // Turn off default "marching ants"
+    data: { trafficType: 'default', speed: 'normal' }, // Default data
+  }), []);
 
   const { nodes, edges, onNodesChange, onEdgesChange, onConnect, addNode } = useStore(
     useShallow((state) => ({
@@ -70,7 +84,6 @@ const FlowCanvasInternal = () => {
   );
 
   return (
-    // Used nss-bg (#0B0E11)
     <div style={{ width: '100%', height: '100%' }} className="bg-nss-bg">
       <ReactFlow
         nodes={nodes}
@@ -79,6 +92,8 @@ const FlowCanvasInternal = () => {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes} // Pass Custom Edges
+        defaultEdgeOptions={defaultEdgeOptions} // Apply defaults
         onInit={setReactFlowInstance}
         onDrop={onDrop}
         onDragOver={onDragOver}
@@ -90,7 +105,6 @@ const FlowCanvasInternal = () => {
             size={1}
             color={GRID_COLOR} 
         />
-        {/* Styled Controls to match nss-surface (#1F242C) */}
         <Controls className="!bg-nss-surface !border-nss-border [&>button]:!fill-nss-muted hover:[&>button]:!fill-white" />
       </ReactFlow>
     </div>

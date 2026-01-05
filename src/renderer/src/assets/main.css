@@ -15,10 +15,12 @@
     --nss-placeholder: #94A3B8;
     --nss-primary: #2563EB;
     --nss-primary-hover: #1D4ED8;
-    --nss-success: #059669;
-    --nss-warning: #D97706;
-    --nss-danger: #DC2626;
-    --nss-info: #4F46E5;
+
+    /* NEW TRAFFIC COLORS (Light) */
+    --nss-success: #059669; /* Emerald-600 */
+    --nss-warning: #D97706; /* Amber-600 */
+    --nss-danger: #DC2626;  /* Red-600 */
+    --nss-info: #4F46E5;    /* Indigo-600 */
   }
 
   [data-theme='dark'] {
@@ -33,10 +35,12 @@
     --nss-placeholder: #64748B;
     --nss-primary: #3B82F6;
     --nss-primary-hover: #2563EB;
-    --nss-success: #10B981;
-    --nss-warning: #F59E0B;
-    --nss-danger: #EF4444;
-    --nss-info: #6366F1;
+
+    /* NEW TRAFFIC COLORS (Dark) */
+    --nss-success: #34D399; /* Emerald-400 (Brighter for dark mode) */
+    --nss-warning: #FBBF24; /* Amber-400 */
+    --nss-danger: #F87171;  /* Red-400 */
+    --nss-info: #818CF8;    /* Indigo-400 */
   }
   
   body {

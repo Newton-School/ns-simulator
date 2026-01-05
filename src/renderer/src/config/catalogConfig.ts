@@ -60,6 +60,7 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
           status: 'healthy',
           throughput: 2400,
           errorRate: 0.00,
+          queueDepth: 10,
           load: 60
         }
       },
