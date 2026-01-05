@@ -1,11 +1,10 @@
-import { 
-  Globe, 
-  Cpu, 
-  Database, 
-  Server, 
-  Network, 
+import {
+  Globe,
+  Cpu,
+  Database,
+  Server,
+  Network,
 } from 'lucide-react';
-
 import { CatalogCategory } from '@renderer/types/ui';
 
 export const CATALOG_CONFIG: CatalogCategory[] = [
@@ -15,12 +14,19 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
     items: [
       {
         id: 'api-gateway',
-        type: 'serviceNode', // Using generic serviceNode for now, could be specific
+        type: 'serviceNode',
         label: 'API Gateway',
         subLabel: 'Ingress Controller',
         icon: Globe,
         color: 'bg-purple-500',
-        data: { status: 'critical', throughput: 1200, errorRate: 2, load: 45, queueDepth: 12 }
+        data: {
+          iconKey: 'globe',
+          status: 'critical',
+          throughput: 1200,
+          errorRate: 2,
+          load: 45,
+          queueDepth: 12
+        }
       },
       {
         id: 'worker-pool',
@@ -29,7 +35,12 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
         subLabel: 'Async processing',
         icon: Cpu,
         color: 'bg-blue-500',
-        data: { status: 'healthy', throughput: 800, load: 20 }
+        data: {
+          iconKey: 'cpu',
+          status: 'healthy',
+          throughput: 800,
+          load: 20
+        }
       }
     ]
   },
@@ -39,12 +50,18 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
     items: [
       {
         id: 'primary-db',
-        type: 'serviceNode', 
+        type: 'serviceNode',
         label: 'Primary DB',
         subLabel: 'Relational SQL',
         icon: Database,
         color: 'bg-emerald-500',
-        data: { status: 'healthy', throughput: 2400, errorRate: 0.00, load: 60 }
+        data: {
+          iconKey: 'database',
+          status: 'healthy',
+          throughput: 2400,
+          errorRate: 0.00,
+          load: 60
+        }
       },
       {
         id: 'redis-cache',
@@ -53,7 +70,13 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
         subLabel: 'In-memory key/val',
         icon: Server,
         color: 'bg-orange-500',
-        data: { status: 'healthy', throughput: 5000, errorRate: 0.00, load: 15 }
+        data: {
+          iconKey: 'server',
+          status: 'healthy',
+          throughput: 5000,
+          errorRate: 0.00,
+          load: 15
+        }
       }
     ]
   },
@@ -68,7 +91,13 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
         subLabel: 'L7 Routing',
         icon: Network,
         color: 'bg-indigo-500',
-        data: { status: 'healthy', throughput: 10000, errorRate: 0.00, load: 10 }
+        data: {
+          iconKey: 'network',
+          status: 'healthy',
+          throughput: 10000,
+          errorRate: 0.00,
+          load: 10
+        }
       }
     ]
   }

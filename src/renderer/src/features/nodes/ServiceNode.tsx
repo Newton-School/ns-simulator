@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { Position, NodeProps } from 'reactflow';
-import { Server } from 'lucide-react';
+import { Server, Globe, Cpu, Database, Network } from 'lucide-react';
 
 // Import Atoms & Molecules
 import { NodeHandle } from '../../components/atoms/NodeHandle';
@@ -8,7 +8,18 @@ import { ProgressBar } from '../../components/atoms/ProgressBar';
 import { NodeHeader } from '../../components/molecules/NodeHeader';
 import { MetricItem } from '../../components/molecules/MetricItem';
 
+const ICON_LOOKUP: Record<string, any> = {
+  globe: Globe,
+  cpu: Cpu,
+  database: Database,
+  server: Server,
+  network: Network,
+};
+
 const ServiceNode = ({ data, selected }: NodeProps) => {
+
+  const IconComponent = ICON_LOOKUP[data.iconKey] || Server;
+
   return (
     <div className={`
       w-64 bg-nss-surface rounded-lg shadow-xl overflow-hidden transition-all duration-200
@@ -22,8 +33,9 @@ const ServiceNode = ({ data, selected }: NodeProps) => {
       {/* 2. Header Molecule */}
       <NodeHeader
         label={data.label || 'Service'}
-        icon={Server}
+        icon={IconComponent}
         status={data.status}
+        color={data.color}
       />
 
       {/* 3. Body Content */}
@@ -50,9 +62,6 @@ const ServiceNode = ({ data, selected }: NodeProps) => {
             unit="ms"
             textColor="text-nss-warning"
           />
-
-          {/* Add more optional metrics here; they won't render if data is missing */}
-
         </div>
 
         {/* 4. Load Bar Atom */}

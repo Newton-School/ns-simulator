@@ -7,7 +7,7 @@ export interface CatalogItem {
   icon: any; // Lucide Icon Component
   color: string; // Tailwind class for the icon background
   data: {
-    // Default data when dropped on canvas
+    iconKey: string;
     status: 'healthy' | 'degraded' | 'critical';
     throughput?: number;
     errorRate?: number;

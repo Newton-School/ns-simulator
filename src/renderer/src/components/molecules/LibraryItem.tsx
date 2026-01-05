@@ -10,7 +10,12 @@ export const LibraryItem = ({ item }: LibraryItemProps) => {
 
   const onDragStart = (event: React.DragEvent) => {
     event.dataTransfer.setData('application/reactflow/type', type);
-    event.dataTransfer.setData('application/reactflow/data', JSON.stringify({ label, ...data }));
+    event.dataTransfer.setData('application/reactflow/data', JSON.stringify({
+      label,
+      color,
+      ...data
+    }));
+
     event.dataTransfer.effectAllowed = 'move';
   };
 
