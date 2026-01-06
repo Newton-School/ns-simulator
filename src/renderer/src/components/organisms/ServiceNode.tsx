@@ -3,10 +3,10 @@ import { Position, NodeProps } from 'reactflow';
 import { Server, Globe, Cpu, Database, Network } from 'lucide-react';
 
 // Import Atoms & Molecules
-import { NodeHandle } from '../../components/atoms/NodeHandle';
-import { ProgressBar } from '../../components/atoms/ProgressBar';
-import { NodeHeader } from '../../components/molecules/NodeHeader';
-import { MetricItem } from '../../components/molecules/MetricItem';
+import { NodeHandle } from '../atoms/NodeHandle';
+import { ProgressBar } from '../atoms/ProgressBar';
+import { NodeHeader } from '../molecules/NodeHeader';
+import { MetricItem } from '../molecules/MetricItem';
 
 const ICON_LOOKUP: Record<string, any> = {
   globe: Globe,

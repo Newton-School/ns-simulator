@@ -1,22 +1,22 @@
 import { useState, useCallback, useMemo } from 'react'; // Added useMemo
-import ReactFlow, { 
-  Background, 
-  Controls, 
-  BackgroundVariant, 
-  ReactFlowInstance, 
+import ReactFlow, {
+  Background,
+  Controls,
+  BackgroundVariant,
+  ReactFlowInstance,
   ReactFlowProvider,
   Node,
   EdgeTypes // Import Type
 } from 'reactflow';
-import 'reactflow/dist/style.css'; 
-import { useShallow } from 'zustand/react/shallow'; 
+import 'reactflow/dist/style.css';
+import { useShallow } from 'zustand/react/shallow';
 
-import useStore from '../../store/useStore'; 
-import ServiceNode from '../../features/nodes/ServiceNode';
+import useStore from '../../store/useStore';
+import ServiceNode from './ServiceNode';
 import { PacketEdge } from '../molecules/flow/edges/PacketEdge';
 
 // nss-border = #2A303C
-const GRID_COLOR = '#2A303C'; 
+const GRID_COLOR = '#2A303C';
 
 const nodeTypes = {
   serviceNode: ServiceNode,
@@ -47,7 +47,7 @@ const FlowCanvasInternal = () => {
       onNodesChange: state.onNodesChange,
       onEdgesChange: state.onEdgesChange,
       onConnect: state.onConnect,
-      addNode: state.addNode, 
+      addNode: state.addNode,
     }))
   );
 
@@ -73,7 +73,7 @@ const FlowCanvasInternal = () => {
 
       const newNode: Node = {
         id: getId(),
-        type, 
+        type,
         position,
         data: { ...data },
       };
@@ -99,11 +99,11 @@ const FlowCanvasInternal = () => {
         onDragOver={onDragOver}
         fitView
       >
-        <Background 
-            variant={BackgroundVariant.Dots} 
-            gap={20} 
-            size={1}
-            color={GRID_COLOR} 
+        <Background
+          variant={BackgroundVariant.Dots}
+          gap={20}
+          size={1}
+          color={GRID_COLOR}
         />
         <Controls className="!bg-nss-surface !border-nss-border [&>button]:!fill-nss-muted hover:[&>button]:!fill-white" />
       </ReactFlow>

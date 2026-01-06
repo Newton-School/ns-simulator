@@ -4,7 +4,7 @@ import { clsx } from 'clsx';
 // --- ATOMS ---
 
 export const Label = ({ children, className }: { children: React.ReactNode; className?: string }) => (
-  <label className={clsx("text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5 block", className)}>
+  <label className={clsx("text-[11px] font-bold text-nss-muted uppercase tracking-wider mb-1.5 block", className)}>
     {children}
   </label>
 );
@@ -13,13 +13,13 @@ export const Input = ({ className, rightElement, ...props }: React.InputHTMLAttr
   <div className="relative group">
     <input
       className={clsx(
-        "w-full bg-[#18181b] border border-gray-800 hover:border-gray-700 focus:border-blue-500 rounded px-3 py-2 text-sm text-gray-200 outline-none transition-colors font-mono",
+        "w-full bg-nss-input-bg border border-nss-border hover:border-nss-muted/50 focus:border-nss-primary rounded px-3 py-2 text-sm text-nss-text outline-none transition-colors font-mono placeholder:text-nss-placeholder",
         className
       )}
       {...props}
     />
     {rightElement && (
-      <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs pointer-events-none">
+      <div className="absolute right-3 top-1/2 -translate-y-1/2 text-nss-muted text-xs pointer-events-none">
         {rightElement}
       </div>
     )}
@@ -30,7 +30,7 @@ export const Select = ({ children, className, ...props }: React.SelectHTMLAttrib
   <div className="relative">
     <select
       className={clsx(
-        "w-full appearance-none bg-[#18181b] border border-gray-800 hover:border-gray-700 focus:border-blue-500 rounded px-3 py-2 text-sm text-gray-200 outline-none transition-colors",
+        "w-full appearance-none bg-nss-input-bg border border-nss-border hover:border-nss-muted/50 focus:border-nss-primary rounded px-3 py-2 text-sm text-nss-text outline-none transition-colors",
         className
       )}
       {...props}
@@ -38,17 +38,17 @@ export const Select = ({ children, className, ...props }: React.SelectHTMLAttrib
       {children}
     </select>
 
-    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
-      <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M1 1L5 5L9 1"/></svg>
+    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-nss-muted">
+      <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M1 1L5 5L9 1" /></svg>
     </div>
   </div>
 );
 
 export const Slider = ({ value, min = 0, max = 100, unit, onChange }: { value: number, min?: number, max?: number, unit?: string, onChange: (val: number) => void }) => (
-  <div className="bg-[#18181b] border border-gray-800 rounded p-3 group hover:border-gray-700 transition-colors">
+  <div className="bg-nss-input-bg border border-nss-border rounded p-3 group hover:border-nss-muted/50 transition-colors">
     <div className="flex justify-between items-end mb-2">
-      <span className="text-xs text-gray-400 font-medium">{unit}</span>
-      <span className="text-xs text-blue-400 font-mono bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20">
+      <span className="text-xs text-nss-muted font-medium">{unit}</span>
+      <span className="text-xs text-nss-primary font-mono bg-nss-primary/10 px-1.5 py-0.5 rounded border border-nss-primary/20">
         {value}
       </span>
     </div>
@@ -58,16 +58,16 @@ export const Slider = ({ value, min = 0, max = 100, unit, onChange }: { value: n
       max={max}
       value={value}
       onChange={(e) => onChange(Number(e.target.value))}
-      className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+      className="w-full h-1 bg-nss-border rounded-lg appearance-none cursor-pointer accent-nss-primary"
     />
   </div>
 );
 
 export const StatusBadge = ({ status }: { status: string }) => {
   const colors: Record<string, string> = {
-    healthy: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-    degraded: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
-    critical: 'bg-red-500/10 text-red-400 border-red-500/20',
+    healthy: 'bg-nss-success/10 text-nss-success border-nss-success/20',
+    degraded: 'bg-nss-warning/10 text-nss-warning border-nss-warning/20',
+    critical: 'bg-nss-danger/10 text-nss-danger border-nss-danger/20',
   };
   const styles = colors[status] || colors.healthy;
 
