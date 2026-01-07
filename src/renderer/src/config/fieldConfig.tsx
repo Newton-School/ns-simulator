@@ -3,7 +3,7 @@ export const FIELD_DEFINITIONS: Record<string, any> = {
     status: { type: 'select', label: 'Health Status', options: ['healthy', 'degraded', 'critical'] },
 
     // --- Metrics ---
-    throughput: { type: 'slider', label: 'Throughput', min: 0, max: 10000, unit: 'req/s' },
+    throughput: { type: 'slider', label: 'Throughput', min: 0, max: 100000, unit: 'req/s' },
     errorRate: { type: 'input', label: 'Error Rate', unit: '%', step: 0.01 },
     load: { type: 'slider', label: 'CPU Load', min: 0, max: 100, unit: '%' },
     queueDepth: { type: 'input', label: 'Queue Depth', unit: 'ms' },
