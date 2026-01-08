@@ -4,10 +4,31 @@ import {
   Database,
   Server,
   Network,
+  Cloud
 } from 'lucide-react';
 import { CatalogCategory } from '@renderer/types/ui';
 
 export const CATALOG_CONFIG: CatalogCategory[] = [
+  {
+    id: 'infrastructure',
+    title: 'Infrastructure',
+    items: [
+      {
+        id: 'vpc-region',
+        type: 'vpcNode',
+        label: 'VPC Region',
+        subLabel: 'Isolated Network',
+        icon: Cloud,
+        color: 'bg-blue-500',
+        data: {
+          iconKey: 'network',
+          status: 'healthy',
+          throughput: 10000,
+          load: 12
+        }
+      }
+    ]
+  },
   {
     id: 'compute',
     title: 'Compute',
@@ -101,5 +122,5 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
         }
       }
     ]
-  }
+  },
 ];
