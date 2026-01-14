@@ -5,17 +5,18 @@ import {
   NodeToolbar,
   Position
 } from 'reactflow';
-import { Cloud, Lock, Ungroup } from 'lucide-react'; // Import Ungroup icon
-import useStore from '../../../store/useStore'; // Import your store
+import { Cloud, Lock, Ungroup } from 'lucide-react';
+import useStore from '@renderer/store/useStore';
 
 const VpcNode = ({ id, data, selected }: NodeProps) => {
-  const { nodes, setNodes } = useStore.getState();
+  const { setNodes } = useStore.getState();
 
   const handleUngroup = useCallback(() => {
-    const currentNodes = nodes;
+    const currentNodes = useStore.getState().nodes;
     const parentNode = currentNodes.find(n => n.id === id);
 
     if (!parentNode) return;
+
 
     const updatedNodes = currentNodes.map(node => {
       // If this node is a child of the current VPC

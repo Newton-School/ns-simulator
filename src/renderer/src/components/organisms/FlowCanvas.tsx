@@ -9,12 +9,9 @@ import ReactFlow, {
   EdgeTypes,
   useReactFlow,
   NodeDragHandler,
-  getRectOfNodes,
-  Panel
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useShallow } from 'zustand/react/shallow';
-import { Group } from 'lucide-react';
 
 import useStore from '../../store/useStore';
 import ServiceNode from './nodes/ServiceNode';
@@ -135,15 +132,20 @@ const FlowCanvasInternal = () => {
         y: node.position.y - targetVpc.position.y,
       };
 
-      setNodes(nodes.map((n) => n.id === node.id ? {
-        ...n,
-        parentNode: targetVpc.id,
-        position: relativePosition,
-        extent: 'parent',
-        // Fix: Use zIndex 10 so nested VPCs sit ON TOP of their parent's background
-        zIndex: 10,
-        expandParent: false // Fix: Disable auto-expand to prevent resizing bugs
-      } : n));
+      setNodes(
+        nodes.map((n) =>
+          n.id === node.id
+            ? {
+              ...n,
+              parentNode: targetVpc.id,
+              position: relativePosition,
+              extent: 'parent',
+              expandParent: false,
+              zIndex: 10,
+            }
+            : n
+        )
+      );
     }
 
     // --- SCENARIO B: DETACH FROM PARENT (If dragged out) ---
@@ -153,43 +155,6 @@ const FlowCanvasInternal = () => {
       // ... (Logic remains same as before if needed)
     }
   }, [nodes, setNodes, getIntersectingNodes]);
-
-
-  const onGroupSelection = useCallback(() => {
-    const selectedNodes = nodes.filter((n) => n.selected && n.type !== 'vpcNode');
-    if (selectedNodes.length < 2) return alert("Select 2+ nodes");
-
-    const rect = getRectOfNodes(selectedNodes);
-    const PADDING = 40;
-    const groupId = getId();
-
-    const groupNode: Node = {
-      id: groupId,
-      type: 'vpcNode',
-      position: { x: rect.x - PADDING, y: rect.y - PADDING },
-      style: { width: rect.width + PADDING * 2, height: rect.height + PADDING * 2 },
-      data: { label: 'Cluster Group', iconKey: 'globe', status: 'healthy' },
-    };
-
-    const updatedChildren = nodes.map((node) => {
-      if (node.selected && node.type !== 'vpcNode') {
-        return {
-          ...node,
-          parentNode: groupId,
-          extent: 'parent' as const,
-          position: {
-            x: node.position.x - (rect.x - PADDING),
-            y: node.position.y - (rect.y - PADDING),
-          },
-          selected: false,
-          zIndex: 10, // Ensure grouped items are above group background
-        };
-      }
-      return node;
-    });
-
-    setNodes([groupNode, ...updatedChildren]);
-  }, [nodes, setNodes]);
 
   return (
     <div style={{ width: '100%', height: '100%' }} className="bg-nss-bg relative">
@@ -210,11 +175,6 @@ const FlowCanvasInternal = () => {
       >
         <Background variant={BackgroundVariant.Dots} gap={20} size={1} color={GRID_COLOR} />
         <Controls className="!bg-nss-surface !border-nss-border" />
-        <Panel position="top-right" className="bg-nss-surface p-2 rounded-lg border border-nss-border shadow-md">
-          <button onClick={onGroupSelection} className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-nss-muted hover:text-nss-primary transition-colors">
-            <Group size={16} /> Group Selected
-          </button>
-        </Panel>
       </ReactFlow>
     </div>
   );
