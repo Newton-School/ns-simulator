@@ -1,7 +1,6 @@
 import { clsx } from 'clsx';
 import {
-  Globe, Cpu, Database, Server, Network,
-  Settings,
+  Globe, Cpu, Database, Server, Network, Cloud, Settings,
 } from 'lucide-react';
 
 interface NodeIconProps {
@@ -11,7 +10,7 @@ interface NodeIconProps {
 
 const ICON_MAP: Record<string, any> = {
   globe: Globe, cpu: Cpu, database: Database,
-  server: Server, network: Network, default: Settings
+  server: Server, network: Network, cloud: Cloud, default: Settings,
 };
 
 const COLOR_MAP: Record<string, string> = {
@@ -20,6 +19,7 @@ const COLOR_MAP: Record<string, string> = {
   database: 'text-nss-success bg-nss-success/10 border-nss-success/20',
   server: 'text-nss-warning bg-nss-warning/10 border-nss-warning/20',
   network: 'text-nss-info bg-nss-info/10 border-nss-info/20',
+  cloud: 'text-nss-primary bg-nss-primary/10 border-nss-primary/20',
 };
 
 export const PropertiesNodeIcon = ({ iconKey, size = 20 }: NodeIconProps) => {

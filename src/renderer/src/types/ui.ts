@@ -9,7 +9,7 @@ export interface CatalogItem {
   color: string; // Tailwind class for the icon background
   data: {
     iconKey: string;
-    status: 'healthy' | 'degraded' | 'critical';
+    status?: 'healthy' | 'degraded' | 'critical';
     throughput?: number;
     errorRate?: number;
     load?: number;

@@ -21,10 +21,7 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
         icon: Cloud,
         color: 'bg-blue-500',
         data: {
-          iconKey: 'network',
-          status: 'healthy',
-          throughput: 10000,
-          load: 12
+          iconKey: 'cloud',
         }
       }
     ]
