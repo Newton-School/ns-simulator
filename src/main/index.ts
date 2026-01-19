@@ -2,6 +2,7 @@ import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import { registerIpcHandlers } from './ipcHandlers'
 
 function createWindow(): void {
   // Create the browser window.
@@ -60,13 +61,18 @@ app.whenReady().then(() => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
 
-  // Listen for the 'save' event
-  ipcMain.on('nssimulator:save-scenario', (_, data) => {
-    console.log('Received scenario data:', data);
+  ipcMain.handle('dialog:save', async (event, content) => {
+    const filepath = await registerIpcHandlers.handleSaveScenario(event, content);
+
+    console.log("Saved to", filepath);
+    return filepath;
   });
 
-  ipcMain.handle('nssimulator:load-scenario', async () => {
-    return { data: 'data' };
+  ipcMain.handle('dialog:open', async (event) => {
+    const content = await registerIpcHandlers.handleOpenScenario(event);
+
+    console.log("File content returned to UI:", content);
+    return content;
   });
 
   ipcMain.on('nssimulator:run-simulation', (_, config) => {
