@@ -1,90 +1,40 @@
-import { useState, useCallback, useMemo } from 'react'; // Added useMemo
+import { useState } from 'react';
 import ReactFlow, {
   Background,
   Controls,
   BackgroundVariant,
   ReactFlowInstance,
   ReactFlowProvider,
-  Node,
-  EdgeTypes // Import Type
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { useShallow } from 'zustand/react/shallow';
 
-import useStore from '../../store/useStore';
-import ServiceNode from './ServiceNode';
-import { PacketEdge } from '../molecules/flow/edges/PacketEdge';
-
-// nss-border = #2A303C
-const GRID_COLOR = '#2A303C';
-
-const nodeTypes = {
-  serviceNode: ServiceNode,
-};
-
-let id = 1;
-const getId = () => `node_${id++}`;
+// Hooks & Config
+import { useFlowStore } from '../features/canvas/hooks/useFlowStore';
+import { useFlowDnD } from '../features/canvas/hooks/useFlowDnD';
+import { useFlowConfig, nodeTypes, GRID_COLOR } from '../features/canvas/config/flowConfig'
 
 const FlowCanvasInternal = () => {
+  // Local State
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
 
-  // Define Edge Types (Memoized to prevent re-renders)
-  const edgeTypes = useMemo<EdgeTypes>(() => ({
-    packet: PacketEdge,
-  }), []);
+  // Store State
+  const {
+    nodes, edges, onNodesChange, onEdgesChange, onConnect, addNode, setNodes
+  } = useFlowStore();
 
-  // Default options: Every new connection becomes a 'packet' edge
-  const defaultEdgeOptions = useMemo(() => ({
-    type: 'packet',
-    animated: false, // Turn off default "marching ants"
-    data: { trafficType: 'default', speed: 'normal' }, // Default data
-  }), []);
+  // Static Config (Memoized)
+  const { edgeTypes, defaultEdgeOptions } = useFlowConfig();
 
-  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, addNode } = useStore(
-    useShallow((state) => ({
-      nodes: state.nodes,
-      edges: state.edges,
-      onNodesChange: state.onNodesChange,
-      onEdgesChange: state.onEdgesChange,
-      onConnect: state.onConnect,
-      addNode: state.addNode,
-    }))
-  );
-
-  const onDragOver = useCallback((event: React.DragEvent) => {
-    event.preventDefault();
-    event.dataTransfer.dropEffect = 'move';
-  }, []);
-
-  const onDrop = useCallback(
-    (event: React.DragEvent) => {
-      event.preventDefault();
-
-      const type = event.dataTransfer.getData('application/reactflow/type');
-      const dataString = event.dataTransfer.getData('application/reactflow/data');
-
-      if (!type || !dataString) return;
-
-      const data = JSON.parse(dataString);
-      const position = reactFlowInstance?.screenToFlowPosition({
-        x: event.clientX,
-        y: event.clientY,
-      }) || { x: 0, y: 0 };
-
-      const newNode: Node = {
-        id: getId(),
-        type,
-        position,
-        data: { ...data },
-      };
-
-      addNode(newNode);
-    },
-    [reactFlowInstance, addNode]
-  );
+  // Drag & Drop Logic (Custom Hook)
+  const { onDragOver, onDrop, onNodeDragStop } = useFlowDnD({
+    nodes,
+    addNode,
+    setNodes,
+    instance: reactFlowInstance,
+  });
 
   return (
-    <div style={{ width: '100%', height: '100%' }} className="bg-nss-bg">
+    <div style={{ width: '100%', height: '100%' }} className="bg-nss-bg relative">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -92,11 +42,12 @@ const FlowCanvasInternal = () => {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes} // Pass Custom Edges
-        defaultEdgeOptions={defaultEdgeOptions} // Apply defaults
+        edgeTypes={edgeTypes}
+        defaultEdgeOptions={defaultEdgeOptions}
         onInit={setReactFlowInstance}
         onDrop={onDrop}
         onDragOver={onDragOver}
+        onNodeDragStop={onNodeDragStop}
         fitView
       >
         <Background
@@ -105,12 +56,13 @@ const FlowCanvasInternal = () => {
           size={1}
           color={GRID_COLOR}
         />
-        <Controls className="!bg-nss-surface !border-nss-border [&>button]:!fill-nss-muted hover:[&>button]:!fill-white" />
+        <Controls className="!bg-nss-surface !border-nss-border" />
       </ReactFlow>
     </div>
   );
 };
 
+// Wrap in Provider to ensure hooks like useReactFlow work inside
 export const FlowCanvas = () => (
   <ReactFlowProvider>
     <FlowCanvasInternal />

@@ -1,8 +1,9 @@
 import { useState, useCallback } from 'react';
 import { Panel, PanelGroup } from 'react-resizable-panels';
 import { useFileHandlers } from '../../hooks/useFileHandlers';
+import useStore from '../../store/useStore';
 
-//Organisms
+// Organisms
 import { LibrarySidebar } from '../organisms/LibrarySidebar';
 import { PropertiesPanel } from '../organisms/PropertiesPanel';
 import { FlowCanvas } from '../organisms/FlowCanvas';
@@ -17,13 +18,17 @@ export const WorkspaceLayout = () => {
     const [isRightOpen, setIsRightOpen] = useState(true);
 
     const handleGetFileData = useCallback(() => {
-        return JSON.stringify({ nodes: [], edges: [] });
+        const { nodes, edges } = useStore.getState();
+
+        return JSON.stringify({ nodes, edges }, null, 2);
     }, []);
 
     const handleLoadFileData = useCallback((data: any) => {
-
         console.log("File content returned to UI:", data);
 
+        if (data && data.nodes && data.edges) {
+            useStore.getState().setNodes(data.nodes);
+        }
     }, []);
 
     useFileHandlers(handleGetFileData, handleLoadFileData);

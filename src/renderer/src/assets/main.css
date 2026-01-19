@@ -16,6 +16,10 @@
     --nss-muted: #64748B;
     --nss-placeholder: #94A3B8;
 
+    /* VPC Specific (Light Mode) - Darker gray for visibility against white */
+    --nss-vpc-border: #94A3B8;     /* Slate-400 (Visible dashed line) */
+    --nss-vpc-bg: 241 245 249;     /* Slate-100 (RGB for opacity) */
+
     /* RGB Values for Opacity Support (Light) */
     --nss-primary: 37 99 235;        /* Blue-600 */
     --nss-primary-hover: 29 78 216;
@@ -38,6 +42,10 @@
     --nss-text: #E5E7EB;
     --nss-muted: #6B7280;
     --nss-placeholder: #4B5563;
+
+    /* VPC Specific (Dark Mode) - Lighter gray for visibility against dark bg */
+    --nss-vpc-border: #475569;     /* Slate-600 */
+    --nss-vpc-bg: 30 41 59;        /* Slate-800 (RGB) */
     
     /* RGB Values for Opacity Support (Dark) */
     --nss-primary: 59 130 246;       /* Blue-500 */
@@ -56,6 +64,4 @@
   *, ::before, ::after {
     @apply transition-colors duration-200 ease-in-out;
   }
-
-  
 }
