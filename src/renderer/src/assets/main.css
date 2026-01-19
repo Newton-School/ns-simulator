@@ -8,38 +8,54 @@
     --nss-bg: #F8FAFC;
     --nss-panel: #FFFFFF;
     --nss-surface: #F1F5F9;
+    --nss-input-bg: #FFFFFF;
+    
     --nss-border: #E2E8F0;
     --nss-border-high: #CBD5E1;
     --nss-text: #0F172A;
     --nss-muted: #64748B;
     --nss-placeholder: #94A3B8;
-    --nss-primary: #2563EB;
-    --nss-primary-hover: #1D4ED8;
-    --nss-success: #059669;
-    --nss-warning: #D97706;
-    --nss-danger: #DC2626;
-    --nss-info: #4F46E5;
+
+    /* RGB Values for Opacity Support (Light) */
+    --nss-primary: 37 99 235;        /* Blue-600 */
+    --nss-primary-hover: 29 78 216;
+    
+    --nss-success: 16 185 129;       /* Emerald-500 */
+    --nss-warning: 245 158 11;       /* Amber-500 */
+    --nss-danger: 239 68 68;         /* Red-500 */
+    --nss-info: 79 70 229;           /* Indigo-600 */
   }
 
   [data-theme='dark'] {
     /* --- DARK THEME --- */
-    --nss-bg: #0B0E11;
+    --nss-bg: #09090b;
     --nss-panel: #15191E;
     --nss-surface: #1F242C;
-    --nss-border: #2A303C;
-    --nss-border-high: #4B5563;
-    --nss-text: #E2E8F0;
-    --nss-muted: #94A3B8;
-    --nss-placeholder: #64748B;
-    --nss-primary: #3B82F6;
-    --nss-primary-hover: #2563EB;
-    --nss-success: #10B981;
-    --nss-warning: #F59E0B;
-    --nss-danger: #EF4444;
-    --nss-info: #6366F1;
+    --nss-input-bg: #18181b; 
+    
+    --nss-border: #1f2937;         /* Gray-800 */
+    --nss-border-high: #374151;
+    --nss-text: #E5E7EB;
+    --nss-muted: #6B7280;
+    --nss-placeholder: #4B5563;
+    
+    /* RGB Values for Opacity Support (Dark) */
+    --nss-primary: 59 130 246;       /* Blue-500 */
+    --nss-primary-hover: 37 99 235;
+
+    --nss-success: 52 211 153;       /* Emerald-400 */
+    --nss-warning: 251 191 36;       /* Amber-400 */
+    --nss-danger: 248 113 113;       /* Red-400 */
+    --nss-info: 129 140 248;         /* Indigo-400 */
   }
   
-  body {
-    @apply bg-nss-bg text-nss-text transition-colors duration-200;
+   body {
+    @apply bg-nss-bg text-nss-text;
   }
+
+  *, ::before, ::after {
+    @apply transition-colors duration-200 ease-in-out;
+  }
+
+  
 }

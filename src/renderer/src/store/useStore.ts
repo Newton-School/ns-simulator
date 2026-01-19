@@ -20,6 +20,8 @@ type RFState = {
   onEdgesChange: OnEdgesChange;
   onConnect: OnConnect;
   addNode: (node: Node) => void;
+  // Add type definition
+  updateNodeData: (nodeId: string, data: any) => void;
 };
 
 const useStore = create<RFState>((set, get) => ({
@@ -46,6 +48,19 @@ const useStore = create<RFState>((set, get) => ({
 
   addNode: (node: Node) => {
     set({ nodes: [...get().nodes, node] });
+  },
+
+  //Add implementation
+  updateNodeData: (nodeId: string, data: any) => {
+    set({
+      nodes: get().nodes.map((node) => {
+        if (node.id === nodeId) {
+          // **Create a new object to trigger a re-render in React Flow
+          node.data = { ...node.data, ...data };
+        }
+        return node;
+      }),
+    });
   },
 }));
 
