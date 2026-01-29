@@ -21,10 +21,8 @@ export const WorkspaceLayout = () => {
     const [isLeftOpen, setIsLeftOpen] = useState(true);
     const [isRightOpen, setIsRightOpen] = useState(true);
 
-    // 1. Get File Handlers (Save/Open actions)
     const { handleSave, handleOpen } = useFlowPersistence();
 
-    // 2. Get File State (Name/Dirty status)
     const fileName = useStore((s) => s.fileName);
     const isUnsaved = useStore((s) => s.isUnsaved);
 
@@ -37,11 +35,11 @@ export const WorkspaceLayout = () => {
                 toggleRight={() => setIsRightOpen(prev => !prev)}
                 isLeftOpen={isLeftOpen}
                 isRightOpen={isRightOpen}
-                
+
                 // File Actions
                 onSave={handleSave}
                 onOpen={handleOpen}
-                
+
                 // File Status
                 fileName={fileName}
                 isUnsaved={isUnsaved}
@@ -50,7 +48,7 @@ export const WorkspaceLayout = () => {
             {/* Main Content Area */}
             <div className="flex-1 overflow-hidden relative h-full">
                 <PanelGroup direction="horizontal" autoSaveId="main-layout-horizontal">
-                    
+
                     {/* Pane B: Left Sidebar */}
                     {isLeftOpen && (
                         <>
@@ -70,7 +68,7 @@ export const WorkspaceLayout = () => {
                             </Panel>
                         </PanelGroup>
                     </Panel>
-                    
+
                     {/* Pane C: Right Sidebar */}
                     {isRightOpen && (
                         <>

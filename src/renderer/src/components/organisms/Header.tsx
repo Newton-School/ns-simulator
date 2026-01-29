@@ -1,4 +1,3 @@
-// src/components/organisms/Header.tsx
 import { memo } from 'react';
 import { Sidebar, Save, FolderOpen } from 'lucide-react';
 

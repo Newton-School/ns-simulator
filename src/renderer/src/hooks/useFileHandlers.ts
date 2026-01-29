@@ -1,56 +1,34 @@
 import { useCallback } from 'react';
+import { FileService } from '../services/FileService';
 
 export const useFileHandlers = (
     onSaveRequested: () => string,
     onDataLoaded: (data: any, filePath?: string) => void
 ) => {
 
-    // --- Save Logic ---
-    const handleSave = useCallback(async (): Promise<string | null> => {
+    const handleSave = useCallback(async () => {
         const content = onSaveRequested();
-        try {
-            const result = await window.nssimulator.saveScenario(content);
 
-            // Return path if successful
-            if (typeof result === 'string') {
-                console.log(`Saved to: ${result}`);
-                return result;
-            }
-            return null;
-        } catch (err) {
-            console.error("Failed to save scenario", err);
-            return null;
+        const savedPath = await FileService.save(content);
+
+        if (savedPath) {
+            console.log(`Saved to: ${savedPath}`);
         }
+
+        return savedPath;
     }, [onSaveRequested]);
 
-    // --- Open Logic ---
     const handleOpen = useCallback(async () => {
+
+        const file = await FileService.load();
+
+        if (!file?.content) return;
+
         try {
-            const result = await window.nssimulator.loadScenario();
-
-            if (!result) return;
-
-            let content: string;
-            let path: string | undefined;
-
-            if (typeof result === 'string') {
-                content = result;
-                path = undefined;
-            } else {
-                content = result.data;
-                path = result.path;
-            }
-
-            if (content) {
-                try {
-                    const parsed = JSON.parse(content);
-                    onDataLoaded(parsed, path);
-                } catch (err) {
-                    console.error("Failed to parse loaded file", err);
-                }
-            }
+            const parsedData = JSON.parse(file.content);
+            onDataLoaded(parsedData, file.path);
         } catch (err) {
-            console.error("Failed to load scenario file", err);
+            console.error("[useFileHandlers] Failed to parse JSON content", err);
         }
     }, [onDataLoaded]);
 
