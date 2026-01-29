@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { Panel, PanelGroup } from 'react-resizable-panels';
 
+// Store
+import useStore from '@renderer/store/useStore';
+
 // Hooks
 import { useFlowPersistence } from '@renderer/hooks/useFlowPersistence';
 
@@ -14,28 +17,40 @@ import { Header } from '../organisms/Header';
 import { ResizeHandle } from '../atoms/ResizeHandle';
 
 export const WorkspaceLayout = () => {
+    // Sidebar State
     const [isLeftOpen, setIsLeftOpen] = useState(true);
     const [isRightOpen, setIsRightOpen] = useState(true);
 
-    // Enable Save/Load functionality
-    useFlowPersistence();
+    // 1. Get File Handlers (Save/Open actions)
+    const { handleSave, handleOpen } = useFlowPersistence();
+
+    // 2. Get File State (Name/Dirty status)
+    const fileName = useStore((s) => s.fileName);
+    const isUnsaved = useStore((s) => s.isUnsaved);
 
     return (
-
         <div className="h-screen w-screen flex flex-col overflow-hidden bg-white text-gray-900">
             {/* Pane A: Header (Fixed) */}
-
             <Header
+                // Layout Toggles
                 toggleLeft={() => setIsLeftOpen(prev => !prev)}
                 toggleRight={() => setIsRightOpen(prev => !prev)}
                 isLeftOpen={isLeftOpen}
                 isRightOpen={isRightOpen}
-
+                
+                // File Actions
+                onSave={handleSave}
+                onOpen={handleOpen}
+                
+                // File Status
+                fileName={fileName}
+                isUnsaved={isUnsaved}
             />
 
             {/* Main Content Area */}
             <div className="flex-1 overflow-hidden relative h-full">
                 <PanelGroup direction="horizontal" autoSaveId="main-layout-horizontal">
+                    
                     {/* Pane B: Left Sidebar */}
                     {isLeftOpen && (
                         <>
@@ -55,6 +70,7 @@ export const WorkspaceLayout = () => {
                             </Panel>
                         </PanelGroup>
                     </Panel>
+                    
                     {/* Pane C: Right Sidebar */}
                     {isRightOpen && (
                         <>
