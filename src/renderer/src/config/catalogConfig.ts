@@ -1,10 +1,11 @@
 import {
-  Globe,
   Cpu,
   Database,
   Server,
   Network,
-  Cloud
+  Cloud,
+  Zap,
+  Clock,
 } from 'lucide-react';
 import { CatalogCategory } from '@renderer/types/ui';
 
@@ -28,40 +29,67 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
   },
   {
     id: 'compute',
-    title: 'Compute',
+    title: 'Compute Abstractions',
     items: [
       {
-        id: 'api-gateway',
-        type: 'serviceNode',
-        label: 'API Gateway',
-        subLabel: 'Ingress Controller',
-        icon: Globe,
-        color: 'bg-purple-500',
+        id: 'backend-server',
+        type: 'computeNode',   // New Node Type
+        label: 'App Server',
+        subLabel: 'Long-running Process',
+        icon: Server,
+        color: 'bg-indigo-500',
         data: {
-          iconKey: 'globe',
-          status: 'critical',
-          throughput: 1200,
-          errorRate: 2,
-          load: 45,
-          queueDepth: 12
+          computeType: 'SERVER',
+          cpu_usage: 45,
+          queue_depth: 12,
+          is_overloaded: false
         }
       },
       {
-        id: 'worker-pool',
-        type: 'serviceNode',
-        label: 'Worker Pool',
-        subLabel: 'Async processing',
-        icon: Cpu,
-        color: 'bg-blue-500',
+        id: 'lambda-function',
+        type: 'computeNode',
+        label: 'Serverless Fn',
+        subLabel: 'Event Driven',
+        icon: Zap,
+        color: 'bg-yellow-500',
         data: {
-          iconKey: 'cpu',
-          status: 'healthy',
-          throughput: 800,
-          load: 20
+          computeType: 'LAMBDA',
+          cpu_usage: 10,
+          queue_depth: 0,
+          is_overloaded: false
+        }
+      },
+      {
+        id: 'async-worker',
+        type: 'computeNode',
+        label: 'Job Worker',
+        subLabel: 'Background Task',
+        icon: Cpu,
+        color: 'bg-emerald-500',
+        data: {
+          computeType: 'WORKER',
+          cpu_usage: 88,
+          queue_depth: 145,
+          is_overloaded: true
+        }
+      },
+       {
+        id: 'cron-job',
+        type: 'computeNode',
+        label: 'Cron Job',
+        subLabel: 'Scheduled Task',
+        icon: Clock,
+        color: 'bg-gray-500',
+        data: {
+          computeType: 'CRON',
+          cpu_usage: 0,
+          queue_depth: 0,
+          is_overloaded: false
         }
       }
     ]
   },
+  
   {
     id: 'datastore',
     title: 'Data Store',
