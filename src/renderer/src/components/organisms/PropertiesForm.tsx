@@ -1,13 +1,7 @@
 import { FIELD_DEFINITIONS, FIELD_GROUPS } from '@renderer/config/fieldConfig';
 import { FormField } from '../molecules/FormField';
 import { Cpu, Zap, Layers, AlertTriangle } from 'lucide-react';
-
-const COMPUTE_DEFAULTS: Record<string, { label: string; subLabel: string }> = {
-    SERVER: { label: 'App Server', subLabel: 'Long-running Process' },
-    LAMBDA: { label: 'Serverless Fn', subLabel: 'Event Driven' },
-    WORKER: { label: 'Job Worker', subLabel: 'Background Task' },
-    CRON: { label: 'Cron Job', subLabel: 'Scheduled Task' }
-};
+import { COMPUTE_DEFAULTS } from '@renderer/config/nodeRegistry';
 
 interface PropertiesFormProps {
     data: Record<string, any>;
@@ -35,10 +29,8 @@ export const PropertiesForm = ({ data, onUpdate }: PropertiesFormProps) => {
     const isComputeNode = !!data.computeType;
 
     const handleTypeChange = (newType: string) => {
-        // Update the type itself
         onUpdate('computeType', newType);
 
-        // Auto-update Label and SubLabel to match the new type
         const defaults = COMPUTE_DEFAULTS[newType];
         if (defaults) {
             onUpdate('label', defaults.label);
@@ -58,7 +50,7 @@ export const PropertiesForm = ({ data, onUpdate }: PropertiesFormProps) => {
                         </label>
                         <select
                             value={data.computeType}
-                            onChange={(e) => handleTypeChange(e.target.value)} // <--- Use new handler
+                            onChange={(e) => handleTypeChange(e.target.value)}
                             className="w-full bg-nss-bg border border-nss-border rounded px-2 py-1.5 text-xs text-nss-text focus:border-nss-primary outline-none"
                         >
                             <option value="SERVER">Server (Long Running)</option>
