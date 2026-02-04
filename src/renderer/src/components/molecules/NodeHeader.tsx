@@ -31,7 +31,7 @@ export const NodeHeader = memo(({
         <div className="bg-nss-panel p-3 border-b border-nss-border flex justify-between items-center rounded-t-lg">
             {/* Left Side: Icon + Label */}
             <div className="flex items-center gap-3 overflow-hidden">
-                <div className={`p-1.5 rounded bg-opacity-20 ${safeColor} shrink-0 flex items-center justify-center`}>
+                <div className={`p-1.5 rounded bg-opacity-50 ${safeColor} shrink-0 flex items-center justify-center`}>
                     <SafeIcon size={16} className={safeColor.replace('bg-', 'text-')} />
                 </div>
 

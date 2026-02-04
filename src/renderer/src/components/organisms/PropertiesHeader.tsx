@@ -6,9 +6,6 @@ interface PropertiesHeaderProps {
 }
 
 export const PropertiesHeader = ({ data }: PropertiesHeaderProps) => {
-
-  // 1. Resolve Configuration
-  // Look up by computeType OR iconKey (for legacy nodes)
   const lookupKey = data.computeType || data.iconKey;
   const { icon: Icon, theme, label, subLabel } = resolveNodeConfig(lookupKey);
 
@@ -20,10 +17,10 @@ export const PropertiesHeader = ({ data }: PropertiesHeaderProps) => {
       <div className="flex items-center gap-4">
 
         <div className={`
-          shrink-0 transition-all duration-300 rounded-lg p-2 border shadow-sm
+          shrink-0 transition-all duration-300 rounded-lg p-2 shadow-sm
           ${isOverloaded
             ? 'bg-nss-danger/10 border-nss-danger/30 text-nss-danger ring-1 ring-nss-danger/30'
-            : `p-1.5 rounded bg-opacity-20 ${safeColor} shrink-0 flex items-center justify-center` // <--- Centralized Color
+            : `p-1.5 rounded bg-opacity-40 ${safeColor} shrink-0 flex items-center justify-center`
           }
         `}>
           <Icon size={24} />
