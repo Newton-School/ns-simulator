@@ -1,30 +1,53 @@
+import { LucideIcon } from 'lucide-react';
 
-// Define the shape of a library item
+export interface ServiceNodeData {
+  iconKey: string;
+  status?: 'healthy' | 'degraded' | 'critical';
+  throughput?: number;
+  errorRate?: number;
+  load?: number;
+  queueDepth?: number;
+
+  // Visual Animation Props (Legacy/Service specific)
+  trafficType?: 'http' | 'success' | 'error' | 'warning' | 'default';
+  packets?: number;
+  speed?: 'slow' | 'normal' | 'fast';
+}
+
+// New Compute Node Data
+export type ComputeType = 'SERVER' | 'LAMBDA' | 'WORKER' | 'CRON';
+
+export interface ComputeNodeData {
+  computeType: ComputeType;
+  cpu_usage: number;      // 0-100
+  queue_depth: number;    // pending work count
+  is_overloaded: boolean; // Simulation state
+  
+  // Optional overrides
+  iconKey?: string;
+  label?: string;
+}
+
+// VPC Node Data
+export interface VpcNodeData {
+  iconKey?: string;
+}
+
+
+export type NodeType = 'serviceNode' | 'computeNode' | 'databaseNode' | 'vpcNode';
+
+export type AnyNodeData = ServiceNodeData | ComputeNodeData | VpcNodeData;
+
+
 export interface CatalogItem {
   id: string;
-  type: 'serviceNode' | 'gatewayNode' | 'databaseNode' | 'vpcNode'; // Maps to React Flow nodeTypes
+  type: NodeType;
   label: string;
   subLabel: string;
-  icon: any; // Lucide Icon Component
-  color: string; // Tailwind class for the icon background
-  data: {
-    iconKey: string;
-    status?: 'healthy' | 'degraded' | 'critical';
-    throughput?: number;
-    errorRate?: number;
-    load?: number;
-    queueDepth?: number;
-
-    // Visual Animation Props
-    // Controls particle color: 'http'(blue), 'success'(green), 'error'(red), 'warning'(orange)
-    trafficType?: 'http' | 'success' | 'error' | 'warning' | 'default';
-
-    // Controls visual density: 1 (light) to ~12 (heavy flood)
-    packets?: number;
-
-    // Controls animation speed: 'slow'(4s), 'normal'(2s), 'fast'(1s)
-    speed?: 'slow' | 'normal' | 'fast';
-  };
+  icon: LucideIcon; // Better type than 'any'
+  color: string;
+  
+  data: AnyNodeData;
 }
 
 export interface CatalogCategory {

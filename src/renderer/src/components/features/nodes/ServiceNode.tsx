@@ -1,12 +1,12 @@
-import { memo } from 'react';
+import { memo, useState, useCallback } from 'react';
 import { Position, NodeProps } from 'reactflow';
 import { Server, Globe, Cpu, Database, Network } from 'lucide-react';
 
-// Import Atoms & Molecules
-import { NodeHandle } from '../../atoms/NodeHandle';
-import { ProgressBar } from '../../atoms/ProgressBar';
-import { NodeHeader } from '../../molecules/NodeHeader';
-import { MetricItem } from '../../molecules/MetricItem';
+import { NodeHandle } from '@renderer/components/atoms/NodeHandle';
+import { ProgressBar } from '@renderer/components/atoms/ProgressBar';
+import { NodeHeader } from '@renderer/components/molecules/NodeHeader';
+import { MetricItem } from '@renderer/components/molecules/MetricItem';
+import { NodeSettingsMenu } from '@renderer/components/molecules/NodeSettingsMenu';
 
 const ICON_LOOKUP: Record<string, any> = {
   globe: Globe,
@@ -16,62 +16,58 @@ const ICON_LOOKUP: Record<string, any> = {
   network: Network,
 };
 
-const ServiceNode = ({ data, selected }: NodeProps) => {
-
+const ServiceNode = ({ id, data, selected }: NodeProps) => {
   const IconComponent = ICON_LOOKUP[data.iconKey] || Server;
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsMenuOpen(true);
+  }, []);
+
+  const handleMenuClose = useCallback(() => setIsMenuOpen(false), []);
+
+  const handleMenuToggle = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsMenuOpen((prev) => !prev);
+  }, []);
 
   return (
-    <div className={`
-      w-64 bg-nss-surface rounded-lg shadow-xl overflow-hidden transition-all duration-200
-      ${selected
-        ? 'ring-2 ring-nss-primary shadow-[0_0_20px_rgba(59,130,246,0.3)]'
-        : 'border border-nss-border hover:border-nss-muted/30'}
-    `}>
-      {/* 1. Input Connection */}
+    <div
+      onContextMenu={handleContextMenu}
+      className={`
+        w-64 bg-nss-surface rounded-lg shadow-xl transition-all duration-200
+        overflow-visible /* Crucial for menu popup */
+        ${selected
+          ? 'ring-2 ring-nss-primary shadow-[0_0_20px_rgba(59,130,246,0.3)]'
+          : 'border border-nss-border hover:border-nss-muted/30'}
+      `}
+    >
       <NodeHandle type="target" position={Position.Top} />
 
-      {/* 2. Header Molecule */}
       <NodeHeader
         label={data.label || 'Service'}
         icon={IconComponent}
         status={data.status}
         color={data.color}
-      />
-
-      {/* 3. Body Content */}
-      <div className="p-4">
-
-        {/* Metric Grid - Molecules handle their own conditional rendering */}
-        <div className="grid grid-cols-2 gap-4 mb-3">
-          <MetricItem
-            label="Throughput"
-            value={data.throughput}
-            unit="req/s"
-          />
-
-          <MetricItem
-            label="Error Rate"
-            value={data.errorRate}
-            unit="%"
-            textColor={data.errorRate > 1 ? "text-nss-danger" : "text-nss-success"}
-          />
-
-          <MetricItem
-            label="Queue Depth"
-            value={data.queueDepth}
-            unit="ms"
-            textColor="text-nss-warning"
-          />
-        </div>
-
-        {/* 4. Load Bar Atom */}
-        <ProgressBar
-          label="CPU Load"
-          value={data.load}
+      >
+        <NodeSettingsMenu
+          nodeId={id}
+          isOpen={isMenuOpen}
+          onClose={handleMenuClose}
+          onToggle={handleMenuToggle}
         />
+      </NodeHeader>
+
+      <div className="p-4">
+        <div className="grid grid-cols-2 gap-4 mb-3">
+          <MetricItem label="Throughput" value={data.throughput} unit="req/s" />
+          <MetricItem label="Error Rate" value={data.errorRate} unit="%" textColor="text-nss-danger" />
+          <MetricItem label="Queue Depth" value={data.queueDepth} unit="ms" textColor="text-nss-warning" />
+        </div>
+        <ProgressBar label="CPU Load" value={data.load} />
       </div>
 
-      {/* 5. Output Connection */}
       <NodeHandle type="source" position={Position.Bottom} />
     </div>
   );

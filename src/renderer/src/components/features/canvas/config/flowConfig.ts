@@ -1,23 +1,22 @@
 import { useMemo } from 'react';
-import { EdgeTypes } from 'reactflow';
 import ServiceNode from '../../nodes/ServiceNode';
 import VpcNode from '../../nodes/VpcNode';
-import { PacketEdge } from '@renderer/components/molecules/flow/edges/PacketEdge';
+import ComputeNode from '../../nodes/ComputeNode'; // Import new node
 
 export const GRID_COLOR = '#2A303C';
 
 export const nodeTypes = {
     serviceNode: ServiceNode,
     vpcNode: VpcNode,
+    computeNode: ComputeNode, // Register here
 };
 
 export const useFlowConfig = () => {
-    const edgeTypes = useMemo<EdgeTypes>(() => ({ packet: PacketEdge }), []);
-
+    const edgeTypes = useMemo(() => ({}), []);
     const defaultEdgeOptions = useMemo(() => ({
-        type: 'packet',
-        animated: false,
-        data: { trafficType: 'default', speed: 'normal' },
+        type: 'smoothstep', 
+        animated: true,
+        style: { stroke: '#94A3B8', strokeWidth: 2 },
     }), []);
 
     return { edgeTypes, defaultEdgeOptions };

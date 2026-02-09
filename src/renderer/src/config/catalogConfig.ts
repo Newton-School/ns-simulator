@@ -1,123 +1,54 @@
-import {
-  Globe,
-  Cpu,
-  Database,
-  Server,
-  Network,
-  Cloud
-} from 'lucide-react';
 import { CatalogCategory } from '@renderer/types/ui';
+import { NODE_REGISTRY } from '@renderer/config/nodeRegistry';
+import { getTheme } from '@renderer/config/themeConfig';
+
+const fromRegistry = (id: string) => {
+  const def = NODE_REGISTRY[id];
+  if (!def) return null; // Handle error gracefully
+  const theme = getTheme(def.lookupKey);
+
+  return {
+    id: def.id,
+    type: def.type,
+    label: def.label,
+    subLabel: def.subLabel,
+    icon: def.icon,
+    color: theme.bg,
+    data: def.defaultData
+  };
+};
 
 export const CATALOG_CONFIG: CatalogCategory[] = [
   {
     id: 'infrastructure',
     title: 'Infrastructure',
     items: [
-      {
-        id: 'vpc-region',
-        type: 'vpcNode',
-        label: 'VPC Region',
-        subLabel: 'Isolated Network',
-        icon: Cloud,
-        color: 'bg-blue-500',
-        data: {
-          iconKey: 'cloud',
-        }
-      }
+      fromRegistry('vpc-region')!
     ]
   },
   {
     id: 'compute',
-    title: 'Compute',
+    title: 'Compute Abstractions',
     items: [
-      {
-        id: 'api-gateway',
-        type: 'serviceNode',
-        label: 'API Gateway',
-        subLabel: 'Ingress Controller',
-        icon: Globe,
-        color: 'bg-purple-500',
-        data: {
-          iconKey: 'globe',
-          status: 'critical',
-          throughput: 1200,
-          errorRate: 2,
-          load: 45,
-          queueDepth: 12
-        }
-      },
-      {
-        id: 'worker-pool',
-        type: 'serviceNode',
-        label: 'Worker Pool',
-        subLabel: 'Async processing',
-        icon: Cpu,
-        color: 'bg-blue-500',
-        data: {
-          iconKey: 'cpu',
-          status: 'healthy',
-          throughput: 800,
-          load: 20
-        }
-      }
+      fromRegistry('backend-server')!,
+      fromRegistry('lambda-function')!,
+      fromRegistry('async-worker')!,
+      fromRegistry('cron-job')!
     ]
   },
   {
     id: 'datastore',
     title: 'Data Store',
     items: [
-      {
-        id: 'primary-db',
-        type: 'serviceNode',
-        label: 'Primary DB',
-        subLabel: 'Relational SQL',
-        icon: Database,
-        color: 'bg-emerald-500',
-        data: {
-          iconKey: 'database',
-          status: 'healthy',
-          throughput: 2400,
-          errorRate: 0.00,
-          queueDepth: 10,
-          load: 60
-        }
-      },
-      {
-        id: 'redis-cache',
-        type: 'serviceNode',
-        label: 'Redis Cache',
-        subLabel: 'In-memory key/val',
-        icon: Server,
-        color: 'bg-orange-500',
-        data: {
-          iconKey: 'server',
-          status: 'healthy',
-          throughput: 5000,
-          errorRate: 0.00,
-          load: 15
-        }
-      }
+      fromRegistry('primary-db')!,
+      fromRegistry('redis-cache')!
     ]
   },
   {
     id: 'network',
     title: 'Network',
     items: [
-      {
-        id: 'load-balancer',
-        type: 'serviceNode',
-        label: 'Load Balancer',
-        subLabel: 'L7 Routing',
-        icon: Network,
-        color: 'bg-indigo-500',
-        data: {
-          iconKey: 'network',
-          status: 'healthy',
-          throughput: 10000,
-          errorRate: 0.00,
-          load: 10
-        }
-      }
+      fromRegistry('load-balancer')!
     ]
   },
 ];

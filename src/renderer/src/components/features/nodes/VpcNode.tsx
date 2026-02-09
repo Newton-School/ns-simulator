@@ -1,24 +1,33 @@
-import { memo } from 'react';
+import { memo, useState, useCallback } from 'react';
 import { NodeProps, NodeResizer } from 'reactflow';
 import { useVpcLogic } from './vpc/useVpcLogic';
 import { VpcToolbar } from './vpc/VpcToolBar';
 import { VpcHeader } from './vpc/VpcHeader';
+import { NodeSettingsMenu } from '@renderer/components/molecules/NodeSettingsMenu';
 
 const VpcNode = ({ id, data, selected }: NodeProps) => {
-  // Hook into logic
   const { isUngrouped, hasChildren, minSize, handleUngroup } = useVpcLogic(id);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  //Derived Visual States
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsMenuOpen(true);
+  }, []);
+
+  const handleMenuClose = useCallback(() => setIsMenuOpen(false), []);
+
+  const handleMenuToggle = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsMenuOpen((prev) => !prev);
+  }, []);
+
   const isSuccessState = isUngrouped && !hasChildren;
 
-  // Determine Container Styles
   const getContainerStyle = () => {
-    // Success State (Green)
     if (isSuccessState) {
-      return 'border-[rgb(var(--nss-success))] bg-[rgb(var(--nss-success))]/10 shadow-[0_0_15px_rgba(var(--nss-success),0.2)]';
+      return 'border-nss-success bg-nss-success/5 shadow-[0_0_15px_rgba(var(--nss-success),0.15)]';
     }
-
-    // Selected State (Blue)
     if (selected) {
       return 'border-[rgb(var(--nss-primary))] bg-[rgb(var(--nss-primary))]/10 shadow-[0_0_15px_rgba(var(--nss-primary),0.2)]';
     }
@@ -30,10 +39,10 @@ const VpcNode = ({ id, data, selected }: NodeProps) => {
 
   return (
     <div
+      onContextMenu={handleContextMenu}
       className="relative w-full h-full group transition-all duration-200 ease-in-out"
       style={{ minWidth: minSize.width, minHeight: minSize.height }}
     >
-      {/* --- Toolbar Atom --- */}
       <VpcToolbar
         isVisible={selected}
         isUngrouped={isUngrouped}
@@ -41,19 +50,24 @@ const VpcNode = ({ id, data, selected }: NodeProps) => {
         onUngroup={handleUngroup}
       />
 
-      {/* --- Main Container --- */}
       <div className={`
-        absolute inset-0 rounded-xl border-2 border-dashed transition-all duration-300
+        absolute inset-0 rounded-xl border-2 border-dashed transition-all duration-300 
+        overflow-visible
         ${getContainerStyle()}
       `}>
-        {/* --- Header Atom --- */}
         <VpcHeader
           label={data.label}
           isSuccessState={isSuccessState}
-        />
+        >
+          <NodeSettingsMenu
+            nodeId={id}
+            isOpen={isMenuOpen}
+            onClose={handleMenuClose}
+            onToggle={handleMenuToggle}
+          />
+        </VpcHeader>
       </div>
 
-      {/* --- Resizer (Built-in Atom) --- */}
       <NodeResizer
         color="rgb(var(--nss-primary))"
         isVisible={selected}
