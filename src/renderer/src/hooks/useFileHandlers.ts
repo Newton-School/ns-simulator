@@ -1,45 +1,36 @@
-import { useEffect } from 'react';
+import { useCallback } from 'react';
+import { FileService } from '../services/FileService';
 
 export const useFileHandlers = (
-    onSaveRequested: () => string, // Function to get current state
-    onDataLoaded: (data: any) => void // Function to handle loaded data
+    onSaveRequested: () => string,
+    onDataLoaded: (data: any, filePath?: string) => void
 ) => {
-    useEffect(() => {
-        const handleKeyDown = async (e: KeyboardEvent) => {
-            const isMod = e.metaKey || e.ctrlKey;
 
-            // --- Cmd/Ctrl + S (Save) ---
-            if (isMod && e.key.toLowerCase() === 's') {
-                e.preventDefault();
-                const content = onSaveRequested();
-                try {
-                    const path = await window.nssimulator.saveScenario(content);
-                    console.log(`Saved to: ${path}`);
-                } catch (err) {
-                    console.error("Failed to save scenario", err);
-                }
-            }
+    const handleSave = useCallback(async () => {
+        const content = onSaveRequested();
 
-            // --- Cmd/Ctrl + O (Open) ---
-            if (isMod && e.key.toLowerCase() === 'o') {
-                e.preventDefault();
-                try {
-                    const content = await window.nssimulator.loadScenario();
-                    if (content) {
-                        try {
-                            const parsed = JSON.parse(content);
-                            onDataLoaded(parsed);
-                        } catch (err) {
-                            console.error("Failed to parse loaded file", err);
-                        }
-                    }
-                } catch (err) {
-                    console.error("Failed to load scenario file", err);
-                }
-            }
-        };
+        const savedPath = await FileService.save(content);
 
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [onSaveRequested, onDataLoaded]);
+        if (savedPath) {
+            console.log(`Saved to: ${savedPath}`);
+        }
+
+        return savedPath;
+    }, [onSaveRequested]);
+
+    const handleOpen = useCallback(async () => {
+
+        const file = await FileService.load();
+
+        if (!file?.content) return;
+
+        try {
+            const parsedData = JSON.parse(file.content);
+            onDataLoaded(parsedData, file.path);
+        } catch (err) {
+            console.error("[useFileHandlers] Failed to parse JSON content", err);
+        }
+    }, [onDataLoaded]);
+
+    return { handleSave, handleOpen };
 };

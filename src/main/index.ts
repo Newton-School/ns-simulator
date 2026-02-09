@@ -50,6 +50,10 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
+  if (process.platform === 'darwin') {
+    app.dock?.setIcon(icon);
+  }
+
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
 
@@ -70,8 +74,6 @@ app.whenReady().then(() => {
 
   ipcMain.handle('dialog:open', async (event) => {
     const content = await registerIpcHandlers.handleOpenScenario(event);
-
-    console.log("File content returned to UI:", content);
     return content;
   });
 

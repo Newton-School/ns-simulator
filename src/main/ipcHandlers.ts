@@ -21,7 +21,7 @@ async function handleSaveScenario(_event: IpcMainInvokeEvent, content: string): 
   }
 }
 
-async function handleOpenScenario(_event: Electron.IpcMainInvokeEvent): Promise<string | null> {
+async function handleOpenScenario(_event: Electron.IpcMainInvokeEvent): Promise<{ data: string, path: string } | null> {
   const { canceled, filePaths } = await dialog.showOpenDialog({
     title: 'Open Simulation Topology',
     filters: [{ name: 'JSON Files', extensions: ['json'] }],
@@ -33,8 +33,13 @@ async function handleOpenScenario(_event: Electron.IpcMainInvokeEvent): Promise<
   }
 
   try {
-    const content = await fs.readFile(filePaths[0], 'utf8');
-    return content;
+    const filePath = filePaths[0];
+    const content = await fs.readFile(filePath, 'utf8');
+
+    return {
+      data: content,
+      path: filePath
+    };
   } catch (error) {
     console.error('Read Error:', error);
     throw new Error('Failed to read the selected file.');

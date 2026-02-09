@@ -48,7 +48,6 @@ const FlowCanvasInternal = () => {
         onDrop={onDrop}
         onDragOver={onDragOver}
         onNodeDragStop={onNodeDragStop}
-        fitView
       >
         <Background
           variant={BackgroundVariant.Dots}

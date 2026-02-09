@@ -14,8 +14,15 @@ import {
 } from 'reactflow';
 
 type RFState = {
+  // --- Graph Data ---
   nodes: Node[];
   edges: Edge[];
+
+  // --- File State ---
+  fileName: string | null;
+  isUnsaved: boolean;
+
+  // --- Actions ---
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
   onConnect: OnConnect;
@@ -23,11 +30,20 @@ type RFState = {
   // Add type definition
   updateNodeData: (nodeId: string, data: any) => void;
   setNodes: (nodes: Node[]) => void;
+  setEdges: (edges: Edge[]) => void;
+
+  // --- File Actions ---
+  setFileName: (name: string | null) => void;
+  setUnsaved: (unsaved: boolean) => void;
 };
 
 const useStore = create<RFState>((set, get) => ({
   nodes: [],
   edges: [],
+
+  // Initial File State
+  fileName: 'Untitled',
+  isUnsaved: false,
 
   onNodesChange: (changes: NodeChange[]) => {
     set({
@@ -48,11 +64,25 @@ const useStore = create<RFState>((set, get) => ({
   },
 
   addNode: (node: Node) => {
-    set({ nodes: [...get().nodes, node] });
+    const currentNodes = get().nodes;
+    let newId = node.id;
+
+    // Check if ID exists. If yes, append timestamp/random to make it unique.
+    if (currentNodes.some((n) => n.id === newId)) {
+      newId = `${newId}_${Math.floor(Math.random() * 10000)}`;
+    }
+
+    const safeNode = { ...node, id: newId };
+
+    set({ nodes: [...currentNodes, safeNode] });
   },
 
   setNodes: (nodes: Node[]) => {
     set({ nodes });
+  },
+
+  setEdges: (edges: Edge[]) => {
+    set({ edges });
   },
 
   updateNodeData: (nodeId: string, data: any) => {
@@ -68,6 +98,10 @@ const useStore = create<RFState>((set, get) => ({
       }),
     });
   },
+
+  // File State Setters
+  setFileName: (fileName) => set({ fileName }),
+  setUnsaved: (isUnsaved) => set({ isUnsaved }),
 }));
 
 export default useStore;

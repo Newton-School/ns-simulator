@@ -1,7 +1,11 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { Panel, PanelGroup } from 'react-resizable-panels';
-import { useFileHandlers } from '../../hooks/useFileHandlers';
-import useStore from '../../store/useStore';
+
+// Store
+import useStore from '@renderer/store/useStore';
+
+// Hooks
+import { useFlowPersistence } from '@renderer/hooks/useFlowPersistence';
 
 // Organisms
 import { LibrarySidebar } from '../organisms/LibrarySidebar';
@@ -13,42 +17,38 @@ import { Header } from '../organisms/Header';
 import { ResizeHandle } from '../atoms/ResizeHandle';
 
 export const WorkspaceLayout = () => {
-
+    // Sidebar State
     const [isLeftOpen, setIsLeftOpen] = useState(true);
     const [isRightOpen, setIsRightOpen] = useState(true);
 
-    const handleGetFileData = useCallback(() => {
-        const { nodes, edges } = useStore.getState();
+    const { handleSave, handleOpen } = useFlowPersistence();
 
-        return JSON.stringify({ nodes, edges }, null, 2);
-    }, []);
-
-    const handleLoadFileData = useCallback((data: any) => {
-        console.log("File content returned to UI:", data);
-
-        if (data && data.nodes && data.edges) {
-            useStore.getState().setNodes(data.nodes);
-        }
-    }, []);
-
-    useFileHandlers(handleGetFileData, handleLoadFileData);
+    const fileName = useStore((s) => s.fileName);
+    const isUnsaved = useStore((s) => s.isUnsaved);
 
     return (
-
         <div className="h-screen w-screen flex flex-col overflow-hidden bg-white text-gray-900">
             {/* Pane A: Header (Fixed) */}
-
             <Header
+                // Layout Toggles
                 toggleLeft={() => setIsLeftOpen(prev => !prev)}
                 toggleRight={() => setIsRightOpen(prev => !prev)}
                 isLeftOpen={isLeftOpen}
                 isRightOpen={isRightOpen}
 
+                // File Actions
+                onSave={handleSave}
+                onOpen={handleOpen}
+
+                // File Status
+                fileName={fileName}
+                isUnsaved={isUnsaved}
             />
 
             {/* Main Content Area */}
             <div className="flex-1 overflow-hidden relative h-full">
                 <PanelGroup direction="horizontal" autoSaveId="main-layout-horizontal">
+
                     {/* Pane B: Left Sidebar */}
                     {isLeftOpen && (
                         <>
@@ -68,6 +68,7 @@ export const WorkspaceLayout = () => {
                             </Panel>
                         </PanelGroup>
                     </Panel>
+
                     {/* Pane C: Right Sidebar */}
                     {isRightOpen && (
                         <>
