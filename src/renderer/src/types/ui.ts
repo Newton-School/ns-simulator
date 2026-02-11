@@ -7,11 +7,9 @@ export interface ServiceNodeData {
   errorRate?: number;
   load?: number;
   queueDepth?: number;
-
-  // Visual Animation Props (Legacy/Service specific)
-  trafficType?: 'http' | 'success' | 'error' | 'warning' | 'default';
-  packets?: number;
-  speed?: 'slow' | 'normal' | 'fast';
+  
+  label: string;    
+  color?: string;        
 }
 
 // New Compute Node Data

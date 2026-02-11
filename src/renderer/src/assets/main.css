@@ -64,4 +64,44 @@
   *, ::before, ::after {
     @apply transition-colors duration-200 ease-in-out;
   }
+
+/* Source handles are on top so you can grab them to START a connection */
+.custom-source-handle {
+    z-index: 10 !important;
+    cursor: grab;
+}
+
+/* Target handles are hidden underneath */
+.custom-target-handle {
+    z-index: 1 !important;
+    pointer-events: none; /* Ignore clicks so Source gets them */
+}
+
+/* When hovering a Source handle, pop it */
+.custom-source-handle:hover {
+    opacity: 1 !important;
+    transform: scale(1.5);
+    background-color: #f59e0b !important;
+}
+
+/* Hide Source handles immediately - we are already dragging! */
+body.rel-flow-connecting .custom-source-handle {
+    opacity: 0 !important;
+    pointer-events: none;
+}
+
+/* Reveal Target handles on ALL nodes to guide the user */
+body.rel-flow-connecting .custom-target-handle {
+    z-index: 20 !important; 
+    pointer-events: all;    
+    opacity: 0.4 !important; 
+}
+
+/* When the user hovers a Target to drop */
+body.rel-flow-connecting .custom-target-handle:hover {
+    opacity: 1 !important;
+    transform: scale(1.7); 
+    background-color: #3b82f6 !important;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
 }

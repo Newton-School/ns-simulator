@@ -1,14 +1,18 @@
-import { memo, useState, useCallback } from 'react';
+import React, { memo, useState, useCallback, useMemo } from 'react';
 import { Position, NodeProps } from 'reactflow';
-import { Server, Globe, Cpu, Database, Network } from 'lucide-react';
+import { Server, Globe, Cpu, Database, Network, LucideIcon } from 'lucide-react';
 
-import { NodeHandle } from '@renderer/components/atoms/NodeHandle';
+import UniversalHandle from "@renderer/components/atoms/UniversalHandle"
 import { ProgressBar } from '@renderer/components/atoms/ProgressBar';
 import { NodeHeader } from '@renderer/components/molecules/NodeHeader';
 import { MetricItem } from '@renderer/components/molecules/MetricItem';
 import { NodeSettingsMenu } from '@renderer/components/molecules/NodeSettingsMenu';
+import { ServiceNodeData } from '@renderer/types/ui';
 
-const ICON_LOOKUP: Record<string, any> = {
+const OFFSETS = ['25%', '50%', '75%'];
+const POSITIONS = [Position.Left, Position.Top, Position.Right, Position.Bottom];
+
+const ICON_LOOKUP: Record<string, LucideIcon> = {
   globe: Globe,
   cpu: Cpu,
   database: Database,
@@ -16,9 +20,9 @@ const ICON_LOOKUP: Record<string, any> = {
   network: Network,
 };
 
-const ServiceNode = ({ id, data, selected }: NodeProps) => {
-  const IconComponent = ICON_LOOKUP[data.iconKey] || Server;
+const ServiceNode = ({ id, data, selected }: NodeProps<ServiceNodeData>) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const IconComponent = ICON_LOOKUP[data.iconKey] || Server;
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -32,19 +36,28 @@ const ServiceNode = ({ id, data, selected }: NodeProps) => {
     setIsMenuOpen((prev) => !prev);
   }, []);
 
-  return (
-    <div
-      onContextMenu={handleContextMenu}
-      className={`
-        w-64 bg-nss-surface rounded-lg shadow-xl transition-all duration-200
-        overflow-visible /* Crucial for menu popup */
-        ${selected
-          ? 'ring-2 ring-nss-primary shadow-[0_0_20px_rgba(59,130,246,0.3)]'
-          : 'border border-nss-border hover:border-nss-muted/30'}
-      `}
-    >
-      <NodeHandle type="target" position={Position.Top} />
+  const containerClasses = useMemo(() => `
+    group relative w-64 bg-nss-surface rounded-lg transition-all duration-200
+    overflow-visible
+    ${selected
+      ? 'ring-2 ring-nss-primary shadow-[0_0_20px_rgba(59,130,246,0.3)]'
+      : 'border border-nss-border hover:border-nss-muted/30 shadow-xl'}
+  `, [selected]);
 
+  return (
+    <div onContextMenu={handleContextMenu} className={containerClasses}>
+      {POSITIONS.map((pos) => (
+        <React.Fragment key={pos}>
+          {OFFSETS.map((offset, i) => (
+            <UniversalHandle
+              key={`${pos}-${i}`}
+              id={`${pos}-${i}`}
+              position={pos}
+              offset={offset}
+            />
+          ))}
+        </React.Fragment>
+      ))}
       <NodeHeader
         label={data.label || 'Service'}
         icon={IconComponent}
@@ -67,8 +80,6 @@ const ServiceNode = ({ id, data, selected }: NodeProps) => {
         </div>
         <ProgressBar label="CPU Load" value={data.load} />
       </div>
-
-      <NodeHandle type="source" position={Position.Bottom} />
     </div>
   );
 };
