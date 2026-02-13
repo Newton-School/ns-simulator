@@ -1,6 +1,6 @@
 export interface ProgressBarProps {
     label: string;
-    value: number; // 0 to 100
+    value?: number; // 0 to 100
     showValue?: boolean;
 }
 
