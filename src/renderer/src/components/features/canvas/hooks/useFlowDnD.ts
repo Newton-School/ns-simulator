@@ -36,7 +36,7 @@ export const useFlowDnD = ({ nodes, addNode, setNodes, instance }: UseFlowDnDPro
       // Reusable logic to find target VPC
       const targetVpc = findTargetVpc(nodes, position)
 
-      let newNode: Node = {
+      const newNode: Node = {
         id: getId(),
         type,
         position,
