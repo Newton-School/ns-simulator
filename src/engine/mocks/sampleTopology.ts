@@ -51,6 +51,18 @@ export const mockArchitecture: TopologyJSON = {
       maxConcurrentRequests: 5000,
       packetLossRate: 0,
       errorRate: 0
+    },
+    {
+      id: "edge-2",
+      source: "node-api",
+      target: "node-db",
+      mode: "synchronous",
+      protocol: "grpc",
+      latency: { distribution: { type: "constant", value: 2 }, pathType: "same-dc" },
+      bandwidth: 1000,
+      maxConcurrentRequests: 5000,
+      packetLossRate: 0,
+      errorRate: 0
     }
   ],
   workload: {

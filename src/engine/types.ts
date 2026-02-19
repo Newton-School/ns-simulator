@@ -1,7 +1,7 @@
-export type ComponentCategory = 
-  | "compute" | "network-and-edge" | "storage-and-data" | "messaging-and-streaming" 
-  | "orchestration-and-infra" | "security-and-identity" | "observability" 
-  | "devops-and-delivery" | "data-infra-and-analytics" | "real-time-and-media" 
+export type ComponentCategory =
+  | "compute" | "network-and-edge" | "storage-and-data" | "messaging-and-streaming"
+  | "orchestration-and-infra" | "security-and-identity" | "observability"
+  | "devops-and-delivery" | "data-infra-and-analytics" | "real-time-and-media"
   | "external-and-integration" | "dns-and-certs" | "consensus-and-coordination" | "auxiliary";
 
 export type ComputeType = "api-endpoint" | "microservice" | "sidecar" | "batch-worker" | "serverless-function" | "faas-background" | "container" | "vm-instance" | "edge-compute" | "gpu-node";
@@ -19,28 +19,37 @@ export type DnsType = "dns-authoritative-server" | "internal-dns" | "certificate
 export type ConsensusType = "etcd-consul-kv" | "leader-election" | "distributed-lock" | "coordination-service";
 export type AuxiliaryType = "service-mesh-telemetry" | "policy-engine" | "rate-limiter" | "circuit-breaker-controller" | "idempotency-manager" | "request-tracking" | "backpressure-controller" | "throttler";
 
-export type ComponentType = 
-  | ComputeType | NetworkType | StorageType | MessagingType | OrchestrationType 
-  | SecurityType | ObservabilityType | DevopsType | DataInfraType 
+export type ComponentType =
+  | ComputeType | NetworkType | StorageType | MessagingType | OrchestrationType
+  | SecurityType | ObservabilityType | DevopsType | DataInfraType
   | RealTimeType | IntegrationType | DnsType | ConsensusType | AuxiliaryType;
 
+export type BaseDistributionConfig =
+  | { type: "constant"; value: number }
+  | { type: "deterministic"; value: number }
+  | { type: "log-normal"; mu: number; sigma: number }
+  | { type: "exponential"; lambda: number }
+  | { type: "normal"; mean: number; stdDev: number }
+  | { type: "uniform"; min: number; max: number }
+  | { type: "weibull"; shape: number; scale: number }
+  | { type: "poisson"; lambda: number }
+  | { type: "binomial"; n: number; p: number }
+  | { type: "gamma"; shape: number; scale: number }
+  | { type: "beta"; alpha: number; beta: number }
+  | { type: "pareto"; scale: number; shape: number }
+  | { type: "empirical"; samples: number[]; interpolation: "linear" | "step" };
+
 export type DistributionConfig =
-  | { type: 'constant'; value: number }
-  | { type: 'uniform'; min: number; max: number }
-  | { type: 'normal'; mean: number; stdDev: number; min?: number; max?: number }
-  | { type: 'log-normal'; mu: number; sigma: number }
-  | { type: 'exponential'; rate: number }
-  | { type: 'poisson'; lambda: number }
-  | { type: 'weibull'; shape: number; scale: number }
-  | { type: 'gamma'; shape: number; rate: number }
-  | { type: 'beta'; alpha: number; beta: number; min?: number; max?: number }
-  | { type: 'pareto'; shape: number; scale: number }
-  | { type: 'empirical'; samples: number[]; interpolation: 'linear' | 'step' }
-  | { type: 'mixture'; components: { weight: number; distribution: DistributionConfig }[] };
+  | BaseDistributionConfig
+  | {
+    type: "mixture";
+    //All weights in the distribution are expected to be non-negative and sum to 1.0.
+    components: Array<{ weight: number; distribution: BaseDistributionConfig }>;
+  };
 
 export interface ResourceConfig {
-  cpu: number;
-  memory: number;
+  cpu: number; // vCPUs
+  memory: number; //in MB
   replicas: number;
   maxReplicas?: number;
 }
@@ -53,6 +62,7 @@ export interface QueueConfig {
 
 export interface ProcessingConfig {
   distribution: DistributionConfig;
+  /** Timeout in milliseconds. */
   timeout: number;
 }
 
@@ -63,15 +73,15 @@ export interface DependenciesConfig {
 
 export interface ResilienceConfig {
   circuitBreaker?: {
-    failureThreshold: number;
-    failureCount: number;
-    recoveryTimeout: number;
+    failureThreshold: number; // e.g., 0.5 — trip when 50% of requests fail
+    failureCount: number; // minimum requests before evaluating (e.g., 10)
+    recoveryTimeout: number; //ms
     halfOpenRequests: number;
   };
   retry?: {
     maxAttempts: number;
-    baseDelay: number;
-    maxDelay: number;
+    baseDelay: number; //ms
+    maxDelay: number; //ms
     multiplier: number;
     jitter: boolean;
   };
@@ -85,16 +95,16 @@ export interface ResilienceConfig {
 }
 
 export interface SLOConfig {
-  latencyP99: number;
-  availabilityTarget: number;
-  errorBudget: number;
+  latencyP99: number; //ms
+  availabilityTarget: number; //fraction between 0 and 1.
+  errorBudget: number; //fraction between 0 and 1.
 }
 
 export interface FailureMode {
   mode: string;
   severity: "critical" | "degraded" | "minor";
-  mtbf?: number;
-  mttr?: number;
+  mtbf?: number; // ms — mean time between failures
+  mttr?: number; // ms — mean time to repair
   trigger?: {
     metric: string;
     operator: ">" | "<" | ">=" | "<=" | "==";
@@ -107,6 +117,7 @@ export interface ScalingConfig {
   metric: string;
   scaleUpThreshold: number;
   scaleDownThreshold: number;
+  /** Cooldown period between scaling actions, in ms. */
   cooldown: number;
   coldStartPenalty?: {
     distribution: DistributionConfig;
@@ -141,34 +152,67 @@ export interface EdgeDefinition {
     distribution: DistributionConfig;
     pathType: "same-rack" | "same-dc" | "cross-zone" | "cross-region" | "internet";
   };
-  bandwidth: number;
+  bandwidth: number; //Mbps
   maxConcurrentRequests: number;
+  /**
+  * Probability of packet loss on this edge.
+  * Expected range: 0.0 (no loss) to 1.0 (all packets lost).
+  */
   packetLossRate: number;
+  /**
+   * Probability that a request on this edge results in an error.
+   * Expected range: 0.0 (no errors) to 1.0 (all requests fail).
+   */
   errorRate: number;
-  weight?: number;
-  condition?: string | null;
-  
+  weight?: number;  // relative weight for weighted routing
+  condition?: string; // JS expression string for conditional edges
+
   // React Flow metadata
   sourceHandle?: string;
   targetHandle?: string;
   animated?: boolean;
 }
 
+// 24 entries: one multiplier per hour of the day (0–23).
+export type DiurnalHourlyMultipliers = [
+  number, number, number, number, number, number,
+  number, number, number, number, number, number,
+  number, number, number, number, number, number,
+  number, number, number, number, number, number
+];
+
 export interface WorkloadProfile {
   sourceNodeId: string;
   pattern: "constant" | "poisson" | "bursty" | "diurnal" | "spike" | "sawtooth" | "replay";
+  /**
+   * Base requests per second for this workload pattern.
+   * Must be a positive number (> 0).
+   */
   baseRps: number;
   diurnal?: {
     peakMultiplier: number;
-    hourlyMultipliers: number[];
+    /**
+     * 24 values, one per hour in the day (0–23).
+     */
+    hourlyMultipliers: DiurnalHourlyMultipliers;
   };
   spike?: {
+    /**
+     * Time from the start of the simulation until the spike begins, in milliseconds.
+    */
     spikeTime: number;
     spikeRps: number;
+    /**
+    * Duration of the spike, in milliseconds.
+    */
     spikeDuration: number;
   };
   requestDistribution: Array<{
     type: string;
+    /**
+     * Weight represents the fraction of traffic assigned to this request type.
+     * All weights in the distribution are expected to be non-negative and sum to 1.0.
+     */
     weight: number;
     sizeBytes: number;
   }>;
@@ -195,11 +239,11 @@ export interface ScenarioRef {
 }
 
 export interface GlobalConfig {
-  simulationDuration: number;
+  simulationDuration: number; //ms
   seed: string;
-  warmupDuration: number;
+  warmupDuration: number; // ms — metrics collected only after warmup
   timeResolution: "microsecond" | "millisecond";
-  defaultTimeout: number;
+  defaultTimeout: number;  // ms — fallback if a node doesn't specify one
 }
 
 export interface TopologyJSON {
