@@ -1,43 +1,42 @@
 export const Slider = ({
-    value,
-    min = 0,
-    max = 100,
-    unit,
-    onChange
+  value,
+  min = 0,
+  max = 100,
+  unit,
+  onChange
 }: {
-    value: number;
-    min?: number;
-    max?: number;
-    unit?: string;
-    onChange: (val: number) => void;
+  value: number
+  min?: number
+  max?: number
+  unit?: string
+  onChange: (val: number) => void
 }) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let newValue = Number(e.target.value)
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        let newValue = Number(e.target.value);
+    // Safety check to keep values within bounds while typing
+    if (newValue > max) newValue = max
+    if (newValue < min) newValue = min
 
-        // Safety check to keep values within bounds while typing
-        if (newValue > max) newValue = max;
-        if (newValue < min) newValue = min;
+    onChange(newValue)
+  }
 
-        onChange(newValue);
-    };
+  const dynamicWidth = `${Math.max(3, String(value).length + 2)}ch`
 
-    const dynamicWidth = `${Math.max(3, String(value).length + 2)}ch`;
+  return (
+    <div className="bg-nss-surface border border-nss-border rounded p-3 group hover:border-nss-border-high transition-colors">
+      <div className="flex justify-between items-center mb-2">
+        <span className="text-xs text-nss-muted font-medium select-none">{unit}</span>
 
-    return (
-        <div className="bg-nss-surface border border-nss-border rounded p-3 group hover:border-nss-border-high transition-colors">
-            <div className="flex justify-between items-center mb-2">
-                <span className="text-xs text-nss-muted font-medium select-none">{unit}</span>
-
-                {/* --- AUTO-RESIZING INPUT --- */}
-                <input
-                    type="number"
-                    min={min}
-                    max={max}
-                    value={value}
-                    onChange={handleInputChange}
-                    style={{ width: dynamicWidth }}
-                    className="
+        {/* --- AUTO-RESIZING INPUT --- */}
+        <input
+          type="number"
+          min={min}
+          max={max}
+          value={value}
+          onChange={handleInputChange}
+          style={{ width: dynamicWidth }}
+          className="
             text-center text-xs font-mono 
             bg-nss-primary/10 text-nss-primary 
             border border-nss-primary/20 rounded px-1 py-0.5
@@ -45,18 +44,18 @@ export const Slider = ({
             transition-all duration-100 ease-in-out
             [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none
           "
-                />
-            </div>
+        />
+      </div>
 
-            {/* --- SLIDER TRACK --- */}
-            <input
-                type="range"
-                min={min}
-                max={max}
-                value={value}
-                onChange={(e) => onChange(Number(e.target.value))}
-                className="w-full h-1 bg-nss-border-high rounded-lg appearance-none cursor-pointer accent-nss-primary hover:accent-nss-primary-hover"
-            />
-        </div>
-    );
-};
+      {/* --- SLIDER TRACK --- */}
+      <input
+        type="range"
+        min={min}
+        max={max}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="w-full h-1 bg-nss-border-high rounded-lg appearance-none cursor-pointer accent-nss-primary hover:accent-nss-primary-hover"
+      />
+    </div>
+  )
+}

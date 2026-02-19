@@ -1,40 +1,38 @@
-import { useState } from 'react';
-import { clsx } from 'clsx';
-import { Settings, Info } from 'lucide-react';
+import { useState } from 'react'
+import { clsx } from 'clsx'
+import { Settings, Info } from 'lucide-react'
 
 // --- Store & Config ---
-import useStore from '../../store/useStore';
+import useStore from '../../store/useStore'
 
 // --- Organisms (The building blocks) ---
-import { PropertiesHeader } from './PropertiesHeader';
-import { PropertiesForm } from './PropertiesForm';
-
+import { PropertiesHeader } from './PropertiesHeader'
+import { PropertiesForm } from './PropertiesForm'
 
 const EmptyState = () => (
   <div className="h-full bg-nss-panel border-l border-nss-border flex flex-col items-center justify-center text-nss-muted gap-2">
     <Settings size={24} className="opacity-20" />
     <p className="text-xs font-medium uppercase tracking-wide">No Selection</p>
   </div>
-);
+)
 
 export const PropertiesPanel = () => {
-  const nodes = useStore((state) => state.nodes);
-  const updateNodeData = useStore((state) => state.updateNodeData);
+  const nodes = useStore((state) => state.nodes)
+  const updateNodeData = useStore((state) => state.updateNodeData)
 
-  const selectedNode = nodes.find((n) => n.selected);
-  const [activeTab, setActiveTab] = useState('specs');
+  const selectedNode = nodes.find((n) => n.selected)
+  const [activeTab, setActiveTab] = useState('specs')
 
-  if (!selectedNode) return <EmptyState />;
+  if (!selectedNode) return <EmptyState />
 
-  const { data, id } = selectedNode;
+  const { data, id } = selectedNode
 
   const handleUpdate = (key: string, value: any) => {
-    updateNodeData(id, { [key]: value });
-  };
+    updateNodeData(id, { [key]: value })
+  }
 
   return (
     <div className="h-full w-full bg-nss-panel border-l border-nss-border flex flex-col text-nss-text font-sans shadow-xl">
-
       {/* --- ORGANISM: HEADER --- */}
       {/* Encapsulates Icon, Title, Badge, and ID rendering */}
       <PropertiesHeader data={{ ...data, id }} />
@@ -46,10 +44,10 @@ export const PropertiesPanel = () => {
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={clsx(
-              "flex-1 py-3 text-[11px] font-bold uppercase tracking-wider transition-all border-b-2",
+              'flex-1 py-3 text-[11px] font-bold uppercase tracking-wider transition-all border-b-2',
               activeTab === tab
-                ? "border-nss-primary text-nss-text"
-                : "border-transparent text-nss-muted hover:text-nss-text hover:bg-nss-panel/50"
+                ? 'border-nss-primary text-nss-text'
+                : 'border-transparent text-nss-muted hover:text-nss-text hover:bg-nss-panel/50'
             )}
           >
             {tab}
@@ -60,14 +58,9 @@ export const PropertiesPanel = () => {
       {/* --- CONTENT AREA --- */}
       <div className="flex-1 overflow-y-auto custom-scrollbar p-5 bg-nss-panel">
         {activeTab === 'specs' ? (
-
           /* --- ORGANISM: FORM --- */
           /* Encapsulates the complex looping, grouping, and input selection logic */
-          <PropertiesForm
-            data={data}
-            onUpdate={handleUpdate}
-          />
-
+          <PropertiesForm data={data} onUpdate={handleUpdate} />
         ) : (
           <div className="flex flex-col items-center justify-center h-40 text-nss-muted text-xs text-center">
             <Info size={24} className="mb-2 opacity-50" />
@@ -83,7 +76,6 @@ export const PropertiesPanel = () => {
           <span>v1.2.0</span>
         </div>
       </div>
-
     </div>
-  );
-};
+  )
+}

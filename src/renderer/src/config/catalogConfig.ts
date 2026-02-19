@@ -1,11 +1,11 @@
-import { CatalogCategory } from '@renderer/types/ui';
-import { NODE_REGISTRY } from '@renderer/config/nodeRegistry';
-import { getTheme } from '@renderer/config/themeConfig';
+import { CatalogCategory } from '@renderer/types/ui'
+import { NODE_REGISTRY } from '@renderer/config/nodeRegistry'
+import { getTheme } from '@renderer/config/themeConfig'
 
 const fromRegistry = (id: string) => {
-  const def = NODE_REGISTRY[id];
-  if (!def) return null; // Handle error gracefully
-  const theme = getTheme(def.lookupKey);
+  const def = NODE_REGISTRY[id]
+  if (!def) return null // Handle error gracefully
+  const theme = getTheme(def.lookupKey)
 
   return {
     id: def.id,
@@ -15,16 +15,14 @@ const fromRegistry = (id: string) => {
     icon: def.icon,
     color: theme.bg,
     data: def.defaultData
-  };
-};
+  }
+}
 
 export const CATALOG_CONFIG: CatalogCategory[] = [
   {
     id: 'infrastructure',
     title: 'Infrastructure',
-    items: [
-      fromRegistry('vpc-region')!
-    ]
+    items: [fromRegistry('vpc-region')!]
   },
   {
     id: 'compute',
@@ -39,16 +37,11 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
   {
     id: 'datastore',
     title: 'Data Store',
-    items: [
-      fromRegistry('primary-db')!,
-      fromRegistry('redis-cache')!
-    ]
+    items: [fromRegistry('primary-db')!, fromRegistry('redis-cache')!]
   },
   {
     id: 'network',
     title: 'Network',
-    items: [
-      fromRegistry('load-balancer')!
-    ]
-  },
-];
+    items: [fromRegistry('load-balancer')!]
+  }
+]
