@@ -1,0 +1,3 @@
+[submodule "ns-simulator-docs"]
+	path = ns-simulator-docs
+	url = https://github.com/Newton-School/ns-simulator-docs.git
