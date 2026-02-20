@@ -46,6 +46,119 @@ When the simulation completes, a results tray expands with:
 
 ---
 
+
+## System Lifecycle
+
+This project is structured into three major phases:
+
+* **Phase 1 · BUILD** (Implemented)
+* **Phase 2 · SIMULATE** (Planned)
+* **Phase 3 · ANALYSE** (Planned)
+
+It follows an iterative workflow:
+
+> **Build → Simulate → Analyse → Iterate**
+
+---
+
+## Phase 1 · BUILD
+
+Users visually construct and configure system topology.
+
+```mermaid
+flowchart TD
+    subgraph BUILD["Phase 1 · BUILD"]
+        B1["Drag LibraryItem onto canvas"]
+        B2["useFlowDnD → addNode() → Zustand store"]
+        B3["Draw edge → onConnect() → addEdge()"]
+        B4["Select node → PropertiesPanel reads store"]
+        B5["Edit config → updateNodeData() → store"]
+        B6["💾 Save → JSON.stringify(nodes + edges) → FileService → IPC → fs.writeFile"]
+        B7["📂 Open → fs.readFile → IPC → FileService → setNodes() & setEdges()"]
+        B1 --> B2 --> B3 --> B4 --> B5
+        B5 --> B6
+    end
+```
+
+### Flow Summary
+
+1. Drag a `LibraryItem` onto the canvas.
+2. `useFlowDnD` calls `addNode()` → stored in Zustand.
+3. Connect nodes → `addEdge()` updates store.
+4. Select a node → `PropertiesPanel` reads state.
+5. Edit config → `updateNodeData()` updates state.
+6. Save → serialized JSON → FileService → IPC → filesystem.
+7. Open → file read → state restored.
+
+---
+
+## Phase 2 · SIMULATE · ◌ Planned
+
+A deterministic simulation engine runs inside a Web Worker.
+
+```mermaid
+flowchart TD
+    subgraph SIMULATE["Phase 2 · SIMULATE · ◌ planned"]
+        S1["Press Run in Scenario Bar"]
+        S2["Serialize Zustand store → topology + workload + faults"]
+        S3["postMessage → Renderer to Web Worker"]
+        S4["DES Engine event loop (time-ordered) + seeded SFC32 PRNG"]
+        S5["Periodic postMessage → Worker to Renderer (live metrics)"]
+        S6["Canvas live updates (node: green → yellow → red, edges pulse)"]
+        S1 --> S2 --> S3 --> S4 --> S5 --> S6
+    end
+```
+
+### Simulation Flow
+
+* Serialize topology + workload + fault config.
+* Send to Web Worker.
+* Run discrete event simulation (DES).
+* Emit periodic metric snapshots.
+* Update UI in real-time.
+
+---
+
+## Phase 3 · ANALYSE · ◌ Planned
+
+Results are visualized and broken down for deeper insights.
+
+```mermaid
+flowchart TD
+    subgraph ANALYSE["Phase 3 · ANALYSE · ◌ planned"]
+        A1["Results Tray expands"]
+        A2["Summary → P50 · P90 · P95 · P99 · throughput · error rate · availability"]
+        A3["Per-Node → utilisation · avg queue depth · RPS · rejection count"]
+        A4["Traces → waterfall per request (queue + processing + network)"]
+        A5["Failures → causal cascade graph (failure → effect → recovery)"]
+        A6["Cost → AWS · GCP · Azure estimate per node & total"]
+        A1 --> A2 & A3 & A4 & A5 & A6
+    end
+```
+
+### Analysis Capabilities
+
+* Latency percentiles (P50–P99)
+* Throughput & availability
+* Per-node utilisation metrics
+* Request-level waterfall traces
+* Failure cascade graphs
+* Cloud cost estimation
+
+---
+
+## Complete Lifecycle
+
+```mermaid
+flowchart LR
+    BUILD["BUILD"] -->|"Run"| SIMULATE["SIMULATE"]
+    SIMULATE --> ANALYSE["ANALYSE"]
+    ANALYSE -.->|"Iterate · Adjust · Re-run"| BUILD
+```
+
+---
+
+
 ## Tech Stack
 
 | Layer | Technology |
@@ -211,3 +324,52 @@ npm run build:linux
 | CLI (`simulator run / validate / compare`) | Planned |
 
 See `ns-simulator-docs/planning/TICKETS.md` for the full 46-ticket breakdown.
+
+---
+
+## Contributing
+
+### Setup
+
+```bash
+git clone <repo-url>
+cd ns-simulator
+git submodule update --init --recursive   # pulls ns-simulator-docs
+npm install
+npm run dev
+```
+
+### Branch Naming
+
+```
+feature/<kebab-case-description>    # new functionality
+fix/<kebab-case-description>        # bug fixes
+```
+
+Examples from this repo: `feature/add-ui-dependencies`, `feature/implement-vpc`, `feature/react-flow-canvas-setup`.
+
+### Commit Messages
+
+Imperative mood, sentence case, no period.
+
+```
+Add Tailwind CSS, ReactFlow, Zustand, and UI dependencies
+Fix circuit breaker state not resetting on node recovery
+Refactor VPC node to extract header and toolbar molecules
+```
+
+### Before Pushing
+
+```bash
+npm run typecheck    # tsc across both node + web tsconfigs
+npm run lint         # eslint
+npm run format       # prettier --write
+```
+
+All three must pass clean. The build runs `typecheck` automatically, so a failing type check will also break `npm run build`.
+
+### Pull Requests
+
+- One concern per PR — don't bundle UI changes with engine work.
+- Title: short, imperative, under 70 characters.
+- PRs targeting the simulation engine require a note on determinism: confirm the change does not break seed reproducibility.
