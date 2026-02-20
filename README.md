@@ -73,8 +73,8 @@ flowchart TD
         B3["Draw edge → onConnect() → addEdge()"]
         B4["Select node → PropertiesPanel reads store"]
         B5["Edit config → updateNodeData() → store"]
-        B6["💾 Save → JSON.stringify(nodes + edges) → FileService → IPC → fs.writeFile"]
-        B7["📂 Open → fs.readFile → IPC → FileService → setNodes() & setEdges()"]
+        B6["Save → JSON.stringify(nodes + edges) → FileService → IPC → fs.writeFile"]
+        B7["Open → fs.readFile → IPC → FileService → setNodes() & setEdges()"]
         B1 --> B2 --> B3 --> B4 --> B5
         B5 --> B6
     end
