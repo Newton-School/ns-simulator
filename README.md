@@ -324,3 +324,52 @@ npm run build:linux
 | CLI (`simulator run / validate / compare`) | Planned |
 
 See `ns-simulator-docs/planning/TICKETS.md` for the full 46-ticket breakdown.
+
+---
+
+## Contributing
+
+### Setup
+
+```bash
+git clone <repo-url>
+cd ns-simulator
+git submodule update --init --recursive   # pulls ns-simulator-docs
+npm install
+npm run dev
+```
+
+### Branch Naming
+
+```
+feature/<kebab-case-description>    # new functionality
+fix/<kebab-case-description>        # bug fixes
+```
+
+Examples from this repo: `feature/add-ui-dependencies`, `feature/implement-vpc`, `feature/react-flow-canvas-setup`.
+
+### Commit Messages
+
+Imperative mood, sentence case, no period.
+
+```
+Add Tailwind CSS, ReactFlow, Zustand, and UI dependencies
+Fix circuit breaker state not resetting on node recovery
+Refactor VPC node to extract header and toolbar molecules
+```
+
+### Before Pushing
+
+```bash
+npm run typecheck    # tsc across both node + web tsconfigs
+npm run lint         # eslint
+npm run format       # prettier --write
+```
+
+All three must pass clean. The build runs `typecheck` automatically, so a failing type check will also break `npm run build`.
+
+### Pull Requests
+
+- One concern per PR — don't bundle UI changes with engine work.
+- Title: short, imperative, under 70 characters.
+- PRs targeting the simulation engine require a note on determinism: confirm the change does not break seed reproducibility.
