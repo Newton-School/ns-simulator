@@ -24,7 +24,7 @@ export interface SimulationEvent {
     timestamp: bigint;              // microseconds
     type: EventType;
     nodeId: string;
-    requestId?: string;
+    requestId: string;
     data: Record<string, unknown>;  // event-specific payload
     priority: number;               // derived from EventPriority
 }
