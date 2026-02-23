@@ -1,99 +1,108 @@
-import { useCallback, useEffect, useRef } from 'react';
-import useStore from '@renderer/store/useStore';
-import { useFileHandlers } from './useFileHandlers';
-import { convertFlatToNested, convertNestedToFlat, NestedFileData } from '@renderer/utils/nodeTransformers';
+import { useCallback, useEffect, useRef } from 'react'
+import useStore from '@renderer/store/useStore'
+import { useFileHandlers } from './useFileHandlers'
+import {
+  convertFlatToNested,
+  convertNestedToFlat,
+  NestedFileData
+} from '@renderer/utils/nodeTransformers'
 
 const extractFileName = (path: string): string => {
-    return path.replace(/^.*[\\/]/, '');
-};
+  return path.replace(/^.*[\\/]/, '')
+}
 
 const useKeyboardShortcuts = (onSave: () => void, onOpen: () => void) => {
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            const isMod = e.metaKey || e.ctrlKey;
-            if (!isMod) return;
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isMod = e.metaKey || e.ctrlKey
+      if (!isMod) return
 
-            if (e.key.toLowerCase() === 's') {
-                e.preventDefault();
-                onSave();
-            } else if (e.key.toLowerCase() === 'o') {
-                e.preventDefault();
-                onOpen();
-            }
-        };
+      if (e.key.toLowerCase() === 's') {
+        e.preventDefault()
+        onSave()
+      } else if (e.key.toLowerCase() === 'o') {
+        e.preventDefault()
+        onOpen()
+      }
+    }
 
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [onSave, onOpen]);
-};
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onSave, onOpen])
+}
 
 export const useFlowPersistence = () => {
-    const nodes = useStore((s) => s.nodes);
-    const edges = useStore((s) => s.edges);
-    const setNodes = useStore((s) => s.setNodes);
-    const setEdges = useStore((s) => s.setEdges);
-    const setFileName = useStore((s) => s.setFileName);
-    const setUnsaved = useStore((s) => s.setUnsaved);
+  const nodes = useStore((s) => s.nodes)
+  const edges = useStore((s) => s.edges)
+  const setNodes = useStore((s) => s.setNodes)
+  const setEdges = useStore((s) => s.setEdges)
+  const setFileName = useStore((s) => s.setFileName)
+  const setUnsaved = useStore((s) => s.setUnsaved)
 
-    const isLoadingRef = useRef(false);
+  const isLoadingRef = useRef(false)
 
-    const handleGetFileData = useCallback(() => {
-        const { nodes, edges } = useStore.getState();
-        const nestedNodes = convertFlatToNested(nodes);
-        return JSON.stringify({ nodes: nestedNodes, edges }, null, 2);
-    }, []);
+  const handleGetFileData = useCallback(() => {
+    const { nodes, edges } = useStore.getState()
+    const nestedNodes = convertFlatToNested(nodes)
+    return JSON.stringify({ nodes: nestedNodes, edges }, null, 2)
+  }, [])
 
-    const handleLoadFileData = useCallback((fileContent: string | object, filePath?: string) => {
-        try {
-            const data = (typeof fileContent === 'string'
-                ? JSON.parse(fileContent)
-                : fileContent) as NestedFileData;
+  const handleLoadFileData = useCallback(
+    (fileContent: string | object, filePath?: string) => {
+      try {
+        const data = (
+          typeof fileContent === 'string' ? JSON.parse(fileContent) : fileContent
+        ) as NestedFileData
 
-            if (!data?.nodes) throw new Error("Invalid file format");
+        if (!data?.nodes) throw new Error('Invalid file format')
 
-            const flatNodes = convertNestedToFlat(data.nodes);
+        const flatNodes = convertNestedToFlat(data.nodes)
 
-            isLoadingRef.current = true;
+        isLoadingRef.current = true
 
-            setNodes(flatNodes);
-            setEdges(data.edges || []);
-            setUnsaved(false);
+        setNodes(flatNodes)
+        setEdges(data.edges || [])
+        setUnsaved(false)
 
-            if (filePath && typeof filePath === 'string') {
-                setFileName(extractFileName(filePath));
-            }
-
-            setTimeout(() => {
-                isLoadingRef.current = false;
-            }, 100);
-
-        } catch (error) {
-            console.error("Failed to load flow:", error);
-            alert("Error loading file.");
-            isLoadingRef.current = false;
+        if (filePath && typeof filePath === 'string') {
+          setFileName(extractFileName(filePath))
         }
-    }, [setNodes, setEdges, setFileName, setUnsaved]);
 
-    const { handleSave: innerSave, handleOpen } = useFileHandlers(handleGetFileData, handleLoadFileData);
+        setTimeout(() => {
+          isLoadingRef.current = false
+        }, 100)
+      } catch (error) {
+        console.error('Failed to load flow:', error)
+        alert('Error loading file.')
+        isLoadingRef.current = false
+      }
+    },
+    [setNodes, setEdges, setFileName, setUnsaved]
+  )
 
-    const handleSaveWrapper = useCallback(async () => {
-        const savedPath = await innerSave();
+  const { handleSave: innerSave, handleOpen } = useFileHandlers(
+    handleGetFileData,
+    handleLoadFileData
+  )
 
-        if (savedPath && typeof savedPath === 'string') {
-            setFileName(extractFileName(savedPath));
-            setUnsaved(false);
-        }
-    }, [innerSave, setFileName, setUnsaved]);
+  const handleSaveWrapper = useCallback(async () => {
+    const savedPath = await innerSave()
 
-    useKeyboardShortcuts(handleSaveWrapper, handleOpen);
+    if (savedPath && typeof savedPath === 'string') {
+      setFileName(extractFileName(savedPath))
+      setUnsaved(false)
+    }
+  }, [innerSave, setFileName, setUnsaved])
 
-    useEffect(() => {
-        if (isLoadingRef.current) return;
+  useKeyboardShortcuts(handleSaveWrapper, handleOpen)
 
-        if (nodes.length > 0) {
-            setUnsaved(true);
-        }
-    }, [nodes, edges, setUnsaved]);
+  useEffect(() => {
+    if (isLoadingRef.current) return
 
-    return { handleSave: handleSaveWrapper, handleOpen };
-};
+    if (nodes.length > 0) {
+      setUnsaved(true)
+    }
+  }, [nodes, edges, setUnsaved])
+
+  return { handleSave: handleSaveWrapper, handleOpen }
+}

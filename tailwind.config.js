@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: ["./src/**/*.{js,jsx,ts,tsx}"],
+  content: ['./src/**/*.{js,jsx,ts,tsx}'],
   theme: {
     extend: {
       colors: {
@@ -19,15 +19,15 @@ module.exports = {
           placeholder: 'var(--nss-placeholder)',
 
           // Functional Colors (Using rgb wrapper to allow /opacity modifiers)
-          primary: 'rgb(var(--nss-primary) / <alpha-value>)', 
+          primary: 'rgb(var(--nss-primary) / <alpha-value>)',
           'primary-hover': 'rgb(var(--nss-primary-hover) / <alpha-value>)',
           success: 'rgb(var(--nss-success) / <alpha-value>)',
           warning: 'rgb(var(--nss-warning) / <alpha-value>)',
           danger: 'rgb(var(--nss-danger) / <alpha-value>)',
-          info: 'rgb(var(--nss-info) / <alpha-value>)',
+          info: 'rgb(var(--nss-info) / <alpha-value>)'
         }
-      },
-    },
+      }
+    }
   },
-  plugins: [],
+  plugins: []
 }

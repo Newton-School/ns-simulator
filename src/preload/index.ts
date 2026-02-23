@@ -6,27 +6,28 @@ const api = {
   saveScenario: (jsonString: string) => {
     // Validate that data is a non-empty string and not excessively long
     if (typeof jsonString !== 'string') {
-      console.error('saveScenario: data must be a string');
-      return;
+      console.error('saveScenario: data must be a string')
+      return
     }
     if (jsonString.length === 0) {
-      console.error('saveScenario: data must not be empty');
-      return;
+      console.error('saveScenario: data must not be empty')
+      return
     }
     if (jsonString.length > 1000000) {
-      console.error('saveScenario: data is too large');
-      return;
+      console.error('saveScenario: data is too large')
+      return
     }
     return ipcRenderer.invoke('dialog:save', jsonString).catch((error) => {
-      console.error('Error in saveScenario:', error);
-      throw error;
-    });
+      console.error('Error in saveScenario:', error)
+      throw error
+    })
   },
 
-  loadScenario: () => ipcRenderer.invoke('dialog:open').catch((error) => {
-    console.error('Error in loadScenario:', error);
-    throw error;
-  }),
+  loadScenario: () =>
+    ipcRenderer.invoke('dialog:open').catch((error) => {
+      console.error('Error in loadScenario:', error)
+      throw error
+    }),
 
   runSimulation: (config: any) => ipcRenderer.send('nssimulator:run-simulation', config)
 }

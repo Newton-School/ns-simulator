@@ -27,11 +27,7 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
   {
     id: 'clients-edge',
     title: 'Clients & Edge',
-    items: [
-      fromRegistry('client-user')!,
-      fromRegistry('dns')!,
-      fromRegistry('cdn')!,
-    ]
+    items: [fromRegistry('client-user')!, fromRegistry('dns')!, fromRegistry('cdn')!]
   },
   {
     id: 'network',
@@ -62,12 +58,12 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
       fromRegistry('redis-cache')!,
       fromRegistry('nosql-db')!,
       fromRegistry('object-storage')!,
-      fromRegistry('search-index')!,
+      fromRegistry('search-index')!
     ]
   },
   {
     id: 'external',
     title: 'External',
     items: [fromRegistry('external-service')!]
-  },
+  }
 ]
