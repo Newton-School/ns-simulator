@@ -2,15 +2,15 @@
  * All possible event types that drive the simulation state.
  */
 export type EventType =
-    | 'REQUEST_GENERATED' | 'REQUEST_ARRIVAL' | 'PROCESSING_START' | 'PROCESSING_COMPLETE'
-    | 'REQUEST_FORWARDED' | 'REQUEST_COMPLETE' | 'REQUEST_TIMEOUT' | 'REQUEST_REJECTED'
-    | 'NODE_FAILURE' | 'NODE_RECOVERY' | 'NETWORK_PARTITION' | 'LATENCY_SPIKE'
-    | 'SCALE_UP' | 'SCALE_DOWN' | 'CIRCUIT_BREAKER_OPEN' | 'CIRCUIT_BREAKER_CLOSE'
-    | 'HEALTH_CHECK' | 'CACHE_HIT' | 'CACHE_MISS' | 'DB_FAILOVER';
+    | 'request-generated' | 'request-arrival' | 'processing-start' | 'processing-complete'
+    | 'request-forwarded' | 'request-complete' | 'request-timeout' | 'request-rejected'
+    | 'node-failure' | 'node-recovery' | 'network-partition' | 'latency-spike'
+    | 'scale-up' | 'scale-down' | 'circuit-breaker-open' | 'circuit-breaker-close'
+    | 'health-check' | 'cache-hit' | 'cache-miss' | 'db-failover';
 
 /**
  * Priorities for tie-breaking when two events share the same timestamp.
- * Lower number = higher priority. (Run time)
+ * Lower number = higher priority. (At runtime)
  */
 export const EventPriority = {
     SYSTEM: 0,      // health checks, config changes, node failures
@@ -24,7 +24,7 @@ export interface SimulationEvent {
     timestamp: bigint;              // microseconds
     type: EventType;
     nodeId: string;
-    requestId: string;
+    requestId?: string;
     data: Record<string, unknown>;  // event-specific payload
     priority: number;               // derived from EventPriority
 }
@@ -51,48 +51,50 @@ export interface Request {
 }
 
 /**
- * Internal helper to resolve the default priority based on EventType. (Run time)
+ * Internal helper to resolve the default priority based on EventType. (At runtime)
  */
 function getDefaultPriority(type: EventType): number {
     switch (type) {
-        case 'REQUEST_GENERATED':
-        case 'REQUEST_ARRIVAL':
+        case 'request-generated':
+        case 'request-arrival':
             return EventPriority.ARRIVAL;
 
-        case 'PROCESSING_START':
-        case 'PROCESSING_COMPLETE':
-        case 'REQUEST_COMPLETE':
-        case 'REQUEST_REJECTED':
-        case 'CACHE_HIT':
-        case 'CACHE_MISS':
+        case 'processing-start':
+        case 'processing-complete':
+        case 'request-complete':
+        case 'request-rejected':
+        case 'cache-hit':
+        case 'cache-miss':
             return EventPriority.PROCESSING;
 
-        case 'REQUEST_FORWARDED':
+        case 'request-forwarded':
             return EventPriority.DEPARTURE;
 
-        case 'REQUEST_TIMEOUT':
+        case 'request-timeout':
             return EventPriority.TIMEOUT;
 
-        case 'NODE_FAILURE':
-        case 'NODE_RECOVERY':
-        case 'NETWORK_PARTITION':
-        case 'LATENCY_SPIKE':
-        case 'SCALE_UP':
-        case 'SCALE_DOWN':
-        case 'CIRCUIT_BREAKER_OPEN':
-        case 'CIRCUIT_BREAKER_CLOSE':
-        case 'HEALTH_CHECK':
-        case 'DB_FAILOVER':
+        case 'node-failure':
+        case 'node-recovery':
+        case 'network-partition':
+        case 'latency-spike':
+        case 'scale-up':
+        case 'scale-down':
+        case 'circuit-breaker-open':
+        case 'circuit-breaker-close':
+        case 'health-check':
+        case 'db-failover':
             return EventPriority.SYSTEM;
 
-        default:
-            return EventPriority.SYSTEM;
+        default: {
+            const _exhaustiveCheck: never = type;
+            throw new Error(`Unhandled event type in getDefaultPriority: ${_exhaustiveCheck}`);
+        }
     }
 }
 
 /**
  * Factory function to generate standard simulation events.
- * Auto-assigns the correct tie-breaking priority if not explicitly provided. (Run time)
+ * Auto-assigns the correct tie-breaking priority if not explicitly provided. (At run time)
  */
 export function createEvent(
     type: EventType,
