@@ -1,10 +1,10 @@
-import React, { memo } from 'react';
-import { Handle, Position } from 'reactflow';
+import React, { memo } from 'react'
+import { Handle, Position } from 'reactflow'
 
 interface UniversalHandleProps {
-  position: Position;
-  offset: string;
-  id: string;
+  position: Position
+  offset: string
+  id: string
 }
 
 const UniversalHandle = ({ position, offset, id }: UniversalHandleProps) => {
@@ -12,20 +12,20 @@ const UniversalHandle = ({ position, offset, id }: UniversalHandleProps) => {
     !w-2 !h-2 rounded-full border border-nss-surface z-50
     transition-all duration-200 
     opacity-0 group-hover:opacity-40
-  `;
+  `
 
-  const style: React.CSSProperties = {};
+  const style: React.CSSProperties = {}
 
   if (position === Position.Left || position === Position.Right) {
-    style.top = offset;
+    style.top = offset
   } else {
-    style.left = offset;
+    style.left = offset
   }
 
-  if (position === Position.Left) style.left = '-5px';
-  if (position === Position.Right) style.right = '-5px';
-  if (position === Position.Top) style.top = '-5px';
-  if (position === Position.Bottom) style.bottom = '-5px';
+  if (position === Position.Left) style.left = '-5px'
+  if (position === Position.Right) style.right = '-5px'
+  if (position === Position.Top) style.top = '-5px'
+  if (position === Position.Bottom) style.bottom = '-5px'
 
   return (
     <>
@@ -55,7 +55,7 @@ const UniversalHandle = ({ position, offset, id }: UniversalHandleProps) => {
         style={style}
       />
     </>
-  );
-};
+  )
+}
 
-export default memo(UniversalHandle);
+export default memo(UniversalHandle)

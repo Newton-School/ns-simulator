@@ -1,10 +1,9 @@
-import { CATALOG_CONFIG } from '../../config/catalogConfig';
-import { LibraryItem } from '../molecules/LibraryItem';
+import { CATALOG_CONFIG } from '../../config/catalogConfig'
+import { LibraryItem } from '../molecules/LibraryItem'
 
 export const LibrarySidebar = () => {
   return (
     <aside className="h-full w-full bg-nss-panel border-r border-nss-border flex flex-col transition-colors duration-200">
-
       {/* Sidebar Header */}
       <div className="p-4 border-b border-nss-border shrink-0">
         <h2 className="text-xs font-bold text-nss-muted uppercase tracking-widest">
@@ -31,5 +30,5 @@ export const LibrarySidebar = () => {
         ))}
       </div>
     </aside>
-  );
-};
+  )
+}

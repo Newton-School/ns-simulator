@@ -1,11 +1,11 @@
-import { CatalogCategory } from '@renderer/types/ui';
-import { NODE_REGISTRY } from '@renderer/config/nodeRegistry';
-import { getTheme } from '@renderer/config/themeConfig';
+import { CatalogCategory } from '@renderer/types/ui'
+import { NODE_REGISTRY } from '@renderer/config/nodeRegistry'
+import { getTheme } from '@renderer/config/themeConfig'
 
 const fromRegistry = (id: string) => {
-  const def = NODE_REGISTRY[id];
-  if (!def) return null; // Handle error gracefully
-  const theme = getTheme(def.lookupKey);
+  const def = NODE_REGISTRY[id]
+  if (!def) return null // Handle error gracefully
+  const theme = getTheme(def.lookupKey)
 
   return {
     id: def.id,
@@ -15,16 +15,24 @@ const fromRegistry = (id: string) => {
     icon: def.icon,
     color: theme.bg,
     data: def.defaultData
-  };
-};
+  }
+}
 
 export const CATALOG_CONFIG: CatalogCategory[] = [
   {
     id: 'infrastructure',
     title: 'Infrastructure',
-    items: [
-      fromRegistry('vpc-region')!
-    ]
+    items: [fromRegistry('vpc-region')!, fromRegistry('availability-zone')!]
+  },
+  {
+    id: 'clients-edge',
+    title: 'Clients & Edge',
+    items: [fromRegistry('client-user')!, fromRegistry('dns')!, fromRegistry('cdn')!]
+  },
+  {
+    id: 'network',
+    title: 'Network',
+    items: [fromRegistry('api-gateway')!, fromRegistry('load-balancer')!]
   },
   {
     id: 'compute',
@@ -37,18 +45,25 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
     ]
   },
   {
+    id: 'messaging',
+    title: 'Messaging',
+    items: [fromRegistry('message-queue')!, fromRegistry('message-broker')!]
+  },
+  {
     id: 'datastore',
     title: 'Data Store',
     items: [
       fromRegistry('primary-db')!,
-      fromRegistry('redis-cache')!
+      fromRegistry('read-replica')!,
+      fromRegistry('redis-cache')!,
+      fromRegistry('nosql-db')!,
+      fromRegistry('object-storage')!,
+      fromRegistry('search-index')!
     ]
   },
   {
-    id: 'network',
-    title: 'Network',
-    items: [
-      fromRegistry('load-balancer')!
-    ]
-  },
-];
+    id: 'external',
+    title: 'External',
+    items: [fromRegistry('external-service')!]
+  }
+]

@@ -1,21 +1,20 @@
-import { clsx } from 'clsx';
+import { clsx } from 'clsx'
 
 interface MetricItemProps {
-  label: string;
-  value?: string | number;
-  unit?: string;
-  textColor?: string;
+  label: string
+  value?: string | number
+  unit?: string
+  textColor?: string
 }
 
 export const MetricItem = ({
   label,
   value,
   unit,
-  textColor = "text-nss-text"
+  textColor = 'text-nss-text'
 }: MetricItemProps) => {
-
   // LOGIC: Explicitly check for null/undefined so that '0' (zero) is still rendered
-  if (value === undefined || value === null) return null;
+  if (value === undefined || value === null) return null
 
   return (
     <div>
@@ -25,10 +24,10 @@ export const MetricItem = ({
       </div>
 
       {/* Value: Uses custom textColor (defaulting to nss-text) */}
-      <div className={clsx("font-mono text-lg truncate", textColor)}>
+      <div className={clsx('font-mono text-lg truncate', textColor)}>
         {value}
-        {unit && <span className={clsx("text-xs ml-0.5", textColor)}>{unit}</span>}
+        {unit && <span className={clsx('text-xs ml-0.5', textColor)}>{unit}</span>}
       </div>
     </div>
-  );
-};
+  )
+}

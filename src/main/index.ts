@@ -51,7 +51,7 @@ app.whenReady().then(() => {
   })
 
   if (process.platform === 'darwin') {
-    app.dock?.setIcon(icon);
+    app.dock?.setIcon(icon)
   }
 
   // IPC test
@@ -66,20 +66,20 @@ app.whenReady().then(() => {
   })
 
   ipcMain.handle('dialog:save', async (event, content) => {
-    const filepath = await registerIpcHandlers.handleSaveScenario(event, content);
+    const filepath = await registerIpcHandlers.handleSaveScenario(event, content)
 
-    console.log("Saved to", filepath);
-    return filepath;
-  });
+    console.log('Saved to', filepath)
+    return filepath
+  })
 
   ipcMain.handle('dialog:open', async (event) => {
-    const content = await registerIpcHandlers.handleOpenScenario(event);
-    return content;
-  });
+    const content = await registerIpcHandlers.handleOpenScenario(event)
+    return content
+  })
 
   ipcMain.on('nssimulator:run-simulation', (_, config) => {
-    console.log('Received simulation config:', config);
-  });
+    console.log('Received simulation config:', config)
+  })
 })
 
 // Quit when all windows are closed, except on macOS. There, it's common

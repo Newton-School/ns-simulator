@@ -1,10 +1,9 @@
-
 type TrafficParticleProps = {
-  path: string;
-  fillColor: string;
-  duration?: number;
-  delay?: number;
-};
+  path: string
+  fillColor: string
+  duration?: number
+  delay?: number
+}
 
 export const TrafficParticle = ({
   path,
@@ -24,6 +23,5 @@ export const TrafficParticle = ({
         calcMode="linear"
       />
     </circle>
-
-  );
-};
+  )
+}

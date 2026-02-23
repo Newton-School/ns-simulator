@@ -1,23 +1,26 @@
-import React from 'react';
-import { CatalogItem } from '@renderer/types/ui';
+import React from 'react'
+import { CatalogItem } from '@renderer/types/ui'
 
 interface LibraryItemProps {
-  item: CatalogItem;
+  item: CatalogItem
 }
 
 export const LibraryItem = ({ item }: LibraryItemProps) => {
-  const { icon: Icon, label, subLabel, color, type, data } = item;
+  const { icon: Icon, label, subLabel, color, type, data } = item
 
   const onDragStart = (event: React.DragEvent) => {
-    event.dataTransfer.setData('application/reactflow/type', type);
-    event.dataTransfer.setData('application/reactflow/data', JSON.stringify({
-      label,
-      color,
-      ...data
-    }));
+    event.dataTransfer.setData('application/reactflow/type', type)
+    event.dataTransfer.setData(
+      'application/reactflow/data',
+      JSON.stringify({
+        label,
+        color,
+        ...data
+      })
+    )
 
-    event.dataTransfer.effectAllowed = 'move';
-  };
+    event.dataTransfer.effectAllowed = 'move'
+  }
 
   return (
     <div
@@ -32,7 +35,9 @@ export const LibraryItem = ({ item }: LibraryItemProps) => {
       "
     >
       {/* Icon Well */}
-      <div className={`p-2 rounded bg-opacity-40 group-hover:bg-opacity-20 ${color} shrink-0 transition-all`}>
+      <div
+        className={`p-2 rounded bg-opacity-40 group-hover:bg-opacity-20 ${color} shrink-0 transition-all`}
+      >
         <Icon size={18} className={color.replace('bg-', 'text-')} />
       </div>
 
@@ -41,10 +46,8 @@ export const LibraryItem = ({ item }: LibraryItemProps) => {
         <span className="text-sm font-medium text-nss-text truncate transition-colors">
           {label}
         </span>
-        <span className="text-[10px] text-nss-muted truncate mt-0.5">
-          {subLabel}
-        </span>
+        <span className="text-[10px] text-nss-muted truncate mt-0.5">{subLabel}</span>
       </div>
     </div>
-  );
-};
+  )
+}

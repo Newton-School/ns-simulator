@@ -1,52 +1,59 @@
-import { dialog, IpcMainInvokeEvent } from 'electron';
-import * as fs from 'fs/promises';
+import { dialog, IpcMainInvokeEvent } from 'electron'
+import * as fs from 'fs/promises'
 
-async function handleSaveScenario(_event: IpcMainInvokeEvent, content: string): Promise<string | boolean> {
+async function handleSaveScenario(
+  _event: IpcMainInvokeEvent,
+  content: string
+): Promise<string | boolean> {
+  void _event
   const { canceled, filePath } = await dialog.showSaveDialog({
     title: 'Save Simulation Topology',
     defaultPath: 'scenario.json',
     filters: [{ name: 'JSON Files', extensions: ['json'] }]
-  });
+  })
 
   if (canceled || !filePath) {
-    return false;
+    return false
   }
 
   try {
-    await fs.writeFile(filePath, content, 'utf8');
-    return filePath;
+    await fs.writeFile(filePath, content, 'utf8')
+    return filePath
   } catch (error) {
-    console.error('Save Error:', error);
-    throw error;
+    console.error('Save Error:', error)
+    throw error
   }
 }
 
-async function handleOpenScenario(_event: Electron.IpcMainInvokeEvent): Promise<{ data: string, path: string } | null> {
+async function handleOpenScenario(
+  _event: Electron.IpcMainInvokeEvent
+): Promise<{ data: string; path: string } | null> {
+  void _event
   const { canceled, filePaths } = await dialog.showOpenDialog({
     title: 'Open Simulation Topology',
     filters: [{ name: 'JSON Files', extensions: ['json'] }],
     properties: ['openFile']
-  });
+  })
 
   if (canceled || filePaths.length === 0) {
-    return null;
+    return null
   }
 
   try {
-    const filePath = filePaths[0];
-    const content = await fs.readFile(filePath, 'utf8');
+    const filePath = filePaths[0]
+    const content = await fs.readFile(filePath, 'utf8')
 
     return {
       data: content,
       path: filePath
-    };
+    }
   } catch (error) {
-    console.error('Read Error:', error);
-    throw new Error('Failed to read the selected file.');
+    console.error('Read Error:', error)
+    throw new Error('Failed to read the selected file.')
   }
 }
 
 export const registerIpcHandlers = {
   handleOpenScenario,
-  handleSaveScenario,
-};
+  handleSaveScenario
+}
