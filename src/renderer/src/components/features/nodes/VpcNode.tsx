@@ -1,12 +1,19 @@
 import { memo, useState, useCallback } from 'react';
 import { NodeProps, NodeResizer } from 'reactflow';
+import { Cloud, Box, LucideIcon } from 'lucide-react';
 import { useVpcLogic } from './vpc/useVpcLogic';
 import { VpcToolbar } from './vpc/VpcToolBar';
 import { VpcHeader } from './vpc/VpcHeader';
 import { NodeSettingsMenu } from '@renderer/components/molecules/NodeSettingsMenu';
 
+const VPC_ICON_LOOKUP: Record<string, LucideIcon> = {
+  cloud: Cloud,
+  az: Box,
+};
+
 const VpcNode = ({ id, data, selected }: NodeProps) => {
   const { isUngrouped, hasChildren, minSize, handleUngroup } = useVpcLogic(id);
+  const ContainerIcon = VPC_ICON_LOOKUP[data.iconKey] || Cloud;
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
@@ -58,6 +65,7 @@ const VpcNode = ({ id, data, selected }: NodeProps) => {
         <VpcHeader
           label={data.label}
           isSuccessState={isSuccessState}
+          icon={ContainerIcon}
         >
           <NodeSettingsMenu
             nodeId={id}

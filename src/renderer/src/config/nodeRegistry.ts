@@ -1,5 +1,6 @@
 import {
-    Server, Zap, Cpu, Clock, Database, Network, Cloud, LucideIcon, Settings
+    Server, Zap, Cpu, Clock, Database, Network, Cloud, LucideIcon, Settings,
+    Monitor, Navigation, Wifi, Globe, Inbox, Radio, Layers, GitBranch, HardDrive, Search, ExternalLink, Box,
 } from 'lucide-react';
 import { getTheme } from './themeConfig';
 
@@ -81,7 +82,7 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
         defaultData: { iconKey: 'network', status: 'healthy', throughput: 10000, load: 10 }
     },
 
-    //Infrastructure
+    // Infrastructure
     'vpc-region': {
         id: 'vpc-region',
         type: 'vpcNode',
@@ -90,7 +91,123 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
         icon: Cloud,
         lookupKey: 'cloud',
         defaultData: { iconKey: 'cloud' }
-    }
+    },
+    'availability-zone': {
+        id: 'availability-zone',
+        type: 'vpcNode',
+        label: 'Availability Zone',
+        subLabel: 'Fault Domain',
+        icon: Box,
+        lookupKey: 'az',
+        defaultData: { iconKey: 'az' }
+    },
+
+    // Clients & Edge
+    'client-user': {
+        id: 'client-user',
+        type: 'serviceNode',
+        label: 'Client',
+        subLabel: 'Browser / Mobile',
+        icon: Monitor,
+        lookupKey: 'monitor',
+        defaultData: { iconKey: 'monitor', status: 'healthy', throughput: 0, load: 0 }
+    },
+    'dns': {
+        id: 'dns',
+        type: 'serviceNode',
+        label: 'DNS',
+        subLabel: 'Name Resolution',
+        icon: Navigation,
+        lookupKey: 'dns',
+        defaultData: { iconKey: 'dns', status: 'healthy', throughput: 0, load: 0 }
+    },
+    'cdn': {
+        id: 'cdn',
+        type: 'serviceNode',
+        label: 'CDN',
+        subLabel: 'Edge Caching',
+        icon: Wifi,
+        lookupKey: 'cdn',
+        defaultData: { iconKey: 'cdn', status: 'healthy', throughput: 50000, load: 5 }
+    },
+    'api-gateway': {
+        id: 'api-gateway',
+        type: 'serviceNode',
+        label: 'API Gateway',
+        subLabel: 'Request Router',
+        icon: Globe,
+        lookupKey: 'globe',
+        defaultData: { iconKey: 'globe', status: 'healthy', throughput: 8000, load: 20 }
+    },
+
+    // Messaging
+    'message-queue': {
+        id: 'message-queue',
+        type: 'serviceNode',
+        label: 'Message Queue',
+        subLabel: 'SQS / RabbitMQ',
+        icon: Inbox,
+        lookupKey: 'queue',
+        defaultData: { iconKey: 'queue', status: 'healthy', throughput: 3000, queueDepth: 0, load: 10 }
+    },
+    'message-broker': {
+        id: 'message-broker',
+        type: 'serviceNode',
+        label: 'Event Broker',
+        subLabel: 'Kafka / Event Stream',
+        icon: Radio,
+        lookupKey: 'broker',
+        defaultData: { iconKey: 'broker', status: 'healthy', throughput: 100000, load: 10 }
+    },
+
+    // Data Stores (additional)
+    'nosql-db': {
+        id: 'nosql-db',
+        type: 'serviceNode',
+        label: 'NoSQL DB',
+        subLabel: 'DynamoDB / MongoDB',
+        icon: Layers,
+        lookupKey: 'nosql',
+        defaultData: { iconKey: 'nosql', status: 'healthy', throughput: 5000, load: 30 }
+    },
+    'read-replica': {
+        id: 'read-replica',
+        type: 'serviceNode',
+        label: 'Read Replica',
+        subLabel: 'SQL Read Replica',
+        icon: GitBranch,
+        lookupKey: 'replica',
+        defaultData: { iconKey: 'replica', status: 'healthy', throughput: 2000, load: 40 }
+    },
+    'object-storage': {
+        id: 'object-storage',
+        type: 'serviceNode',
+        label: 'Object Storage',
+        subLabel: 'S3 / Blob Store',
+        icon: HardDrive,
+        lookupKey: 'storage',
+        defaultData: { iconKey: 'storage', status: 'healthy', throughput: 500, load: 10 }
+    },
+    'search-index': {
+        id: 'search-index',
+        type: 'serviceNode',
+        label: 'Search Index',
+        subLabel: 'Elasticsearch',
+        icon: Search,
+        lookupKey: 'search',
+        defaultData: { iconKey: 'search', status: 'healthy', throughput: 1500, load: 25 }
+    },
+
+    // External
+    'external-service': {
+        id: 'external-service',
+        type: 'serviceNode',
+        label: 'External Service',
+        subLabel: '3rd Party API',
+        icon: ExternalLink,
+        lookupKey: 'external',
+        defaultData: { iconKey: 'external', status: 'healthy', throughput: 500, load: 5 }
+    },
 };
 
 export const resolveNodeConfig = (key: string | undefined) => {

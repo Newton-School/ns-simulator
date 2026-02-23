@@ -1,6 +1,9 @@
 import React, { memo, useState, useCallback, useMemo } from 'react';
 import { Position, NodeProps } from 'reactflow';
-import { Server, Globe, Cpu, Database, Network, LucideIcon } from 'lucide-react';
+import {
+  Server, Globe, Cpu, Database, Network, LucideIcon,
+  Monitor, Navigation, Wifi, Inbox, Radio, Layers, GitBranch, HardDrive, Search, ExternalLink,
+} from 'lucide-react';
 
 import UniversalHandle from "@renderer/components/atoms/UniversalHandle"
 import { ProgressBar } from '@renderer/components/atoms/ProgressBar';
@@ -13,11 +16,26 @@ const OFFSETS = ['25%', '50%', '75%'];
 const POSITIONS = [Position.Left, Position.Top, Position.Right, Position.Bottom];
 
 const ICON_LOOKUP: Record<string, LucideIcon> = {
+  // Existing
   globe: Globe,
   cpu: Cpu,
   database: Database,
   server: Server,
   network: Network,
+  // Clients & Edge
+  monitor: Monitor,
+  dns: Navigation,
+  cdn: Wifi,
+  // Messaging
+  queue: Inbox,
+  broker: Radio,
+  // Data Stores
+  nosql: Layers,
+  replica: GitBranch,
+  storage: HardDrive,
+  search: Search,
+  // External
+  external: ExternalLink,
 };
 
 const ServiceNode = ({ id, data, selected }: NodeProps<ServiceNodeData>) => {
