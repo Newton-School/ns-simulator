@@ -1,6 +1,31 @@
 import { z } from 'zod';
 import { TopologyJSON } from './types';
 
+const COMPONENT_CATEGORIES = [
+  'compute', 'network-and-edge', 'storage-and-data', 'messaging-and-streaming',
+  'orchestration-and-infra', 'security-and-identity', 'observability',
+  'devops-and-delivery', 'data-infra-and-analytics', 'real-time-and-media',
+  'external-and-integration', 'dns-and-certs', 'consensus-and-coordination',
+  'auxiliary'
+] as const;
+
+const COMPONENT_TYPES = [
+  'api-endpoint', 'microservice', 'sidecar', 'batch-worker', 'serverless-function', 'faas-background', 'container', 'vm-instance', 'edge-compute', 'gpu-node',
+  'load-balancer', 'global-traffic-manager', 'nat-gateway', 'transit-gateway', 'vpn-gateway', 'cdn', 'api-gateway', 'service-mesh', 'reverse-proxy', 'high-perf-nic', 'network-policy',
+  'relational-db', 'nosql-db', 'object-storage', 'block-storage', 'distributed-file-system', 'in-memory-cache', 'search-index', 'time-series-db', 'columnar-db', 'graph-db', 'data-warehouse', 'archive-storage', 'schema-registry', 'cdc', 'backup-service', 'kms-storage',
+  'queue', 'pub-sub', 'stream', 'event-bus', 'event-sourcing-store', 'message-broker', 'task-queue',
+  'kubernetes-cluster', 'container-registry', 'service-registry', 'config-store', 'secrets-manager', 'cluster-autoscaler', 'orchestrator-scheduler', 'ci-cd-runner', 'iac-engine', 'container-runtime', 'provisioner',
+  'iam-rbac', 'waf', 'firewall', 'bastion-host', 'certificate-authority', 'secrets-rotation', 'kms-security', 'dlp-inspection', 'identity-provider', 'siem', 'privilege-escalation-control',
+  'centralized-logging', 'distributed-tracing', 'metrics-store', 'alerting-hook', 'dashboard', 'rum-monitoring', 'health-check-manager', 'profiling-service',
+  'artifact-repository', 'build-system', 'feature-flag-service', 'deployment-controller', 'chaos-engineering-framework', 'policy-as-code', 'pipeline-secrets',
+  'etl-pipeline', 'streaming-analytics', 'feature-store', 'model-serving',
+  'websockets-gateway', 'push-notification-service', 'transcoder', 'signaling-server', 'sfu-mcu', 'webrtc-mesh',
+  'webhook-gateway', 'third-party-api-connector', 'payment-gateway', 'third-party-auth',
+  'dns-authoritative-server', 'internal-dns', 'certificate-distro',
+  'etcd-consul-kv', 'leader-election', 'distributed-lock', 'coordination-service',
+  'service-mesh-telemetry', 'policy-engine', 'rate-limiter', 'circuit-breaker-controller', 'idempotency-manager', 'request-tracking', 'backpressure-controller', 'throttler'
+] as const;
+
 //zod Schema
 const BaseDistributionConfigSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('constant'), value: z.number() }),
@@ -46,8 +71,8 @@ export const GlobalConfigSchema = z.object({
 
 export const ComponentNodeSchema = z.object({
   id: z.string().min(1),
-  type: z.string(),
-  category: z.string(),
+  type: z.enum(COMPONENT_TYPES),
+  category: z.enum(COMPONENT_CATEGORIES),
   label: z.string(),
   position: z.object({ x: z.number(), y: z.number() }),
 
@@ -120,7 +145,15 @@ export const WorkloadProfileSchema = z.object({
     type: z.string(),
     weight: z.number().nonnegative(),
     sizeBytes: z.number().positive()
-  })).min(1),
+  }))
+    .min(1)
+    .refine(
+      (dist) => {
+        const totalWeight = dist.reduce((acc, curr) => acc + curr.weight, 0);
+        return totalWeight > 0 && Math.abs(totalWeight - 1.0) < 0.0001;
+      },
+      { message: "The sum of requestDistribution weights must equal 1.0" }
+    ),
 
   diurnal: z.object({
     peakMultiplier: z.number(),
@@ -142,6 +175,18 @@ export const FaultSpecSchema = z.object({
   params: z.record(z.string(), z.unknown())
 });
 
+export const InvariantCheckSchema = z.object({
+  id: z.string().min(1),
+  description: z.string(),
+  condition: z.string().min(1)
+});
+
+export const ScenarioRefSchema = z.object({
+  id: z.string().min(1),
+  name: z.string(),
+  overrides: z.record(z.string(), z.unknown())
+});
+
 export const TopologyJSONSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -152,8 +197,8 @@ export const TopologyJSONSchema = z.object({
   workload: WorkloadProfileSchema.optional(),
 
   faults: z.array(FaultSpecSchema).optional(),
-  invariants: z.array(z.record(z.string(), z.unknown())).optional(),
-  scenarios: z.array(z.record(z.string(), z.unknown())).optional()
+  invariants: z.array(InvariantCheckSchema).optional(),
+  scenarios: z.array(ScenarioRefSchema).optional()
 });
 
 //Validation Wrapper
