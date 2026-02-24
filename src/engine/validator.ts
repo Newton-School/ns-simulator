@@ -8,7 +8,14 @@ const BaseDistributionConfigSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('log-normal'), mu: z.number(), sigma: z.number().positive("Sigma must be > 0") }),
   z.object({ type: z.literal('exponential'), lambda: z.number().positive("Lambda must be > 0") }),
   z.object({ type: z.literal('normal'), mean: z.number(), stdDev: z.number().positive() }),
-  z.object({ type: z.literal('uniform'), min: z.number(), max: z.number() }),
+  z.object({
+    type: z.literal('uniform'),
+    min: z.number(),
+    max: z.number(),
+  }).refine((data) => data.max > data.min, {
+    message: "For uniform distribution, max must be greater than min",
+    path: ['max'],
+  }),
   z.object({ type: z.literal('weibull'), shape: z.number().positive(), scale: z.number().positive() }),
   z.object({ type: z.literal('poisson'), lambda: z.number().positive() }),
   z.object({ type: z.literal('binomial'), n: z.number().int().positive(), p: z.number().min(0).max(1) }),
@@ -23,7 +30,7 @@ export const DistributionConfigSchema = z.union([
   z.object({
     type: z.literal('mixture'),
     components: z.array(z.object({
-      weight: z.number().positive(),
+      weight: z.number().nonnegative(),
       distribution: BaseDistributionConfigSchema
     })).min(1)
   })
@@ -42,12 +49,12 @@ export const ComponentNodeSchema = z.object({
   type: z.string(),
   category: z.string(),
   label: z.string(),
-  position: z.object({ x: z.number(), y: z.number() }).optional(),
+  position: z.object({ x: z.number(), y: z.number() }),
 
   resources: z.object({
     cpu: z.number().positive(),
     memory: z.number().positive(),
-    replicas: z.number().int().nonnegative(),
+    replicas: z.number().int().positive(),
     maxReplicas: z.number().int().positive().optional()
   }).optional(),
 
@@ -90,7 +97,7 @@ export const EdgeDefinitionSchema = z.object({
   packetLossRate: z.number().min(0).max(1),
   errorRate: z.number().min(0).max(1),
   weight: z.number().optional(),
-  condition: z.string().nullable().optional(),
+  condition: z.string().optional(),
   sourceHandle: z.string().optional(),
   targetHandle: z.string().optional(),
   animated: z.boolean().optional()
@@ -197,6 +204,11 @@ export const validateTopology = (input: unknown): ValidationResult => {
     }
   });
 
+  const workloadSourceNodeId = topology.workload?.sourceNodeId;
+  if (workloadSourceNodeId && !nodeIds.has(workloadSourceNodeId)) {
+    errors.push({ path: "workload.sourceNodeId", message: "Workload sourceNodeId references non-existent node." });
+  }
+
   if (!hasSourceNode && topology.nodes.length > 0) {
     errors.push({ path: "nodes", message: "Topology must contain at least one source node (e.g., api-gateway) or a workload sourceNodeId." });
   }
@@ -217,9 +229,9 @@ export const validateTopology = (input: unknown): ValidationResult => {
   });
 
   topology.nodes.forEach((node, index) => {
-    node.dependencies?.critical.forEach((depId, depIndex) => {
+    node.dependencies?.optional?.forEach((depId, depIndex) => {
       if (!nodeIds.has(depId)) {
-        errors.push({ path: `nodes[${index}].dependencies.critical[${depIndex}]`, message: `Critical dependency ID '${depId}' does not exist.` });
+        errors.push({ path: `nodes[${index}].dependencies.optional[${depIndex}]`, message: `Optional dependency ID '${depId}' does not exist.` });
       }
     });
   });
