@@ -8,6 +8,9 @@ export const FIELD_DEFINITIONS: Record<string, any> = {
   load: { type: 'slider', label: 'CPU Load', min: 0, max: 100, unit: '%' },
   queueDepth: { type: 'input', label: 'Queue Depth', unit: 'ms' },
 
+  droppedPackets: { type: 'input', label: 'Dropped Packets', unit: '%' },
+  blockRate: { type: 'input', label: 'Block Rate', unit: '%' },
+
   // --- Specs  ---
   vCPU: { type: 'input', label: 'vCPU Cores', unit: 'cores' },
   ram: { type: 'input', label: 'Memory', unit: 'GB' },
