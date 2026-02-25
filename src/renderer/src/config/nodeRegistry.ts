@@ -19,13 +19,15 @@ import {
   HardDrive,
   Search,
   ExternalLink,
-  Box
+  Box,
+  Shield,
+  ShieldAlert
 } from 'lucide-react'
 import { getTheme } from './themeConfig'
 
 export interface NodeDef {
   id: string
-  type: 'computeNode' | 'serviceNode' | 'vpcNode'
+  type: 'computeNode' | 'serviceNode' | 'vpcNode' | 'securityNode'
   label: string
   subLabel: string
   icon: LucideIcon
@@ -99,6 +101,26 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     icon: Network,
     lookupKey: 'network',
     defaultData: { iconKey: 'network', status: 'healthy', throughput: 10000, load: 10 }
+  },
+
+  //Security Nodes
+  waf: {
+    id: 'waf',
+    type: 'securityNode',
+    label: 'WAF',
+    subLabel: 'Web App Firewall',
+    icon: Shield,
+    lookupKey: 'waf',
+    defaultData: { iconKey: 'waf', status: 'healthy', blockRate: 1.2, load: 10 }
+  },
+  'firewall-rule': {
+    id: 'firewall-rule',
+    type: 'securityNode',
+    label: 'Firewall Rule',
+    subLabel: 'L4/L7 Filtering',
+    icon: ShieldAlert,
+    lookupKey: 'firewall',
+    defaultData: { iconKey: 'firewall', status: 'healthy', droppedPackets: 0 }
   },
 
   // Infrastructure

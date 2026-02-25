@@ -12,6 +12,19 @@ export interface ServiceNodeData {
   color?: string
 }
 
+// Add this interface to your types file
+export interface SecurityNodeData {
+  label: string
+  subLabel?: string
+  iconKey: string
+  status: 'healthy' | 'warning' | 'critical' | 'active' | 'inactive'
+  color?: string
+  blockRate?: number
+  droppedPackets?: number
+  activeThreats?: number
+  load?: number
+}
+
 // New Compute Node Data
 export type ComputeType = 'SERVER' | 'LAMBDA' | 'WORKER' | 'CRON'
 
@@ -31,7 +44,7 @@ export interface VpcNodeData {
   iconKey?: string
 }
 
-export type NodeType = 'serviceNode' | 'computeNode' | 'databaseNode' | 'vpcNode'
+export type NodeType = 'serviceNode' | 'computeNode' | 'databaseNode' | 'vpcNode' | 'securityNode'
 
 export type AnyNodeData = ServiceNodeData | ComputeNodeData | VpcNodeData
 

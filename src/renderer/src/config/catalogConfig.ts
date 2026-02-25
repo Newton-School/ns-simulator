@@ -35,6 +35,11 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
     items: [fromRegistry('api-gateway')!, fromRegistry('load-balancer')!]
   },
   {
+    id: 'security',
+    title: 'Security',
+    items: [fromRegistry('waf')!, fromRegistry('firewall-rule')!]
+  },
+  {
     id: 'compute',
     title: 'Compute Abstractions',
     items: [
