@@ -17,7 +17,7 @@ export interface SecurityNodeData {
   label: string
   subLabel?: string
   iconKey: string
-  status: 'healthy' | 'warning' | 'critical' | 'active' | 'inactive'
+  status: 'healthy' | 'degraded' | 'critical'
   color?: string
   blockRate?: number
   droppedPackets?: number
@@ -46,7 +46,7 @@ export interface VpcNodeData {
 
 export type NodeType = 'serviceNode' | 'computeNode' | 'databaseNode' | 'vpcNode' | 'securityNode'
 
-export type AnyNodeData = ServiceNodeData | ComputeNodeData | VpcNodeData
+export type AnyNodeData = ServiceNodeData | ComputeNodeData | VpcNodeData | SecurityNodeData
 
 export interface CatalogItem {
   id: string
