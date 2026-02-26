@@ -34,6 +34,7 @@ export type NetworkType =
   | 'cdn'
   | 'api-gateway'
   | 'service-mesh'
+  | 'ingress-controller'
   | 'reverse-proxy'
   | 'high-perf-nic'
   | 'network-policy'
