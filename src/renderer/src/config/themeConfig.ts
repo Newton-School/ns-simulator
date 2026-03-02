@@ -46,12 +46,12 @@ export const THEME_CONFIG: Record<string, { bg: string; border: string; text: st
   ingress: {
     bg: 'bg-indigo-500',
     border: 'border-indigo-500',
-    text: 'text-indigo-600',
+    text: 'text-indigo-600'
   },
   proxy: {
-      bg: 'bg-indigo-500',
+    bg: 'bg-indigo-500',
     border: 'border-indigo-500',
-    text: 'text-indigo-600',
+    text: 'text-indigo-600'
   },
 
   // Fallbacks

@@ -22,7 +22,7 @@ import {
   Box,
   Shield,
   ShieldAlert,
-  Waypoints, 
+  Waypoints,
   ArrowRightLeft
 } from 'lucide-react'
 import { getTheme } from './themeConfig'
