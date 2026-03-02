@@ -21,7 +21,9 @@ import {
   ExternalLink,
   Box,
   Shield,
-  ShieldAlert
+  ShieldAlert,
+  Router,      
+  LockKeyhole
 } from 'lucide-react'
 import { getTheme } from './themeConfig'
 
@@ -121,6 +123,24 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     icon: ShieldAlert,
     lookupKey: 'firewall',
     defaultData: { iconKey: 'firewall', status: 'healthy', droppedPackets: 0 }
+  },
+  'nat-gateway': {
+    id: 'nat-gateway',
+    type: 'serviceNode',
+    label: 'NAT Gateway',
+    subLabel: 'Outbound Internet',
+    icon: Router,
+    lookupKey: 'nat',
+    defaultData: { iconKey: 'nat', status: 'healthy', throughput: 1000, load: 5 }
+  },
+  'vpn-gateway': {
+    id: 'vpn-gateway',
+    type: 'serviceNode',
+    label: 'VPN Gateway',
+    subLabel: 'Secure Site-to-Site',
+    icon: LockKeyhole,
+    lookupKey: 'vpn',
+    defaultData: { iconKey: 'vpn', status: 'degraded', throughput: 500, load: 10 }
   },
 
   // Infrastructure

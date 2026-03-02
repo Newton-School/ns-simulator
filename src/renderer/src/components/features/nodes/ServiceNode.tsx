@@ -16,7 +16,9 @@ import {
   GitBranch,
   HardDrive,
   Search,
-  ExternalLink
+  ExternalLink,
+  Router,
+  LockKeyhole
 } from 'lucide-react'
 
 import UniversalHandle from '@renderer/components/atoms/UniversalHandle'
@@ -36,6 +38,8 @@ const ICON_LOOKUP: Record<string, LucideIcon> = {
   database: Database,
   server: Server,
   network: Network,
+  'nat': Router,
+  'vpn': LockKeyhole,
   // Clients & Edge
   monitor: Monitor,
   dns: Navigation,
@@ -72,11 +76,10 @@ const ServiceNode = ({ id, data, selected }: NodeProps<ServiceNodeData>) => {
     () => `
     group relative w-64 bg-nss-surface rounded-lg transition-all duration-200
     overflow-visible
-    ${
-      selected
+    ${selected
         ? 'ring-2 ring-nss-primary shadow-[0_0_20px_rgba(59,130,246,0.3)]'
         : 'border border-nss-border hover:border-nss-muted/30 shadow-xl'
-    }
+      }
   `,
     [selected]
   )
