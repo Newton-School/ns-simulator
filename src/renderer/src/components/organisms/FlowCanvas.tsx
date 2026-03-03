@@ -8,6 +8,7 @@ import ReactFlow, {
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 
+import EmptyFlowState from '../atoms/EmptyFlowState'
 // Hooks & Config
 import { useFlowStore } from '../features/canvas/hooks/useFlowStore'
 import { useFlowDnD } from '../features/canvas/hooks/useFlowDnD'
@@ -32,8 +33,12 @@ const FlowCanvasInternal = () => {
     instance: reactFlowInstance
   })
 
+  const isEmpty = nodes.length === 0;
+
   return (
     <div style={{ width: '100%', height: '100%' }} className="bg-nss-bg relative">
+      {/* Empty State */}
+      <EmptyFlowState isEmpty={isEmpty} />
       <ReactFlow
         nodes={nodes}
         edges={edges}
