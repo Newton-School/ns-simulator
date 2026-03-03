@@ -33,12 +33,10 @@ const FlowCanvasInternal = () => {
     instance: reactFlowInstance
   })
 
-  const isEmpty = nodes.length === 0;
+  const isEmpty = nodes.length === 0
 
   return (
     <div style={{ width: '100%', height: '100%' }} className="bg-nss-bg relative">
-      {/* Empty State */}
-      <EmptyFlowState isEmpty={isEmpty} />
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -56,6 +54,8 @@ const FlowCanvasInternal = () => {
         <Background variant={BackgroundVariant.Dots} gap={20} size={1} color={GRID_COLOR} />
         <Controls className="!bg-nss-surface !border-nss-border" />
       </ReactFlow>
+      {/* Empty State */}
+      <EmptyFlowState isEmpty={isEmpty} />
     </div>
   )
 }
