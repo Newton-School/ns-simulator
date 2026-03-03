@@ -15,7 +15,7 @@ const EmptyFlowState = ({ isEmpty }: { isEmpty: boolean }) => (
 
       opacity: isEmpty ? 1 : 0,
       visibility: isEmpty ? 'visible' : 'hidden',
-      transition: 'opacity 0.1s ease-in-out'
+      transition: 'opacity 0.2s ease-in-out, visibility 0.2s ease-in-out'
     }}
   >
     <div className="flex flex-col items-center justify-center h-full">
