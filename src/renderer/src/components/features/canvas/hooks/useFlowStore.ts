@@ -10,7 +10,10 @@ export const useFlowStore = () => {
       onEdgesChange: state.onEdgesChange,
       onConnect: state.onConnect,
       addNode: state.addNode,
-      setNodes: state.setNodes
+      setNodes: state.setNodes,
+      setEdges: state.setEdges,
+      updateNodeData: state.updateNodeData,
+      updateEdgeData: state.updateEdgeData
     }))
   )
 }

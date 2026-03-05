@@ -29,6 +29,7 @@ type RFState = {
   addNode: (node: Node) => void
   // Add type definition
   updateNodeData: (nodeId: string, data: any) => void
+  updateEdgeData: (edgeId: string, label: string, data?: any) => void
   setNodes: (nodes: Node[]) => void
   setEdges: (edges: Edge[]) => void
 
@@ -95,6 +96,20 @@ const useStore = create<RFState>((set, get) => ({
           }
         }
         return node
+      })
+    })
+  },
+
+  updateEdgeData: (edgeId: string, label: string) => {
+    set({
+      edges: get().edges.map((edge) => {
+        if (edge.id === edgeId) {
+          return {
+            ...edge,
+            label, 
+          }
+        }
+        return edge
       })
     })
   },
