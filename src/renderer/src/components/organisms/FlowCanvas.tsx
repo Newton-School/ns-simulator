@@ -53,18 +53,14 @@ const FlowCanvasInternal = () => {
     if (!selectedEdge) return
 
     const newLabel = e.target.value
-    const newTrafficType = newLabel.toLowerCase() || 'default'
 
-    updateEdgeData(selectedEdge.id, newLabel, {
-      trafficType: newTrafficType
-    })
+    updateEdgeData(selectedEdge.id, newLabel)
 
     setSelectedEdge((prev) =>
       prev
         ? {
             ...prev,
-            label: newLabel,
-            data: { ...prev.data, trafficType: newTrafficType }
+            label: newLabel
           }
         : null
     )
