@@ -17,7 +17,7 @@ export const EdgePropertiesPanel = ({
         <h3 className="text-sm font-bold text-nss-text uppercase tracking-wider">
           Edge Properties
         </h3>
-        <button 
+        <button
           onClick={onClose}
           className="text-nss-muted hover:text-nss-text transition-colors"
           aria-label="Close panel"
@@ -25,7 +25,7 @@ export const EdgePropertiesPanel = ({
           ✕
         </button>
       </div>
-      
+
       <div className="flex flex-col gap-1">
         <label className="text-xs text-nss-muted font-medium">Protocol Label</label>
         <input
@@ -33,7 +33,7 @@ export const EdgePropertiesPanel = ({
           value={labelValue}
           onChange={onLabelChange}
           placeholder="e.g. http, grpc, tcp"
-          className="w-full px-3 py-2 text-sm rounded border bg-nss-input-bg border-nss-border-high text-nss-text placeholder-nss-placeholder focus:outline-none focus:border-nss-info focus:ring-1 focus:ring-nss-info transition-all"
+          className="w-full px-3 py-2 text-sm rounded border bg-nss-input-bg border-nss-border text-nss-text placeholder-nss-placeholder focus:outline-none focus:border-nss-info focus:ring-1 focus:ring-nss-info transition-all"
         />
       </div>
     </div>

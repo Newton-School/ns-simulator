@@ -1,9 +1,4 @@
-import { 
-  BaseEdge, 
-  getSmoothStepPath, 
-  EdgeProps, 
-  EdgeLabelRenderer 
-} from 'reactflow'
+import { BaseEdge, getSmoothStepPath, EdgeProps, EdgeLabelRenderer } from 'reactflow'
 import { StatusBadge } from '../../../atoms/StatusBadge'
 
 export const PacketEdge = ({
@@ -43,7 +38,7 @@ export const PacketEdge = ({
             style={{
               position: 'absolute',
               transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
-              pointerEvents: 'all', 
+              pointerEvents: 'all'
             }}
             className="nodrag nopan"
           >

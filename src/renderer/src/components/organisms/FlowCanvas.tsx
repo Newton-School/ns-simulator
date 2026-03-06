@@ -20,13 +20,24 @@ const FlowCanvasInternal = () => {
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null)
   const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null)
 
-  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, addNode, setNodes, updateEdgeData } =
-    useFlowStore()
+  const {
+    nodes,
+    edges,
+    onNodesChange,
+    onEdgesChange,
+    onConnect,
+    addNode,
+    setNodes,
+    updateEdgeData
+  } = useFlowStore()
 
   const { edgeTypes, defaultEdgeOptions } = useFlowConfig()
 
   const { onDragOver, onDrop, onNodeDragStop } = useFlowDnD({
-    nodes, addNode, setNodes, instance: reactFlowInstance
+    nodes,
+    addNode,
+    setNodes,
+    instance: reactFlowInstance
   })
 
   const onEdgeClick = useCallback((event: React.MouseEvent, edge: Edge) => {
@@ -49,11 +60,13 @@ const FlowCanvasInternal = () => {
     })
 
     setSelectedEdge((prev) =>
-      prev ? {
-        ...prev,
-        label: newLabel,
-        data: { ...prev.data, trafficType: newTrafficType }
-      } : null
+      prev
+        ? {
+            ...prev,
+            label: newLabel,
+            data: { ...prev.data, trafficType: newTrafficType }
+          }
+        : null
     )
   }
 
@@ -79,7 +92,7 @@ const FlowCanvasInternal = () => {
         <Background variant={BackgroundVariant.Dots} gap={20} size={1} color={GRID_COLOR} />
         <Controls className="!bg-nss-surface !border-nss-border" />
       </ReactFlow>
-      
+
       {selectedEdge && (
         <EdgePropertiesPanel
           labelValue={(selectedEdge.label as string) || ''}

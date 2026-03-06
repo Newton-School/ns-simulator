@@ -106,7 +106,7 @@ const useStore = create<RFState>((set, get) => ({
         if (edge.id === edgeId) {
           return {
             ...edge,
-            label, 
+            label
           }
         }
         return edge
