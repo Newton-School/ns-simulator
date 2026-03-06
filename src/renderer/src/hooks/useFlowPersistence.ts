@@ -6,6 +6,8 @@ import {
   convertNestedToFlat,
   NestedFileData
 } from '@renderer/utils/nodeTransformers'
+import { log } from 'console'
+import { is } from 'zod/locales'
 
 const extractFileName = (path: string): string => {
   return path.replace(/^.*[\\/]/, '')
@@ -38,6 +40,9 @@ export const useFlowPersistence = () => {
   const setEdges = useStore((s) => s.setEdges)
   const setFileName = useStore((s) => s.setFileName)
   const setUnsaved = useStore((s) => s.setUnsaved)
+  // console.log(useStore.getState());
+  
+  const isUnsaved = useStore((s) => s.isUnsaved)
 
   const isLoadingRef = useRef(false)
 
@@ -85,6 +90,17 @@ export const useFlowPersistence = () => {
     handleLoadFileData
   )
 
+  const handleOpenWithCheckIfSaved = useCallback(async () => {
+    if(isUnsaved) {
+      const confirmDiscard = await (window as any).nssimulator.confirmDiscard();
+
+      if(!confirmDiscard) return;
+    }
+    handleOpen();
+  }, [isUnsaved, handleOpen])
+
+  // window.ele
+
   const handleSaveWrapper = useCallback(async () => {
     const savedPath = await innerSave()
 
@@ -94,7 +110,7 @@ export const useFlowPersistence = () => {
     }
   }, [innerSave, setFileName, setUnsaved])
 
-  useKeyboardShortcuts(handleSaveWrapper, handleOpen)
+  useKeyboardShortcuts(handleSaveWrapper, handleOpenWithCheckIfSaved)
 
   useEffect(() => {
     if (isLoadingRef.current) return
@@ -104,5 +120,5 @@ export const useFlowPersistence = () => {
     }
   }, [nodes, edges, setUnsaved])
 
-  return { handleSave: handleSaveWrapper, handleOpen }
+  return { handleSave: handleSaveWrapper, handleOpen: handleOpenWithCheckIfSaved }
 }

@@ -29,6 +29,11 @@ const api = {
       throw error
     }),
 
+  confirmDiscard: () => ipcRenderer.invoke('dialog:confirm-discard').catch((error) => {
+    console.error('Error in confirmDiscard:', error)
+    throw error
+  }),
+  
   runSimulation: (config: any) => ipcRenderer.send('nssimulator:run-simulation', config)
 }
 

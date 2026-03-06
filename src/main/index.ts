@@ -77,6 +77,11 @@ app.whenReady().then(() => {
     return content
   })
 
+  ipcMain.handle('dialog:confirm-discard', async () => {
+    const result = await registerIpcHandlers.handleConfirmDiscardChanges()
+    return result
+  })
+
   ipcMain.on('nssimulator:run-simulation', (_, config) => {
     console.log('Received simulation config:', config)
   })
