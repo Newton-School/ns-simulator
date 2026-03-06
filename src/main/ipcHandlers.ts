@@ -53,7 +53,7 @@ async function handleOpenScenario(
   }
 }
 
-async function handleConfirmDiscardChanges() : Promise<boolean>{
+async function handleConfirmDiscardChanges(): Promise<boolean> {
   const result = await dialog.showMessageBox({
     type: 'warning',
     buttons: ['Discard Changes', 'Cancel'],
@@ -62,7 +62,7 @@ async function handleConfirmDiscardChanges() : Promise<boolean>{
     title: 'Unsaved Changes',
     message: 'You have unsaved changes.',
     detail: 'Discard changes and open another file'
-  });
+  })
 
   return result.response === 0 // Returns true if 'Discard Changes' is clicked
 }

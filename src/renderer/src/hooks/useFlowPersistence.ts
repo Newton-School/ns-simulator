@@ -6,8 +6,6 @@ import {
   convertNestedToFlat,
   NestedFileData
 } from '@renderer/utils/nodeTransformers'
-import { log } from 'console'
-import { is } from 'zod/locales'
 
 const extractFileName = (path: string): string => {
   return path.replace(/^.*[\\/]/, '')
@@ -41,7 +39,7 @@ export const useFlowPersistence = () => {
   const setFileName = useStore((s) => s.setFileName)
   const setUnsaved = useStore((s) => s.setUnsaved)
   // console.log(useStore.getState());
-  
+
   const isUnsaved = useStore((s) => s.isUnsaved)
 
   const isLoadingRef = useRef(false)
@@ -91,12 +89,12 @@ export const useFlowPersistence = () => {
   )
 
   const handleOpenWithCheckIfSaved = useCallback(async () => {
-    if(isUnsaved) {
-      const confirmDiscard = await (window as any).nssimulator.confirmDiscard();
+    if (isUnsaved) {
+      const confirmDiscard = await (window as any).nssimulator.confirmDiscard()
 
-      if(!confirmDiscard) return;
+      if (!confirmDiscard) return
     }
-    handleOpen();
+    handleOpen()
   }, [isUnsaved, handleOpen])
 
   // window.ele
