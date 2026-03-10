@@ -29,17 +29,17 @@ describe('MinHeap Correctness', () => {
       new MockSimulationEvent(500n, 5, 'event-1'),
       new MockSimulationEvent(100n, 2, 'event-2'),
       new MockSimulationEvent(300n, 1, 'event-3'),
-      new MockSimulationEvent(100n, 1, 'event-4'),  // Same timestamp as event-2, lower priority
+      new MockSimulationEvent(100n, 1, 'event-4'), // Same timestamp as event-2, lower priority
       new MockSimulationEvent(700n, 3, 'event-5'),
-      new MockSimulationEvent(100n, 1, 'event-6'),  // Same timestamp and priority as event-4
+      new MockSimulationEvent(100n, 1, 'event-6'), // Same timestamp and priority as event-4
       new MockSimulationEvent(200n, 8, 'event-7'),
       new MockSimulationEvent(900n, 1, 'event-8'),
-      new MockSimulationEvent(100n, 3, 'event-9'),  // Same timestamp as event-2,4,6, higher priority
-      new MockSimulationEvent(400n, 2, 'event-10'),
+      new MockSimulationEvent(100n, 3, 'event-9'), // Same timestamp as event-2,4,6, higher priority
+      new MockSimulationEvent(400n, 2, 'event-10')
     ]
 
     // Insert in scrambled order
-    scrambledEvents.forEach(event => heap.insert(event))
+    scrambledEvents.forEach((event) => heap.insert(event))
 
     // Extract all events
     const sorted: MockSimulationEvent[] = []
@@ -50,20 +50,20 @@ describe('MinHeap Correctness', () => {
 
     // Expected order (by timestamp, then priority, then insertion order):
     const expectedOrder = [
-      'event-4',  // 100n, priority 1 (inserted first among 100n/priority-1)
-      'event-6',  // 100n, priority 1 (inserted second among 100n/priority-1)
-      'event-2',  // 100n, priority 2
-      'event-9',  // 100n, priority 3
-      'event-7',  // 200n, priority 8
-      'event-3',  // 300n, priority 1
+      'event-4', // 100n, priority 1 (inserted first among 100n/priority-1)
+      'event-6', // 100n, priority 1 (inserted second among 100n/priority-1)
+      'event-2', // 100n, priority 2
+      'event-9', // 100n, priority 3
+      'event-7', // 200n, priority 8
+      'event-3', // 300n, priority 1
       'event-10', // 400n, priority 2
-      'event-1',  // 500n, priority 5
-      'event-5',  // 700n, priority 3
-      'event-8',  // 900n, priority 1
+      'event-1', // 500n, priority 5
+      'event-5', // 700n, priority 3
+      'event-8' // 900n, priority 1
     ]
 
     expect(sorted.length).toBe(10)
-    expect(sorted.map(e => e.nodeId)).toEqual(expectedOrder)
+    expect(sorted.map((e) => e.nodeId)).toEqual(expectedOrder)
 
     // Verify ordering rules are followed
     for (let i = 1; i < sorted.length; i++) {
@@ -89,10 +89,10 @@ describe('MinHeap Correctness', () => {
       new MockSimulationEvent(100n, 5, 'second'),
       new MockSimulationEvent(100n, 5, 'third'),
       new MockSimulationEvent(100n, 5, 'fourth'),
-      new MockSimulationEvent(100n, 5, 'fifth'),
+      new MockSimulationEvent(100n, 5, 'fifth')
     ]
 
-    events.forEach(event => heap.insert(event))
+    events.forEach((event) => heap.insert(event))
 
     const sorted: MockSimulationEvent[] = []
     while (!heap.isEmpty) {
@@ -101,7 +101,7 @@ describe('MinHeap Correctness', () => {
     }
 
     // Should maintain insertion order (FIFO)
-    expect(sorted.map(e => e.nodeId)).toEqual(['first', 'second', 'third', 'fourth', 'fifth'])
+    expect(sorted.map((e) => e.nodeId)).toEqual(['first', 'second', 'third', 'fourth', 'fifth'])
   })
 
   it('should handle mixed timestamp scenarios', () => {
@@ -119,10 +119,10 @@ describe('MinHeap Correctness', () => {
       new MockSimulationEvent(3000n, 4, 'e9'),
       new MockSimulationEvent(2000n, 3, 'e10'),
       new MockSimulationEvent(6000n, 1, 'e11'),
-      new MockSimulationEvent(1000n, 3, 'e12'),
+      new MockSimulationEvent(1000n, 3, 'e12')
     ]
 
-    events.forEach(event => heap.insert(event))
+    events.forEach((event) => heap.insert(event))
 
     const sorted: MockSimulationEvent[] = []
     while (!heap.isEmpty) {
@@ -134,8 +134,8 @@ describe('MinHeap Correctness', () => {
 
     // Verify all 1000n events come first, ordered by priority then insertion
     const firstFour = sorted.slice(0, 5)
-    expect(firstFour.every(e => e.timestamp === 1000n)).toBe(true)
-    expect(firstFour.map(e => e.nodeId)).toEqual(['e2', 'e4', 'e8', 'e6', 'e12'])
+    expect(firstFour.every((e) => e.timestamp === 1000n)).toBe(true)
+    expect(firstFour.map((e) => e.nodeId)).toEqual(['e2', 'e4', 'e8', 'e6', 'e12'])
   })
 })
 
