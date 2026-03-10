@@ -62,8 +62,8 @@ export class MinHeap<T extends SimulationEvent> {
     const element = this.heap[index]
 
     while (true) {
-      let leftChildIdx = 2 * index + 1
-      let rightChildIdx = 2 * index + 2
+      const leftChildIdx = 2 * index + 1
+      const rightChildIdx = 2 * index + 2
       let swapIdx: number | null = null
 
       if (leftChildIdx < length) {
