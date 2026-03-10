@@ -16,7 +16,7 @@ export class MinHeap<T extends SimulationEvent> {
   }
 
   insert(event: T): void {
-    // Use the global counter to ensure stable FIFO for identical TS/Priority
+    //Use a per-heap sequence counter to ensure stable FIFO for identical TS/Priority within this heap
     this.heap.push({ event, seq: this._counter++ })
     this.bubbleUp(this.heap.length - 1)
   }
@@ -32,15 +32,15 @@ export class MinHeap<T extends SimulationEvent> {
   }
 
   private compare(a: { event: T; seq: number }, b: { event: T; seq: number }): number {
-    //Primary: Timestamp (BigInt)
+    // Primary: Timestamp (BigInt)
     if (a.event.timestamp < b.event.timestamp) return -1
     if (a.event.timestamp > b.event.timestamp) return 1
 
-    //Secondary: Priority (Lower number = Higher Priority)
+    // Secondary: Priority (Lower number = Higher Priority)
     if (a.event.priority < b.event.priority) return -1
     if (a.event.priority > b.event.priority) return 1
 
-    //Tertiary: Stability (Insertion Order via Sequence Number)
+    // Tertiary: Stability (Insertion Order via Sequence Number)
     return a.seq - b.seq
   }
 
