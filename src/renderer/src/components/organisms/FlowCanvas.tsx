@@ -10,6 +10,8 @@ import ReactFlow, {
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 
+import EmptyFlowState from '../atoms/EmptyFlowState'
+// Hooks & Config
 import { EdgePropertiesPanel } from '../atoms/EdgePropertiesPanel'
 
 import { useFlowStore } from '../features/canvas/hooks/useFlowStore'
@@ -40,6 +42,7 @@ const FlowCanvasInternal = () => {
     instance: reactFlowInstance
   })
 
+  const isEmpty = nodes.length === 0
   const onEdgeClick = useCallback((event: React.MouseEvent, edge: Edge) => {
     event.stopPropagation()
     setSelectedEdge(edge)
@@ -88,6 +91,8 @@ const FlowCanvasInternal = () => {
         <Background variant={BackgroundVariant.Dots} gap={20} size={1} color={GRID_COLOR} />
         <Controls className="!bg-nss-surface !border-nss-border" />
       </ReactFlow>
+      {/* Empty State */}
+      <EmptyFlowState isEmpty={isEmpty} />
 
       {selectedEdge && (
         <EdgePropertiesPanel
