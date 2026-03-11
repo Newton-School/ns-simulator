@@ -36,7 +36,9 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
       fromRegistry('api-gateway')!,
       fromRegistry('load-balancer')!,
       fromRegistry('ingress-controller')!,
-      fromRegistry('reverse-proxy')!
+      fromRegistry('reverse-proxy')!,
+      fromRegistry('nat-gateway')!, 
+      fromRegistry('vpn-gateway')!
     ]
   },
   {

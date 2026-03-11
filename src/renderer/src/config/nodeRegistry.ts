@@ -22,6 +22,8 @@ import {
   Box,
   Shield,
   ShieldAlert,
+  Router,
+  LockKeyhole,
   Waypoints,
   ArrowRightLeft
 } from 'lucide-react'
@@ -121,6 +123,25 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     icon: ArrowRightLeft,
     lookupKey: 'proxy',
     defaultData: { iconKey: 'proxy', status: 'healthy', throughput: 10000, load: 10 }
+  },
+
+  'nat-gateway': {
+    id: 'nat-gateway',
+    type: 'serviceNode',
+    label: 'NAT Gateway',
+    subLabel: 'Outbound Internet',
+    icon: Router,
+    lookupKey: 'nat',
+    defaultData: { iconKey: 'nat', status: 'healthy', throughput: 1000, load: 5 }
+  },
+  'vpn-gateway': {
+    id: 'vpn-gateway',
+    type: 'serviceNode',
+    label: 'VPN Gateway',
+    subLabel: 'Secure Site-to-Site',
+    icon: LockKeyhole,
+    lookupKey: 'vpn',
+    defaultData: { iconKey: 'vpn', status: 'degraded', throughput: 500, load: 10 }
   },
 
   //Security Nodes

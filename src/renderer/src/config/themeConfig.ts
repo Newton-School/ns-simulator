@@ -54,6 +54,17 @@ export const THEME_CONFIG: Record<string, { bg: string; border: string; text: st
     text: 'text-indigo-600'
   },
 
+  nat: {
+    bg: 'bg-teal-500',
+    border: 'border-teal-600',
+    text: 'text-teal-600',
+  },
+  vpn: {
+    bg: 'bg-slate-500',
+    border: 'border-slate-500',
+    text: 'text-slate-600',
+  },
+
   // Fallbacks
   default: { bg: 'bg-slate-500', border: 'border-slate-600', text: 'text-slate-600' }
 }
