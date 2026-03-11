@@ -32,7 +32,7 @@ export const THEME_CONFIG: Record<string, { bg: string; border: string; text: st
 
   // External
   external: { bg: 'bg-rose-500', border: 'border-rose-600', text: 'text-rose-600' }, // External Service
-  
+
   waf: {
     bg: 'bg-rose-500',
     border: 'border-rose-600',
@@ -42,6 +42,16 @@ export const THEME_CONFIG: Record<string, { bg: string; border: string; text: st
     bg: 'bg-orange-500',
     border: 'border-orange-500',
     text: 'text-orange-600'
+  },
+  ingress: {
+    bg: 'bg-indigo-500',
+    border: 'border-indigo-500',
+    text: 'text-indigo-600'
+  },
+  proxy: {
+    bg: 'bg-indigo-500',
+    border: 'border-indigo-500',
+    text: 'text-indigo-600'
   },
 
   // Fallbacks
