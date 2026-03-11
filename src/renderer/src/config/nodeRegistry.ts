@@ -23,7 +23,9 @@ import {
   Shield,
   ShieldAlert,
   Router,
-  LockKeyhole
+  LockKeyhole,
+  Waypoints,
+  ArrowRightLeft
 } from 'lucide-react'
 import { getTheme } from './themeConfig'
 
@@ -103,6 +105,24 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     icon: Network,
     lookupKey: 'network',
     defaultData: { iconKey: 'network', status: 'healthy', throughput: 10000, load: 10 }
+  },
+  'ingress-controller': {
+    id: 'ingress-controller',
+    type: 'serviceNode',
+    label: 'Ingress',
+    subLabel: 'K8s Traffic Routing',
+    icon: Waypoints,
+    lookupKey: 'ingress',
+    defaultData: { iconKey: 'ingress', status: 'healthy', throughput: 15000, load: 15 }
+  },
+  'reverse-proxy': {
+    id: 'reverse-proxy',
+    type: 'serviceNode',
+    label: 'Reverse Proxy',
+    subLabel: 'L7 Routing',
+    icon: ArrowRightLeft,
+    lookupKey: 'proxy',
+    defaultData: { iconKey: 'proxy', status: 'healthy', throughput: 10000, load: 10 }
   },
 
   'nat-gateway': {

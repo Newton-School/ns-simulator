@@ -32,7 +32,14 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
   {
     id: 'network',
     title: 'Network',
-    items: [fromRegistry('api-gateway')!, fromRegistry('load-balancer')!, fromRegistry('nat-gateway')!, fromRegistry('vpn-gateway')!]
+    items: [
+      fromRegistry('api-gateway')!,
+      fromRegistry('load-balancer')!,
+      fromRegistry('ingress-controller')!,
+      fromRegistry('reverse-proxy')!,
+      fromRegistry('nat-gateway')!, 
+      fromRegistry('vpn-gateway')!
+    ]
   },
   {
     id: 'security',

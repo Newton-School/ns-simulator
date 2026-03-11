@@ -18,7 +18,9 @@ import {
   Search,
   ExternalLink,
   Router,
-  LockKeyhole
+  LockKeyhole,
+  Waypoints,
+  ArrowRightLeft
 } from 'lucide-react'
 
 import UniversalHandle from '@renderer/components/atoms/UniversalHandle'
@@ -38,8 +40,10 @@ const ICON_LOOKUP: Record<string, LucideIcon> = {
   database: Database,
   server: Server,
   network: Network,
-  'nat': Router,
-  'vpn': LockKeyhole,
+  nat: Router,
+  vpn: LockKeyhole,
+  ingress: Waypoints,
+  proxy: ArrowRightLeft,
   // Clients & Edge
   monitor: Monitor,
   dns: Navigation,
