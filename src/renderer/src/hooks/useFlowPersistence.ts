@@ -38,7 +38,6 @@ export const useFlowPersistence = () => {
   const setEdges = useStore((s) => s.setEdges)
   const setFileName = useStore((s) => s.setFileName)
   const setUnsaved = useStore((s) => s.setUnsaved)
-  // console.log(useStore.getState());
 
   const isUnsaved = useStore((s) => s.isUnsaved)
 
@@ -90,10 +89,16 @@ export const useFlowPersistence = () => {
 
   const handleOpenWithCheckIfSaved = useCallback(async () => {
     if (isUnsaved) {
-      const confirmDiscard = await (window as any).nssimulator.confirmDiscard()
-
-      if (!confirmDiscard) return
+      try{
+        const confirmDiscard = await window.nssimulator.confirmDiscard()
+        if (!confirmDiscard) return
+      }
+      catch(error) {
+        console.log("Error during confirmDiscard:", error)
+        return
+      }
     }
+    
     handleOpen()
   }, [isUnsaved, handleOpen])
 

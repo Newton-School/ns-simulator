@@ -77,8 +77,8 @@ app.whenReady().then(() => {
     return content
   })
 
-  ipcMain.handle('dialog:confirm-discard', async () => {
-    const result = await registerIpcHandlers.handleConfirmDiscardChanges()
+  ipcMain.handle('dialog:confirm-discard', async (event) => {
+    const result = await registerIpcHandlers.handleConfirmDiscardChanges(event)
     return result
   })
 
