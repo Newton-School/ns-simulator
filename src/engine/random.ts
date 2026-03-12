@@ -44,14 +44,30 @@ export function createRandom(seedString: string): RandomGenerator {
     },
 
     between(min, max) {
+      if (min > max) {
+        throw new Error(`between(min, max): min (${min}) must be <= max (${max})`)
+      }
+
       return rand() * (max - min) + min
     },
 
     integer(min, max) {
+      if (!Number.isInteger(min) || !Number.isInteger(max)) {
+        throw new Error(`integer(min, max): both min and max must be integers`)
+      }
+
+      if (min > max) {
+        throw new Error(`integer(min, max): min (${min}) must be <= max (${max})`)
+      }
+
       return Math.floor(rand() * (max - min + 1)) + min
     },
 
     boolean(probability = 0.5) {
+      if (probability < 0 || probability > 1) {
+        throw new Error(`boolean(probability): probability must be between 0 and 1`)
+      }
+
       return rand() < probability
     }
   }
