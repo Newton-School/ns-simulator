@@ -22,7 +22,11 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
   {
     id: 'infrastructure',
     title: 'Infrastructure',
-    items: [fromRegistry('vpc-region')!, fromRegistry('availability-zone')!]
+    items: [
+      fromRegistry('vpc-region')!,
+      fromRegistry('availability-zone')!,
+      fromRegistry('subnet')!
+    ]
   },
   {
     id: 'clients-edge',
@@ -37,7 +41,7 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
       fromRegistry('load-balancer')!,
       fromRegistry('ingress-controller')!,
       fromRegistry('reverse-proxy')!,
-      fromRegistry('nat-gateway')!, 
+      fromRegistry('nat-gateway')!,
       fromRegistry('vpn-gateway')!
     ]
   },

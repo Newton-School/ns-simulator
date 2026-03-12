@@ -25,7 +25,8 @@ import {
   Router,
   LockKeyhole,
   Waypoints,
-  ArrowRightLeft
+  ArrowRightLeft,
+  LayoutGrid
 } from 'lucide-react'
 import { getTheme } from './themeConfig'
 
@@ -182,6 +183,15 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     icon: Box,
     lookupKey: 'az',
     defaultData: { iconKey: 'az' }
+  },
+  subnet: {
+    id: 'subnet',
+    type: 'vpcNode',
+    label: 'Subnet',
+    subLabel: 'Network Partition',
+    icon: LayoutGrid,
+    lookupKey: 'subnet',
+    defaultData: { iconKey: 'subnet' }
   },
 
   // Clients & Edge

@@ -8,6 +8,7 @@ export const THEME_CONFIG: Record<string, { bg: string; border: string; text: st
   // Infrastructure
   cloud: { bg: 'bg-blue-500', border: 'border-blue-600', text: 'text-blue-600' },
   az: { bg: 'bg-orange-400', border: 'border-orange-500', text: 'text-orange-500' },
+  subnet: { bg: 'bg-sky-500', border: 'border-sky-600', text: 'text-sky-600' },
 
   // Service Nodes (existing)
   database: { bg: 'bg-emerald-500', border: 'border-emerald-600', text: 'text-emerald-600' },
@@ -57,12 +58,12 @@ export const THEME_CONFIG: Record<string, { bg: string; border: string; text: st
   nat: {
     bg: 'bg-teal-500',
     border: 'border-teal-600',
-    text: 'text-teal-600',
+    text: 'text-teal-600'
   },
   vpn: {
     bg: 'bg-slate-500',
     border: 'border-slate-500',
-    text: 'text-slate-600',
+    text: 'text-slate-600'
   },
 
   // Fallbacks
