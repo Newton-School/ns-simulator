@@ -57,7 +57,9 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
       fromRegistry('backend-server')!,
       fromRegistry('lambda-function')!,
       fromRegistry('async-worker')!,
-      fromRegistry('cron-job')!
+      fromRegistry('cron-job')!,
+      fromRegistry('auth-service')!,
+      fromRegistry('search-service')!
     ]
   },
   {
