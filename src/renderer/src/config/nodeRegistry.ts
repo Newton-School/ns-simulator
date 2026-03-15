@@ -26,7 +26,10 @@ import {
   LockKeyhole,
   Waypoints,
   ArrowRightLeft,
-  LayoutGrid
+  LayoutGrid,
+  Sliders,
+  Key,
+  ToggleLeft
 } from 'lucide-react'
 import { getTheme } from './themeConfig'
 
@@ -322,6 +325,35 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     icon: ExternalLink,
     lookupKey: 'external',
     defaultData: { iconKey: 'external', status: 'healthy', throughput: 500, load: 5 }
+  },
+
+  // Control Plane
+  'config-store': {
+    id: 'config-store',
+    type: 'serviceNode',
+    label: 'Config Store',
+    subLabel: 'Configuration',
+    icon: Sliders,
+    lookupKey: 'config',
+    defaultData: { iconKey: 'config', status: 'healthy', throughput: 1000, load: 10 }
+  },
+  'secrets-manager': {
+    id: 'secrets-manager',
+    type: 'serviceNode',
+    label: 'Secrets Manager',
+    subLabel: 'Secrets & Keys',
+    icon: Key,
+    lookupKey: 'secrets',
+    defaultData: { iconKey: 'secrets', status: 'healthy', throughput: 500, load: 5 }
+  },
+  'feature-flag-service': {
+    id: 'feature-flag-service',
+    type: 'serviceNode',
+    label: 'Feature Flag Service',
+    subLabel: 'Feature Flags',
+    icon: ToggleLeft,
+    lookupKey: 'flags',
+    defaultData: { iconKey: 'flags', status: 'healthy', throughput: 2000, load: 15 }
   }
 }
 
