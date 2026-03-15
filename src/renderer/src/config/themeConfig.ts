@@ -4,6 +4,8 @@ export const THEME_CONFIG: Record<string, { bg: string; border: string; text: st
   LAMBDA: { bg: 'bg-yellow-500', border: 'border-yellow-600', text: 'text-yellow-600' },
   WORKER: { bg: 'bg-emerald-500', border: 'border-emerald-600', text: 'text-emerald-600' },
   CRON: { bg: 'bg-gray-500', border: 'border-gray-600', text: 'text-gray-600' },
+  auth: { bg: 'bg-red-500', border: 'border-red-600', text: 'text-red-600' },
+  'search-service': { bg: 'bg-violet-500', border: 'border-violet-600', text: 'text-violet-600' },
 
   // Infrastructure
   cloud: { bg: 'bg-blue-500', border: 'border-blue-600', text: 'text-blue-600' },

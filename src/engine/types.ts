@@ -25,6 +25,8 @@ export type ComputeType =
   | 'vm-instance'
   | 'edge-compute'
   | 'gpu-node'
+  | 'auth-service'
+  | 'search-service'
 export type NetworkType =
   | 'load-balancer'
   | 'global-traffic-manager'

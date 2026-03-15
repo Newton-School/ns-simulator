@@ -78,6 +78,29 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     lookupKey: 'CRON',
     defaultData: { computeType: 'CRON', cpu_usage: 0, queue_depth: 0, is_overloaded: false }
   },
+  'auth-service': {
+    id: 'auth-service',
+    type: 'computeNode',
+    label: 'Auth Service',
+    subLabel: 'Authentication / Tokens',
+    icon: Shield,
+    lookupKey: 'auth',
+    defaultData: { computeType: 'AUTH', cpu_usage: 25, queue_depth: 5, is_overloaded: false }
+  },
+  'search-service': {
+    id: 'search-service',
+    type: 'computeNode',
+    label: 'Search Service',
+    subLabel: 'Query Processing',
+    icon: Search,
+    lookupKey: 'search-service',
+    defaultData: {
+      computeType: 'SEARCH_SERVICE',
+      cpu_usage: 55,
+      queue_depth: 20,
+      is_overloaded: false
+    }
+  },
 
   // Service Nodes
   'primary-db': {
