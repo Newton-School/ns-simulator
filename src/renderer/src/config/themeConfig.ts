@@ -33,6 +33,10 @@ export const THEME_CONFIG: Record<string, { bg: string; border: string; text: st
   storage: { bg: 'bg-stone-500', border: 'border-stone-600', text: 'text-stone-600' }, // Object Storage
   search: { bg: 'bg-violet-500', border: 'border-violet-600', text: 'text-violet-600' }, // Search Index
 
+  // App Support
+  notification: { bg: 'bg-fuchsia-500', border: 'border-fuchsia-600', text: 'text-fuchsia-600' }, // Push Notification
+  analytics: { bg: 'bg-blue-500', border: 'border-blue-600', text: 'text-blue-600' }, // Streaming Analytics
+
   // External
   external: { bg: 'bg-rose-500', border: 'border-rose-600', text: 'text-rose-600' }, // External Service
 
