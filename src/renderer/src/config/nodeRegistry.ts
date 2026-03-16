@@ -22,11 +22,8 @@ import {
   Box,
   Shield,
   ShieldAlert,
-  Router,
-  LockKeyhole,
-  Waypoints,
-  ArrowRightLeft,
-  LayoutGrid
+  Compass,
+  BookOpen
 } from 'lucide-react'
 import { getTheme } from './themeConfig'
 
@@ -78,29 +75,6 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     lookupKey: 'CRON',
     defaultData: { computeType: 'CRON', cpu_usage: 0, queue_depth: 0, is_overloaded: false }
   },
-  'auth-service': {
-    id: 'auth-service',
-    type: 'computeNode',
-    label: 'Auth Service',
-    subLabel: 'Authentication / Tokens',
-    icon: Shield,
-    lookupKey: 'auth',
-    defaultData: { computeType: 'AUTH', cpu_usage: 25, queue_depth: 5, is_overloaded: false }
-  },
-  'search-service': {
-    id: 'search-service',
-    type: 'computeNode',
-    label: 'Search Service',
-    subLabel: 'Query Processing',
-    icon: Search,
-    lookupKey: 'search-service',
-    defaultData: {
-      computeType: 'SEARCH_SERVICE',
-      cpu_usage: 55,
-      queue_depth: 20,
-      is_overloaded: false
-    }
-  },
 
   // Service Nodes
   'primary-db': {
@@ -129,43 +103,6 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     icon: Network,
     lookupKey: 'network',
     defaultData: { iconKey: 'network', status: 'healthy', throughput: 10000, load: 10 }
-  },
-  'ingress-controller': {
-    id: 'ingress-controller',
-    type: 'serviceNode',
-    label: 'Ingress',
-    subLabel: 'K8s Traffic Routing',
-    icon: Waypoints,
-    lookupKey: 'ingress',
-    defaultData: { iconKey: 'ingress', status: 'healthy', throughput: 15000, load: 15 }
-  },
-  'reverse-proxy': {
-    id: 'reverse-proxy',
-    type: 'serviceNode',
-    label: 'Reverse Proxy',
-    subLabel: 'L7 Routing',
-    icon: ArrowRightLeft,
-    lookupKey: 'proxy',
-    defaultData: { iconKey: 'proxy', status: 'healthy', throughput: 10000, load: 10 }
-  },
-
-  'nat-gateway': {
-    id: 'nat-gateway',
-    type: 'serviceNode',
-    label: 'NAT Gateway',
-    subLabel: 'Outbound Internet',
-    icon: Router,
-    lookupKey: 'nat',
-    defaultData: { iconKey: 'nat', status: 'healthy', throughput: 1000, load: 5 }
-  },
-  'vpn-gateway': {
-    id: 'vpn-gateway',
-    type: 'serviceNode',
-    label: 'VPN Gateway',
-    subLabel: 'Secure Site-to-Site',
-    icon: LockKeyhole,
-    lookupKey: 'vpn',
-    defaultData: { iconKey: 'vpn', status: 'degraded', throughput: 500, load: 10 }
   },
 
   //Security Nodes
@@ -207,14 +144,23 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     lookupKey: 'az',
     defaultData: { iconKey: 'az' }
   },
-  subnet: {
-    id: 'subnet',
-    type: 'vpcNode',
-    label: 'Subnet',
-    subLabel: 'Network Partition',
-    icon: LayoutGrid,
-    lookupKey: 'subnet',
-    defaultData: { iconKey: 'subnet' }
+  'dns-server': {
+    id: 'dns-server',
+    type: 'serviceNode',
+    label: 'DNS Server',
+    subLabel: 'Internal DNS / Authoritative',
+    icon: Compass,
+    lookupKey: 'dnsServer',
+    defaultData: { iconKey: 'dnsServer', status: 'healthy', throughput: 5000, load: 10 }
+  },
+  'discovery-service': {
+    id: 'discovery-service',
+    type: 'serviceNode',
+    label: 'Discovery Service',
+    subLabel: 'Service Registry',
+    icon: BookOpen,
+    lookupKey: 'registry',
+    defaultData: { iconKey: 'registry', status: 'healthy', throughput: 3000, load: 15 }
   },
 
   // Clients & Edge

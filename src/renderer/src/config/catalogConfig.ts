@@ -25,7 +25,8 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
     items: [
       fromRegistry('vpc-region')!,
       fromRegistry('availability-zone')!,
-      fromRegistry('subnet')!
+      fromRegistry('dns-server')!,
+      fromRegistry('discovery-service')!
     ]
   },
   {
@@ -36,14 +37,7 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
   {
     id: 'network',
     title: 'Network',
-    items: [
-      fromRegistry('api-gateway')!,
-      fromRegistry('load-balancer')!,
-      fromRegistry('ingress-controller')!,
-      fromRegistry('reverse-proxy')!,
-      fromRegistry('nat-gateway')!,
-      fromRegistry('vpn-gateway')!
-    ]
+    items: [fromRegistry('api-gateway')!, fromRegistry('load-balancer')!]
   },
   {
     id: 'security',
@@ -57,9 +51,7 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
       fromRegistry('backend-server')!,
       fromRegistry('lambda-function')!,
       fromRegistry('async-worker')!,
-      fromRegistry('cron-job')!,
-      fromRegistry('auth-service')!,
-      fromRegistry('search-service')!
+      fromRegistry('cron-job')!
     ]
   },
   {
