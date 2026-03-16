@@ -54,6 +54,8 @@ export const PropertiesForm = ({ data, onUpdate }: PropertiesFormProps) => {
               <option value="LAMBDA">Lambda (Ephemeral)</option>
               <option value="WORKER">Worker (Async)</option>
               <option value="CRON">Cron (Scheduled)</option>
+              <option value="AUTH">Auth (Authentication)</option>
+              <option value="SEARCH_SERVICE">Search (Query Processing)</option>
             </select>
           </div>
 
