@@ -21,6 +21,11 @@ export class MinHeap<T extends SimulationEvent> {
     this.bubbleUp(this.heap.length - 1)
   }
 
+  clear(): void {
+    this.heap = []
+    this._counter = 0
+  }
+
   extractMin(): T | undefined {
     if (this.isEmpty) return undefined
     if (this.size === 1) return this.heap.pop()!.event
