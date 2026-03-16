@@ -1,16 +1,11 @@
 import { memo, useState, useCallback } from 'react'
 import { NodeProps, NodeResizer } from 'reactflow'
-import { Cloud, Box, LucideIcon, LayoutGrid } from 'lucide-react'
+import { Cloud } from 'lucide-react'
 import { useVpcLogic } from './vpc/useVpcLogic'
 import { VpcToolbar } from './vpc/VpcToolBar'
 import { VpcHeader } from './vpc/VpcHeader'
 import { NodeSettingsMenu } from '@renderer/components/molecules/NodeSettingsMenu'
-
-const VPC_ICON_LOOKUP: Record<string, LucideIcon> = {
-  cloud: Cloud,
-  az: Box,
-  subnet: LayoutGrid
-}
+import { VPC_ICON_LOOKUP } from '@renderer/config/iconLookups'
 
 const VpcNode = ({ id, data, selected }: NodeProps) => {
   const { isUngrouped, hasChildren, minSize, handleUngroup } = useVpcLogic(id)

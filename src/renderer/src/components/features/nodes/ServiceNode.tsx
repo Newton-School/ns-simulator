@@ -1,27 +1,6 @@
 import React, { memo, useState, useCallback, useMemo } from 'react'
 import { Position, NodeProps } from 'reactflow'
-import {
-  Server,
-  Globe,
-  Cpu,
-  Database,
-  Network,
-  LucideIcon,
-  Monitor,
-  Navigation,
-  Wifi,
-  Inbox,
-  Radio,
-  Layers,
-  GitBranch,
-  HardDrive,
-  Search,
-  ExternalLink,
-  Router,
-  LockKeyhole,
-  Waypoints,
-  ArrowRightLeft
-} from 'lucide-react'
+import { Server } from 'lucide-react'
 
 import UniversalHandle from '@renderer/components/atoms/UniversalHandle'
 import { ProgressBar } from '@renderer/components/atoms/ProgressBar'
@@ -29,40 +8,14 @@ import { NodeHeader } from '@renderer/components/molecules/NodeHeader'
 import { MetricItem } from '@renderer/components/molecules/MetricItem'
 import { NodeSettingsMenu } from '@renderer/components/molecules/NodeSettingsMenu'
 import { ServiceNodeData } from '@renderer/types/ui'
+import { SERVICE_ICON_LOOKUP } from '@renderer/config/iconLookups'
 
 const OFFSETS = ['25%', '50%', '75%']
 const POSITIONS = [Position.Left, Position.Top, Position.Right, Position.Bottom]
 
-const ICON_LOOKUP: Record<string, LucideIcon> = {
-  // Existing
-  globe: Globe,
-  cpu: Cpu,
-  database: Database,
-  server: Server,
-  network: Network,
-  nat: Router,
-  vpn: LockKeyhole,
-  ingress: Waypoints,
-  proxy: ArrowRightLeft,
-  // Clients & Edge
-  monitor: Monitor,
-  dns: Navigation,
-  cdn: Wifi,
-  // Messaging
-  queue: Inbox,
-  broker: Radio,
-  // Data Stores
-  nosql: Layers,
-  replica: GitBranch,
-  storage: HardDrive,
-  search: Search,
-  // External
-  external: ExternalLink
-}
-
 const ServiceNode = ({ id, data, selected }: NodeProps<ServiceNodeData>) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const IconComponent = ICON_LOOKUP[data.iconKey] || Server
+  const IconComponent = SERVICE_ICON_LOOKUP[data.iconKey] || Server
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault()

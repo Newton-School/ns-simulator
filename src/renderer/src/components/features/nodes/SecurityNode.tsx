@@ -1,6 +1,6 @@
 import React, { memo, useState, useCallback, useMemo } from 'react'
 import { Position, NodeProps } from 'reactflow'
-import { LucideIcon, Shield, ShieldAlert, Lock } from 'lucide-react'
+// lucide-react icons are now imported via @renderer/config/iconLookups
 
 import UniversalHandle from '@renderer/components/atoms/UniversalHandle'
 import { ProgressBar } from '@renderer/components/atoms/ProgressBar'
@@ -8,19 +8,14 @@ import { NodeHeader } from '@renderer/components/molecules/NodeHeader'
 import { MetricItem } from '@renderer/components/molecules/MetricItem'
 import { NodeSettingsMenu } from '@renderer/components/molecules/NodeSettingsMenu'
 import { SecurityNodeData } from '@renderer/types/ui'
+import { SECURITY_ICON_LOOKUP } from '@renderer/config/iconLookups'
 
 const OFFSETS = ['25%', '50%', '75%']
 const POSITIONS = [Position.Left, Position.Top, Position.Right, Position.Bottom]
 
-const ICON_LOOKUP: Record<string, LucideIcon> = {
-    waf: Shield,
-    firewall: ShieldAlert,
-    default: Lock
-}
-
 const SecurityNode = ({ id, data, selected }: NodeProps<SecurityNodeData>) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false)
-    const IconComponent = ICON_LOOKUP[data.iconKey] || ICON_LOOKUP.default
+    const IconComponent = SECURITY_ICON_LOOKUP[data.iconKey] || SECURITY_ICON_LOOKUP.default
 
     const handleContextMenu = useCallback((e: React.MouseEvent) => {
         e.preventDefault()
