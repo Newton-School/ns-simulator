@@ -34,7 +34,7 @@ export const THEME_CONFIG: Record<string, { bg: string; border: string; text: st
 
   // External
   external: { bg: 'bg-rose-500', border: 'border-rose-600', text: 'text-rose-600' }, // External Service
-  
+
   waf: {
     bg: 'bg-rose-500',
     border: 'border-rose-600',
