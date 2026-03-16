@@ -2,6 +2,7 @@ import { FIELD_DEFINITIONS, FIELD_GROUPS } from '@renderer/config/fieldConfig'
 import { FormField } from '../molecules/FormField'
 import { Cpu, Zap, Layers, AlertTriangle } from 'lucide-react'
 import { COMPUTE_DEFAULTS } from '@renderer/config/nodeRegistry'
+import { ComputeType } from '@renderer/types/ui'
 
 interface PropertiesFormProps {
   data: Record<string, any>
@@ -27,7 +28,7 @@ export const PropertiesForm = ({ data, onUpdate }: PropertiesFormProps) => {
   const groupedKeys = new Set(Object.values(FIELD_GROUPS).flat())
   const isComputeNode = !!data.computeType
 
-  const handleTypeChange = (newType: string) => {
+  const handleTypeChange = (newType: ComputeType) => {
     onUpdate('computeType', newType)
 
     const defaults = COMPUTE_DEFAULTS[newType]
@@ -47,15 +48,14 @@ export const PropertiesForm = ({ data, onUpdate }: PropertiesFormProps) => {
             </label>
             <select
               value={data.computeType}
-              onChange={(e) => handleTypeChange(e.target.value)}
+              onChange={(e) => handleTypeChange(e.target.value as ComputeType)}
               className="w-full bg-nss-bg border border-nss-border rounded px-2 py-1.5 text-xs text-nss-text focus:border-nss-primary outline-none"
             >
-              <option value="SERVER">Server (Long Running)</option>
-              <option value="LAMBDA">Lambda (Ephemeral)</option>
-              <option value="WORKER">Worker (Async)</option>
-              <option value="CRON">Cron (Scheduled)</option>
-              <option value="AUTH">Auth (Authentication)</option>
-              <option value="SEARCH_SERVICE">Search (Query Processing)</option>
+              {Object.entries(COMPUTE_DEFAULTS).map(([type, { label, subLabel }]) => (
+                <option key={type} value={type}>
+                  {label} ({subLabel})
+                </option>
+              ))}
             </select>
           </div>
 
@@ -102,11 +102,10 @@ export const PropertiesForm = ({ data, onUpdate }: PropertiesFormProps) => {
           <label
             className={`
                         flex items-center justify-between p-3 rounded border cursor-pointer transition-all
-                        ${
-                          data.is_overloaded
-                            ? 'bg-nss-danger/5 border-nss-danger/30'
-                            : 'bg-nss-bg border-nss-border hover:border-nss-muted'
-                        }
+                        ${data.is_overloaded
+                ? 'bg-nss-danger/5 border-nss-danger/30'
+                : 'bg-nss-bg border-nss-border hover:border-nss-muted'
+              }
                     `}
           >
             <div className="flex items-center gap-2">
