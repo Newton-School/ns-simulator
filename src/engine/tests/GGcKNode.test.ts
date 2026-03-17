@@ -5,7 +5,7 @@ describe('GGcKNode', () => {
   // A helper function to generate a fake request
   const createFakeRequest = (id: string, priority = 1): any => ({
     id,
-    priority,
+    priority
     // Add other fields if TypeScript complains
   })
 
@@ -30,11 +30,11 @@ describe('GGcKNode', () => {
 
     // 2. Act: Create the node
     const node = new GGcKNode(fakeConfig, fakeDistributions, fakeScheduler)
-    
+
     // Send 1st request
     const req1 = createFakeRequest('req-1')
     const result1 = node.handleArrival(req1, 0n)
-    
+
     // 3. Assert: Check the results!
     expect(result1.status).toBe('processed')
     expect(node.getState().activeWorkers).toBe(1)
@@ -53,9 +53,9 @@ describe('GGcKNode', () => {
     node.handleArrival(createFakeRequest('req-2'), 0n)
     // Next 3 requests (queued)
     const res3 = node.handleArrival(createFakeRequest('req-3'), 0n)
-    const res4 = node.handleArrival(createFakeRequest('req-4'), 0n)
+    node.handleArrival(createFakeRequest('req-4'), 0n)
     const res5 = node.handleArrival(createFakeRequest('req-5'), 0n)
-    
+
     expect(res3.status).toBe('queued')
     expect(res5.status).toBe('queued')
     expect(node.getState().queueLength).toBe(3)
@@ -267,10 +267,10 @@ describe('GGcKNode', () => {
     node.handleArrival(createFakeRequest('req-1'), 0n)
     expect(node.getState().status).toBe('busy')
   })
-    test('metrics: correctly tracks metrics after processing 100 requests', () => {
+  test('metrics: correctly tracks metrics after processing 100 requests', () => {
     const fakeScheduler = { scheduleTimeEvent: vi.fn() } as any
     const fakeDistributions = { service: { sample: () => 10n } } as any
-    
+
     // We'll give it 10 workers to easily process heavily
     const fakeConfig = {
       id: 'node-100',

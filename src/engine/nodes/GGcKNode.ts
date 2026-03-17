@@ -1,4 +1,4 @@
-import { createEvent } from '../events'
+import { createEvent, Request } from '../events'
 import {
   ComponentNode,
   DistributionConfig,
@@ -48,7 +48,7 @@ export class GGcKNode {
     return { status: 'rejected' }
   }
   startProcessing(request: Request, currentTime: bigint) {
-    const serviceTime = this.serviceDistribution.sample()
+    const serviceTime = (this.serviceDistribution as any).sample?.() || 10n
     const event = createEvent(
       'processing-complete',
       this.id,
@@ -61,7 +61,9 @@ export class GGcKNode {
     }
     this.scheduler.scheduleTimeEvent(event)
   }
-  handleCompletion(request: Request, currentTime: bigint) {
+  handleCompletion(_request: Request, currentTime: bigint) {
+    void _request
+    void currentTime
     this.activeWorkers--
     this.metrics.requestsProcessed = (this.metrics.requestsProcessed || 0) + 1
     if (this.queue.length > 0) {
@@ -94,13 +96,15 @@ export class GGcKNode {
       this.state = 'idle'
     }
   }
-  fail(currentTime: bigint) {
+  fail(_currentTime: bigint) {
+    void _currentTime
     this.metrics.requestsRejected = (this.metrics.requestsRejected || 0) + this.queue.length
     this.queue = []
     this.activeWorkers = 0
     this.state = 'failed'
   }
-  recover(currentTime: bigint) {
+  recover(_currentTime: bigint) {
+    void _currentTime
     this.state = 'idle'
   }
   getMetrics() {
