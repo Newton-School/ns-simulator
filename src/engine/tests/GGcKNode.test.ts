@@ -6,7 +6,6 @@ describe('GGcKNode', () => {
   const createFakeRequest = (id: string, priority = 1): any => ({
     id,
     priority
-    // Add other fields if TypeScript complains
   })
 
   test('normal flow: processes arrivals immediately if workers available', () => {
