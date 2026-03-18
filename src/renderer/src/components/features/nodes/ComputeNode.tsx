@@ -61,7 +61,7 @@ const ComputeNode = ({ data, selected }: NodeProps<ComputeNodeData>) => {
 
         <div className="flex flex-col">
           <span className="text-xs font-bold text-nss-text uppercase tracking-wide">
-            {data.label}
+            {data.label || 'Compute'}
           </span>
           <span className="text-[10px] text-nss-muted font-mono">{data.computeType}</span>
         </div>

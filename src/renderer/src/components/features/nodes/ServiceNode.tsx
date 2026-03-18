@@ -1,5 +1,5 @@
 import React, { memo, useState, useCallback, useMemo } from 'react'
-import { Position, NodeProps } from 'reactflow'
+import { Position, NodeProps, useReactFlow } from 'reactflow'
 import {
   Server,
   Globe,
@@ -62,6 +62,7 @@ const ICON_LOOKUP: Record<string, LucideIcon> = {
 
 const ServiceNode = ({ id, data, selected }: NodeProps<ServiceNodeData>) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const { setNodes } = useReactFlow()
   const IconComponent = ICON_LOOKUP[data.iconKey] || Server
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
@@ -76,14 +77,29 @@ const ServiceNode = ({ id, data, selected }: NodeProps<ServiceNodeData>) => {
     setIsMenuOpen((prev) => !prev)
   }, [])
 
+  const handleLabelChange = useCallback(
+    (newLabel: string) => {
+      setNodes((nds) =>
+        nds.map((node) => {
+          if (node.id === id) {
+            return { ...node, data: { ...node.data, label: newLabel } }
+          }
+          return node
+        })
+      )
+    },
+    [id, setNodes]
+  )
+
   const containerClasses = useMemo(
     () => `
     group relative w-64 bg-nss-surface rounded-lg transition-all duration-200
     overflow-visible
-    ${selected
+    ${
+      selected
         ? 'ring-2 ring-nss-primary shadow-[0_0_20px_rgba(59,130,246,0.3)]'
         : 'border border-nss-border hover:border-nss-muted/30 shadow-xl'
-      }
+    }
   `,
     [selected]
   )
@@ -107,6 +123,7 @@ const ServiceNode = ({ id, data, selected }: NodeProps<ServiceNodeData>) => {
         icon={IconComponent}
         status={data.status}
         color={data.color}
+        onLabelChange={handleLabelChange}
       >
         <NodeSettingsMenu
           nodeId={id}
