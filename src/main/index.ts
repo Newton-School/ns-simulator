@@ -27,6 +27,30 @@ function createWindow(): void {
     return { action: 'deny' }
   })
 
+  mainWindow.on('close', async (event) => {
+    // Prevent default close 
+    event.preventDefault()
+
+    try {
+      // Ask renderer if there are unsaved changes
+      const confirmDiscard = await registerIpcHandlers.handleConfirmDiscardChanges(
+        { sender: mainWindow.webContents } as any
+      )
+
+      if (confirmDiscard) {
+        // User confirmed discard, actually close the window
+        mainWindow.destroy()
+      } else {
+        // User canceled, window stays open
+        console.log('Close canceled due to unsaved changes')
+      }
+    } catch (err) {
+      console.error('Error checking unsaved changes on close:', err)
+      // fallback: close anyway if something goes wrong
+      mainWindow.destroy()
+    }
+  })
+
   // HMR for renderer base on electron-vite cli.
   // Load the remote URL for development or the local html file for production.
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
