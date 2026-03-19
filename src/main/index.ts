@@ -27,40 +27,40 @@ function createWindow(): void {
     return { action: 'deny' }
   })
 
-  let isQuitting = false;
+  let isQuitting = false
 
   const handleCloseResponse = async (_event, isUnsaved) => {
     // Check if the window still exists before talking to it
-    if (mainWindow.isDestroyed()) return;
+    if (mainWindow.isDestroyed()) return
 
     if (isUnsaved) {
       const confirm = await registerIpcHandlers.handleConfirmDiscardChanges({
         sender: mainWindow.webContents
-      } as any);
-      
+      } as any)
+
       if (confirm) {
-        isQuitting = true;
-        mainWindow.close();
+        isQuitting = true
+        mainWindow.close()
       }
     } else {
-      isQuitting = true;
-      mainWindow.close();
+      isQuitting = true
+      mainWindow.close()
     }
-  };
+  }
 
   // Start listening
-  ipcMain.on('window-close-response', handleCloseResponse);
+  ipcMain.on('window-close-response', handleCloseResponse)
 
   mainWindow.on('close', (event) => {
-    if (isQuitting) return;
-    event.preventDefault();
-    mainWindow.webContents.send('window-close-attempt');
-  });
+    if (isQuitting) return
+    event.preventDefault()
+    mainWindow.webContents.send('window-close-attempt')
+  })
 
   // When the window is finally destroyed, remove the listener
   mainWindow.on('closed', () => {
-    ipcMain.removeListener('window-close-response', handleCloseResponse);
-  });
+    ipcMain.removeListener('window-close-response', handleCloseResponse)
+  })
 
   // HMR for renderer base on electron-vite cli.
   // Load the remote URL for development or the local html file for production.

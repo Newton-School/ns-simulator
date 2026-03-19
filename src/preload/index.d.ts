@@ -13,5 +13,5 @@ export interface NsSimulatorApi {
   loadScenario: () => Promise<any>
   runSimulation: (config: any) => void
   confirmDiscard: () => Promise<boolean>
-  onCloseRequest: (callback: () => boolean) => void;
+  onCloseRequest: (callback: () => boolean) => void
 }

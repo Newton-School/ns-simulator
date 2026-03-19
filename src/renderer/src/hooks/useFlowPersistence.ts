@@ -39,8 +39,6 @@ export const useFlowPersistence = () => {
   const setFileName = useStore((s) => s.setFileName)
   const setUnsaved = useStore((s) => s.setUnsaved)
 
-  const isUnsaved = useStore((s) => s.isUnsaved)
-
   const isLoadingRef = useRef(false)
 
   const handleGetFileData = useCallback(() => {
