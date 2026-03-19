@@ -105,8 +105,6 @@ export const useFlowPersistence = () => {
     handleOpen()
   }, [handleOpen])
 
-  // window.ele
-
   const handleSaveWrapper = useCallback(async () => {
     const savedPath = await innerSave()
 

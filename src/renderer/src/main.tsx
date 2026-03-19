@@ -7,9 +7,8 @@ import useStore from './store/useStore'
 
 if (window.nssimulator && window.nssimulator.onCloseRequest) {
   window.nssimulator.onCloseRequest(() => {
-    // Access the current value is store from Zustand directly
+    // Access the current value in the store from Zustand directly
     const isUnsaved = useStore.getState().isUnsaved
-    console.log('Checking unsaved status for Electron...', isUnsaved)
     return isUnsaved
   })
 }

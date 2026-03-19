@@ -32,11 +32,15 @@ function createWindow(): void {
   const handleCloseResponse = async (_event, isUnsaved) => {
     // Check if the window still exists before talking to it
     if (mainWindow.isDestroyed()) return
+    
+    const unsaved = Boolean(isUnsaved)
 
-    if (isUnsaved) {
-      const confirm = await registerIpcHandlers.handleConfirmDiscardChanges({
-        sender: mainWindow.webContents
-      } as any)
+    if (unsaved) {
+      const confirm = await registerIpcHandlers.handleConfirmDiscardChanges(
+         { sender: mainWindow.webContents } as Parameters<
+           typeof registerIpcHandlers.handleConfirmDiscardChanges
+         >[0]
+       )
 
       if (confirm) {
         isQuitting = true
