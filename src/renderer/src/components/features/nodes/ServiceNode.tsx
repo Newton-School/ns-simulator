@@ -20,7 +20,9 @@ import {
   Router,
   LockKeyhole,
   Waypoints,
-  ArrowRightLeft
+  ArrowRightLeft,
+  ServerCog,
+  BookOpen
 } from 'lucide-react'
 
 import UniversalHandle from '@renderer/components/atoms/UniversalHandle'
@@ -44,6 +46,8 @@ const ICON_LOOKUP: Record<string, LucideIcon> = {
   vpn: LockKeyhole,
   ingress: Waypoints,
   proxy: ArrowRightLeft,
+  serverCog: ServerCog,
+  bookOpen: BookOpen,
   // Clients & Edge
   monitor: Monitor,
   dns: Navigation,
