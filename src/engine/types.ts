@@ -25,6 +25,8 @@ export type ComputeType =
   | 'vm-instance'
   | 'edge-compute'
   | 'gpu-node'
+  | 'auth-service'
+  | 'search-service'
 export type NetworkType =
   | 'load-balancer'
   | 'global-traffic-manager'
@@ -34,6 +36,7 @@ export type NetworkType =
   | 'cdn'
   | 'api-gateway'
   | 'service-mesh'
+  | 'ingress-controller'
   | 'reverse-proxy'
   | 'high-perf-nic'
   | 'network-policy'
@@ -405,4 +408,11 @@ export interface TopologyJSON {
   faults?: FaultSpec[]
   invariants?: InvariantCheck[]
   scenarios?: ScenarioRef[]
+}
+
+export interface RandomGenerator {
+  next(): number // [0, 1)
+  between(min: number, max: number): number // [min, max)
+  integer(min: number, max: number): number // integer in [min, max]
+  boolean(probability?: number): boolean // true with given probability (default 0.5)
 }
