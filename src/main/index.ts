@@ -27,29 +27,40 @@ function createWindow(): void {
     return { action: 'deny' }
   })
 
-  mainWindow.on('close', async (event) => {
-    // Prevent default close 
-    event.preventDefault()
+  let isQuitting = false;
 
-    try {
-      // Ask renderer if there are unsaved changes
-      const confirmDiscard = await registerIpcHandlers.handleConfirmDiscardChanges(
-        { sender: mainWindow.webContents } as any
-      )
+  const handleCloseResponse = async (_event, isUnsaved) => {
+    // Check if the window still exists before talking to it
+    if (mainWindow.isDestroyed()) return;
 
-      if (confirmDiscard) {
-        // User confirmed discard, actually close the window
-        mainWindow.destroy()
-      } else {
-        // User canceled, window stays open
-        console.log('Close canceled due to unsaved changes')
+    if (isUnsaved) {
+      const confirm = await registerIpcHandlers.handleConfirmDiscardChanges({
+        sender: mainWindow.webContents
+      } as any);
+      
+      if (confirm) {
+        isQuitting = true;
+        mainWindow.close();
       }
-    } catch (err) {
-      console.error('Error checking unsaved changes on close:', err)
-      // fallback: close anyway if something goes wrong
-      mainWindow.destroy()
+    } else {
+      isQuitting = true;
+      mainWindow.close();
     }
-  })
+  };
+
+  // Start listening
+  ipcMain.on('window-close-response', handleCloseResponse);
+
+  mainWindow.on('close', (event) => {
+    if (isQuitting) return;
+    event.preventDefault();
+    mainWindow.webContents.send('window-close-attempt');
+  });
+
+  // When the window is finally destroyed, remove the listener
+  mainWindow.on('closed', () => {
+    ipcMain.removeListener('window-close-response', handleCloseResponse);
+  });
 
   // HMR for renderer base on electron-vite cli.
   // Load the remote URL for development or the local html file for production.

@@ -34,6 +34,14 @@ const api = {
       console.error('Error in confirmDiscard:', error)
       throw error
     }),
+  
+  onCloseRequest: (callback: () => boolean) => {
+    ipcRenderer.on('window-close-attempt', () => {
+      const isUnsaved = callback();
+      // Send the actual value of isUnsaved back to Main
+      ipcRenderer.send('window-close-response', isUnsaved);
+    });
+  },
 
   runSimulation: (config: any) => ipcRenderer.send('nssimulator:run-simulation', config)
 }

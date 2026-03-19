@@ -87,20 +87,25 @@ export const useFlowPersistence = () => {
     handleLoadFileData
   )
 
-  const handleOpenWithCheckIfSaved = useCallback(async () => {
-    if (isUnsaved) {
-      try{
-        const confirmDiscard = await window.nssimulator.confirmDiscard()
-        if (!confirmDiscard) return
-      }
-      catch(error) {
-        console.log("Error during confirmDiscard:", error)
-        return
-      }
+  const confirmIfUnsaved = async (): Promise<boolean> => {
+    const { isUnsaved } = useStore.getState()
+
+    if (!isUnsaved) return true
+
+    try {
+      return await window.nssimulator.confirmDiscard()
+    } catch (error) {
+      console.error('Error during confirmDiscard:', error)
+      return false
     }
-    
+  }
+
+  const handleOpenWithCheckIfSaved = useCallback(async () => {
+    const ok = await confirmIfUnsaved()
+    if (!ok) return
+
     handleOpen()
-  }, [isUnsaved, handleOpen])
+  }, [handleOpen])
 
   // window.ele
 
