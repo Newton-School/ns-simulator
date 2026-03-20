@@ -14,7 +14,7 @@ import {
   VPC_ICON_LOOKUP,
   SECURITY_ICON_LOOKUP
 } from '@renderer/config/iconLookups'
-// ComputeType consistency is checked implicitly via COMPUTE_DEFAULTS keys
+// Runtime consistency between computeType values and COMPUTE_DEFAULTS keys
 
 // ───────── helpers ─────────
 
@@ -22,6 +22,7 @@ const entries = Object.entries(NODE_REGISTRY)
 const byType = (t: string) => entries.filter(([, def]) => def.type === t)
 
 const allCatalogIds = CATALOG_CONFIG.flatMap((cat) => cat.items.map((item) => item.id))
+const allCatalogIdSet = new Set(allCatalogIds)
 
 // ───────── tests ─────────
 
@@ -44,37 +45,42 @@ describe('NODE_REGISTRY consistency', () => {
   })
 
   // 3. every computeNode has a COMPUTE_DEFAULTS entry
-  it('every computeNode lookupKey has a COMPUTE_DEFAULTS entry', () => {
+  it('every computeNode computeType has a COMPUTE_DEFAULTS entry', () => {
     for (const [key, def] of byType('computeNode')) {
+      const computeType = def.defaultData?.computeType as string | undefined
       expect(
-        (COMPUTE_DEFAULTS as Record<string, unknown>)[def.lookupKey],
-        `computeNode "${key}" (lookupKey "${def.lookupKey}") is missing from COMPUTE_DEFAULTS`
+        computeType,
+        `computeNode "${key}" is missing defaultData.computeType`
+      ).toBeDefined()
+      expect(
+        (COMPUTE_DEFAULTS as Record<string, unknown>)[computeType as string],
+        `computeNode "${key}" (computeType "${computeType}") is missing from COMPUTE_DEFAULTS`
       ).toBeDefined()
     }
   })
 
   // 4. no orphan COMPUTE_DEFAULTS entries
-  it('every COMPUTE_DEFAULTS key maps to a computeNode lookupKey', () => {
-    const computeLookupKeys = new Set(byType('computeNode').map(([, d]) => d.lookupKey))
+  it('every COMPUTE_DEFAULTS key maps to a computeNode computeType', () => {
+    const computeTypes = new Set(
+      byType('computeNode')
+        .map(([, d]) => d.defaultData?.computeType)
+        .filter((ct): ct is string => typeof ct === 'string')
+    )
     for (const cdKey of Object.keys(COMPUTE_DEFAULTS)) {
       expect(
-        computeLookupKeys.has(cdKey),
-        `COMPUTE_DEFAULTS["${cdKey}"] has no matching computeNode`
+        computeTypes.has(cdKey),
+        `COMPUTE_DEFAULTS["${cdKey}"] has no matching computeNode computeType`
       ).toBe(true)
     }
   })
 
-  // 5. COMPUTE_DEFAULTS keys match ComputeType union
-  it('COMPUTE_DEFAULTS keys are valid ComputeType values', () => {
+  // 5. every computeType used in defaultData has a COMPUTE_DEFAULTS entry
+  it('COMPUTE_DEFAULTS covers all computeType values used in defaultData', () => {
     for (const [key, def] of byType('computeNode')) {
-      const ct = def.defaultData.computeType as string
-      expect(
-        ct,
-        `computeNode "${key}" has computeType "${ct}" in defaultData — make sure ComputeType union includes it`
-      ).toBeTruthy()
+      const ct = String(def.defaultData.computeType)
       expect(
         (COMPUTE_DEFAULTS as Record<string, unknown>)[ct],
-        `computeNode "${key}" has computeType "${ct}" which is missing from COMPUTE_DEFAULTS (add to ComputeType union too)`
+        `computeNode "${key}" has computeType "${ct}" in defaultData which is missing from COMPUTE_DEFAULTS`
       ).toBeDefined()
     }
   })
@@ -129,7 +135,7 @@ describe('NODE_REGISTRY consistency', () => {
   it('every NODE_REGISTRY entry appears in CATALOG_CONFIG', () => {
     for (const [key] of entries) {
       expect(
-        allCatalogIds.includes(key),
+        allCatalogIdSet.has(key),
         `"${key}" is in NODE_REGISTRY but missing from CATALOG_CONFIG`
       ).toBe(true)
     }
