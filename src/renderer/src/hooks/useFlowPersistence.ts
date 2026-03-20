@@ -17,25 +17,27 @@ const generateId = (type) => `${type}_${Date.now()}_${Math.floor(Math.random() *
 let clipboard: { nodes: any[]; edges: any[] } = { nodes: [], edges: [] }
 
 const handleCopy = () => {
-  const {nodes,edges} = useStore.getState()
-  console.log(useStore.getState());
-  
-  const selectedNodes = nodes.filter(node => node.selected)
+  const { nodes, edges } = useStore.getState()
+  console.log(useStore.getState())
 
-  if(selectedNodes.length === 0) return;
+  const selectedNodes = nodes.filter((node) => node.selected)
+
+  if (selectedNodes.length === 0) return
 
   const selectedIds = new Set(selectedNodes.map((node) => node.id))
 
-  const selectedEdges = edges.filter((edge) => selectedIds.has(edge.source) && selectedIds.has(edge.target))
+  const selectedEdges = edges.filter(
+    (edge) => selectedIds.has(edge.source) && selectedIds.has(edge.target)
+  )
 
   clipboard = {
     nodes: selectedNodes,
     edges: selectedEdges
-  }        
+  }
 }
 
 const handlePaste = () => {
-  if(!clipboard) return;
+  if (!clipboard) return
   const { nodes, edges, setNodes, setEdges, setUnsaved } = useStore.getState()
 
   const idMap = new Map<string, string>()
@@ -59,7 +61,7 @@ const handlePaste = () => {
   // replicate edges
   const newEdges = clipboard.edges.map((edge) => ({
     ...edge,
-    id: generateId("edge"),
+    id: generateId('edge'),
     source: idMap.get(edge.source)!,
     target: idMap.get(edge.target)!
   }))
@@ -81,10 +83,11 @@ const useKeyboardShortcuts = (onSave: () => void, onOpen: () => void) => {
       } else if (e.key.toLowerCase() === 'o') {
         e.preventDefault()
         onOpen()
-      } else if(e.key.toLowerCase() === 'c') {
+      } else if (e.key.toLowerCase() === 'c') {
         e.preventDefault()
         handleCopy()
-      } else if(e.key.toLowerCase() === 'v') { // paste nodes & edges
+      } else if (e.key.toLowerCase() === 'v') {
+        // paste nodes & edges
         e.preventDefault()
         handlePaste()
       }
