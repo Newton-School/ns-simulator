@@ -16,21 +16,8 @@ const generateId = (type) => `${type}_${Date.now()}_${Math.floor(Math.random() *
 
 let clipboard: { nodes: any[]; edges: any[] } = { nodes: [], edges: [] }
 
-const useKeyboardShortcuts = (onSave: () => void, onOpen: () => void) => {
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const isMod = e.metaKey || e.ctrlKey
-      if (!isMod) return
-
-      if (e.key.toLowerCase() === 's') {
-        e.preventDefault()
-        onSave()
-      } else if (e.key.toLowerCase() === 'o') {
-        e.preventDefault()
-        onOpen()
-      } else if(e.key.toLowerCase() === 'c') {
-        e.preventDefault();
-        const {nodes,edges} = useStore.getState()
+const handleCopy = () => {
+  const {nodes,edges} = useStore.getState()
         console.log(useStore.getState());
         
         const selectedNodes = nodes.filter(node => node.selected)
@@ -45,50 +32,62 @@ const useKeyboardShortcuts = (onSave: () => void, onOpen: () => void) => {
           nodes: selectedNodes,
           edges: selectedEdges
         }        
-      }
+}
 
-      // paste nodes & edges
-      else if(e.key.toLowerCase() === 'v') {
+const handlePaste = () => {
+  if(!clipboard) return;
+  const { nodes, edges, setNodes, setEdges, setUnsaved } = useStore.getState()
+
+  const idMap = new Map<string, string>()
+
+  // relicate nodes
+  const newNodes = clipboard.nodes.map((node) => {
+    const newId = generateId('node')
+    idMap.set(node.id, newId)
+
+    return {
+      ...node,
+      id: newId,
+      position: {
+        x: node.position.x + 40,
+        y: node.position.y + 40
+      },
+      selected: false
+    }
+  })
+
+  // replicate edges
+  const newEdges = clipboard.edges.map((edge) => ({
+    ...edge,
+    id: generateId("edge"),
+    source: idMap.get(edge.source)!,
+    target: idMap.get(edge.target)!
+  }))
+
+  setNodes([...nodes, ...newNodes])
+  setEdges([...edges, ...newEdges])
+  setUnsaved(true)
+}
+
+const useKeyboardShortcuts = (onSave: () => void, onOpen: () => void) => {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isMod = e.metaKey || e.ctrlKey
+      if (!isMod) return
+
+      if (e.key.toLowerCase() === 's') {
         e.preventDefault()
-
-        if(!clipboard) return;
-
-        const { nodes, edges, setNodes, setEdges, setUnsaved } = useStore.getState()
-
-        const idMap = new Map<string, string>()
-
-        // relicate nodes
-        const newNodes = clipboard.nodes.map((node) => {
-          const newId = generateId('node')
-          idMap.set(node.id, newId)
-
-          return {
-            ...node,
-            id: newId,
-            position: {
-              x: node.position.x + 40,
-              y: node.position.y + 40
-            },
-            selected: false
-          }
-        })
-
-        // replicate edges
-        const newEdges = clipboard.edges.map((edge) => ({
-          ...edge,
-          id: generateId("edge"),
-          source: idMap.get(edge.source)!,
-          target: idMap.get(edge.target)!
-        }))
-
-        setNodes([...nodes, ...newNodes])
-        setEdges([...edges, ...newEdges])
-        setUnsaved(true)
-
-        console.log('Pasted:', newNodes, newEdges)
+        onSave()
+      } else if (e.key.toLowerCase() === 'o') {
+        e.preventDefault()
+        onOpen()
+      } else if(e.key.toLowerCase() === 'c') {
+        e.preventDefault()
+        handleCopy()
+      } else if(e.key.toLowerCase() === 'v') { // paste nodes & edges
+        e.preventDefault()
+        handlePaste()
       }
-
-
     }
 
     window.addEventListener('keydown', handleKeyDown)
