@@ -18,20 +18,20 @@ let clipboard: { nodes: any[]; edges: any[] } = { nodes: [], edges: [] }
 
 const handleCopy = () => {
   const {nodes,edges} = useStore.getState()
-        console.log(useStore.getState());
-        
-        const selectedNodes = nodes.filter(node => node.selected)
+  console.log(useStore.getState());
+  
+  const selectedNodes = nodes.filter(node => node.selected)
 
-        if(selectedNodes.length === 0) return;
+  if(selectedNodes.length === 0) return;
 
-        const selectedIds = new Set(selectedNodes.map((node) => node.id))
+  const selectedIds = new Set(selectedNodes.map((node) => node.id))
 
-        const selectedEdges = edges.filter((edge) => selectedIds.has(edge.source) && selectedIds.has(edge.target))
+  const selectedEdges = edges.filter((edge) => selectedIds.has(edge.source) && selectedIds.has(edge.target))
 
-        clipboard = {
-          nodes: selectedNodes,
-          edges: selectedEdges
-        }        
+  clipboard = {
+    nodes: selectedNodes,
+    edges: selectedEdges
+  }        
 }
 
 const handlePaste = () => {
