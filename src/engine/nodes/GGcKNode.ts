@@ -19,14 +19,18 @@ export class GGcKNode {
   private discipline: 'fifo' | 'lifo' | 'priority' | 'wfq'
   private scheduler: EventScheduler
   constructor(config: ComponentNode, distributions: Distributions, scheduler: EventScheduler) {
+    if (!config.queue) {
+      throw new Error(`GGcKNode requires a 'queue' configuration for component '${config.id}'.`)
+    }
+    const queueConfig = config.queue
     this.id = config.id
     this.queue = []
     this.activeWorkers = 0
-    this.maxWorkers = config.queue!.workers
-    this.maxCapacity = config.queue!.capacity
+    this.maxWorkers = queueConfig.workers
+    this.maxCapacity = queueConfig.capacity
     this.state = 'idle'
     this.metrics = {}
-    this.discipline = config.queue!.discipline
+    this.discipline = queueConfig.discipline
     this.serviceDistribution = distributions.service
     this.scheduler = scheduler
   }
@@ -63,8 +67,23 @@ export class GGcKNode {
   }
   handleCompletion(_request: Request, currentTime: bigint) {
     void _request
-    void currentTime
-    this.activeWorkers--
+    // If the node has failed, do not process any more work from the queue.
+    // Still decrement the worker count safely to keep internal accounting consistent.
+    if (this.state === 'failed') {
+      if (this.activeWorkers > 0) {
+        this.activeWorkers--
+      } else {
+        this.activeWorkers = 0
+      }
+      return
+    }
+
+    if (this.activeWorkers > 0) {
+      this.activeWorkers--
+    } else {
+      this.activeWorkers = 0
+    }
+
     this.metrics.requestsProcessed = (this.metrics.requestsProcessed || 0) + 1
     if (this.queue.length > 0) {
       let nextRequest: Request | undefined
@@ -87,7 +106,7 @@ export class GGcKNode {
           break
         }
       }
-      if (nextRequest) {
+      if (nextRequest && this.activeWorkers < this.maxWorkers) {
         this.activeWorkers++
         this.startProcessing(nextRequest, currentTime)
       }

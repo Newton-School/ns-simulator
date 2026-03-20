@@ -1,3 +1,5 @@
+import type { SimulationEvent } from './events'
+
 export type ComponentCategory =
   | 'compute'
   | 'network-and-edge'
@@ -434,7 +436,7 @@ export interface NodeState {
 }
 
 export interface EventScheduler {
-  scheduleTimeEvent: (event: any) => void
+  scheduleTimeEvent: (event: SimulationEvent) => void
 }
 
 export interface Distributions {
