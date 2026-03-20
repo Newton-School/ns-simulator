@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react'
 import useStore from '@renderer/store/useStore'
 import { useFileHandlers } from './useFileHandlers'
+
 import {
   convertFlatToNested,
   convertNestedToFlat,
@@ -10,6 +11,10 @@ import {
 const extractFileName = (path: string): string => {
   return path.replace(/^.*[\\/]/, '')
 }
+
+const generateId = (type) => `${type}_${Date.now()}_${Math.floor(Math.random() * 1000)}`
+
+let clipboard: { nodes: any[]; edges: any[] } = { nodes: [], edges: [] }
 
 const useKeyboardShortcuts = (onSave: () => void, onOpen: () => void) => {
   useEffect(() => {
@@ -23,7 +28,67 @@ const useKeyboardShortcuts = (onSave: () => void, onOpen: () => void) => {
       } else if (e.key.toLowerCase() === 'o') {
         e.preventDefault()
         onOpen()
+      } else if(e.key.toLowerCase() === 'c') {
+        e.preventDefault();
+        const {nodes,edges} = useStore.getState()
+        console.log(useStore.getState());
+        
+        const selectedNodes = nodes.filter(node => node.selected)
+
+        if(selectedNodes.length === 0) return;
+
+        const selectedIds = new Set(selectedNodes.map((node) => node.id))
+
+        const selectedEdges = edges.filter((edge) => selectedIds.has(edge.source) && selectedIds.has(edge.target))
+
+        clipboard = {
+          nodes: selectedNodes,
+          edges: selectedEdges
+        }        
       }
+
+      // paste nodes & edges
+      else if(e.key.toLowerCase() === 'v') {
+        e.preventDefault()
+
+        if(!clipboard) return;
+
+        const { nodes, edges, setNodes, setEdges, setUnsaved } = useStore.getState()
+
+        const idMap = new Map<string, string>()
+
+        // relicate nodes
+        const newNodes = clipboard.nodes.map((node) => {
+          const newId = generateId('node')
+          idMap.set(node.id, newId)
+
+          return {
+            ...node,
+            id: newId,
+            position: {
+              x: node.position.x + 40,
+              y: node.position.y + 40
+            },
+            selected: false
+          }
+        })
+
+        // replicate edges
+        const newEdges = clipboard.edges.map((edge) => ({
+          ...edge,
+          id: generateId("edge"),
+          source: idMap.get(edge.source)!,
+          target: idMap.get(edge.target)!
+        }))
+
+        setNodes([...nodes, ...newNodes])
+        setEdges([...edges, ...newEdges])
+        setUnsaved(true)
+
+        console.log('Pasted:', newNodes, newEdges)
+      }
+
+
     }
 
     window.addEventListener('keydown', handleKeyDown)
