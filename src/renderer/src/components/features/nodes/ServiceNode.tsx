@@ -65,27 +65,10 @@ const ServiceNode = ({ id, data, selected }: NodeProps<ServiceNodeData>) => {
   const { setNodes } = useReactFlow()
   const IconComponent = ICON_LOOKUP[data.iconKey] || Server
 
-  const handleContextMenu = useCallback((e: React.MouseEvent) => {
-    e.preventDefault()
-    setIsMenuOpen(true)
-  }, [])
-
-  const handleMenuClose = useCallback(() => setIsMenuOpen(false), [])
-
-  const handleMenuToggle = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation()
-    setIsMenuOpen((prev) => !prev)
-  }, [])
-
   const handleLabelChange = useCallback(
     (newLabel: string) => {
       setNodes((nds) =>
-        nds.map((node) => {
-          if (node.id === id) {
-            return { ...node, data: { ...node.data, label: newLabel } }
-          }
-          return node
-        })
+        nds.map((n) => (n.id === id ? { ...n, data: { ...n.data, label: newLabel } } : n))
       )
     },
     [id, setNodes]
@@ -93,19 +76,20 @@ const ServiceNode = ({ id, data, selected }: NodeProps<ServiceNodeData>) => {
 
   const containerClasses = useMemo(
     () => `
-    group relative w-64 bg-nss-surface rounded-lg transition-all duration-200
-    overflow-visible
-    ${
-      selected
-        ? 'ring-2 ring-nss-primary shadow-[0_0_20px_rgba(59,130,246,0.3)]'
-        : 'border border-nss-border hover:border-nss-muted/30 shadow-xl'
-    }
+    group relative w-64 bg-nss-surface rounded-lg transition-all duration-200 overflow-visible
+    ${selected ? 'ring-2 ring-nss-primary shadow-[0_0_20px_rgba(59,130,246,0.3)]' : 'border border-nss-border hover:border-nss-muted/30 shadow-xl'}
   `,
     [selected]
   )
 
   return (
-    <div onContextMenu={handleContextMenu} className={containerClasses}>
+    <div
+      onContextMenu={(e) => {
+        e.preventDefault()
+        setIsMenuOpen(true)
+      }}
+      className={containerClasses}
+    >
       {POSITIONS.map((pos) => (
         <React.Fragment key={pos}>
           {OFFSETS.map((offset, i) => (
@@ -118,6 +102,7 @@ const ServiceNode = ({ id, data, selected }: NodeProps<ServiceNodeData>) => {
           ))}
         </React.Fragment>
       ))}
+
       <NodeHeader
         label={data.label || 'Service'}
         icon={IconComponent}
@@ -128,8 +113,11 @@ const ServiceNode = ({ id, data, selected }: NodeProps<ServiceNodeData>) => {
         <NodeSettingsMenu
           nodeId={id}
           isOpen={isMenuOpen}
-          onClose={handleMenuClose}
-          onToggle={handleMenuToggle}
+          onClose={() => setIsMenuOpen(false)}
+          onToggle={(e) => {
+            e.stopPropagation()
+            setIsMenuOpen((prev) => !prev)
+          }}
         />
       </NodeHeader>
 
