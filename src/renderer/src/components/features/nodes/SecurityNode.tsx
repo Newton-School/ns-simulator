@@ -1,5 +1,5 @@
 import React, { memo, useState, useCallback, useMemo } from 'react'
-import { Position, NodeProps, useReactFlow } from 'reactflow'
+import { Position, NodeProps } from 'reactflow' // <-- 1. Removed useReactFlow
 import { LucideIcon, Shield, ShieldAlert, Lock } from 'lucide-react'
 
 import UniversalHandle from '@renderer/components/atoms/UniversalHandle'
@@ -8,6 +8,7 @@ import { NodeHeader } from '@renderer/components/molecules/NodeHeader'
 import { MetricItem } from '@renderer/components/molecules/MetricItem'
 import { NodeSettingsMenu } from '@renderer/components/molecules/NodeSettingsMenu'
 import { SecurityNodeData } from '@renderer/types/ui'
+import { useFlowStore } from '../canvas/hooks/useFlowStore'
 
 const OFFSETS = ['25%', '50%', '75%']
 const POSITIONS = [Position.Left, Position.Top, Position.Right, Position.Bottom]
@@ -21,16 +22,14 @@ const ICON_LOOKUP: Record<string, LucideIcon> = {
 const SecurityNode = ({ id, data, selected }: NodeProps<SecurityNodeData>) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
-  const { setNodes } = useReactFlow()
+  const { updateNodeData } = useFlowStore()
   const IconComponent = ICON_LOOKUP[data.iconKey] || ICON_LOOKUP.default
 
   const handleLabelChange = useCallback(
     (newLabel: string) => {
-      setNodes((nds) =>
-        nds.map((n) => (n.id === id ? { ...n, data: { ...n.data, label: newLabel } } : n))
-      )
+      updateNodeData(id, { label: newLabel })
     },
-    [id, setNodes]
+    [id, updateNodeData]
   )
 
   // Distinct styling for security nodes - more protective/alert color scheme when selected

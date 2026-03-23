@@ -1,23 +1,22 @@
 import React, { memo, useMemo } from 'react'
-import { Position, NodeProps, useReactFlow } from 'reactflow'
+import { Position, NodeProps } from 'reactflow'
 import { ComputeNodeData } from '@renderer/types/ui'
 import { resolveNodeConfig } from '@renderer/config/nodeRegistry'
 import { ProgressBar } from '@renderer/components/atoms/ProgressBar'
 import UniversalHandle from '@renderer/components/atoms/UniversalHandle'
 import { InlineEditableLabel } from '@renderer/components/molecules/InlineEditable'
+import { useFlowStore } from '../canvas/hooks/useFlowStore'
 
 const OFFSETS = ['25%', '50%', '75%']
 const POSITIONS = [Position.Left, Position.Top, Position.Right, Position.Bottom]
 
 const ComputeNode = ({ id, data, selected }: NodeProps<ComputeNodeData>) => {
-  const { setNodes } = useReactFlow()
+  const { updateNodeData } = useFlowStore()
   const { icon: Icon, theme } = resolveNodeConfig(data.computeType)
   const isOverloaded = data.is_overloaded
 
   const handleSaveLabel = (newLabel: string) => {
-    setNodes((nds) =>
-      nds.map((n) => (n.id === id ? { ...n, data: { ...n.data, label: newLabel } } : n))
-    )
+    updateNodeData(id, { label: newLabel })
   }
 
   const containerClasses = useMemo(() => {

@@ -59,12 +59,21 @@ export const InlineEditableLabel = memo(
 
     return (
       <span
+        role="button"
+        tabIndex={0}
         onDoubleClick={(e) => {
           e.stopPropagation()
           setIsEditing(true)
         }}
-        title="Double click to rename"
-        className={`cursor-text text-nss-text hover:bg-nss-surface px-1 -ml-1 rounded transition-colors truncate ${textClassName}`}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            e.stopPropagation()
+            setIsEditing(true)
+          }
+        }}
+        title="Double click or press Enter to rename"
+        className={`cursor-text text-nss-text hover:bg-nss-surface px-1 -ml-1 rounded transition-all truncate focus:outline-none focus:ring-1 focus:ring-nss-primary ${textClassName}`}
       >
         {value}
       </span>

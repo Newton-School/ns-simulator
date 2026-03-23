@@ -1,11 +1,11 @@
 import { memo, useState, useCallback } from 'react'
-import { NodeProps, NodeResizer, useReactFlow } from 'reactflow'
+import { NodeProps, NodeResizer } from 'reactflow'
 import { Cloud, Box, LucideIcon, LayoutGrid } from 'lucide-react'
 import { useVpcLogic } from './vpc/useVpcLogic'
 import { VpcToolbar } from './vpc/VpcToolbar'
 import { VpcHeader } from './vpc/VpcHeader'
 import { NodeSettingsMenu } from '@renderer/components/molecules/NodeSettingsMenu'
-
+import { useFlowStore } from '../canvas/hooks/useFlowStore'
 const VPC_ICON_LOOKUP: Record<string, LucideIcon> = {
   cloud: Cloud,
   az: Box,
@@ -13,18 +13,16 @@ const VPC_ICON_LOOKUP: Record<string, LucideIcon> = {
 }
 
 const VpcNode = ({ id, data, selected }: NodeProps) => {
-  const { setNodes } = useReactFlow()
+  const { updateNodeData } = useFlowStore()
   const { isUngrouped, hasChildren, minSize, handleUngroup } = useVpcLogic(id)
   const ContainerIcon = VPC_ICON_LOOKUP[data.iconKey] || Cloud
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   const handleLabelChange = useCallback(
     (newLabel: string) => {
-      setNodes((nds) =>
-        nds.map((n) => (n.id === id ? { ...n, data: { ...n.data, label: newLabel } } : n))
-      )
+      updateNodeData(id, { label: newLabel })
     },
-    [id, setNodes]
+    [id, updateNodeData]
   )
 
   const isSuccessState = isUngrouped && !hasChildren

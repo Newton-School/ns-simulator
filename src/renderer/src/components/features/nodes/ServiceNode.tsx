@@ -1,5 +1,5 @@
 import React, { memo, useState, useCallback, useMemo } from 'react'
-import { Position, NodeProps, useReactFlow } from 'reactflow'
+import { Position, NodeProps } from 'reactflow'
 import {
   Server,
   Globe,
@@ -29,6 +29,7 @@ import { NodeHeader } from '@renderer/components/molecules/NodeHeader'
 import { MetricItem } from '@renderer/components/molecules/MetricItem'
 import { NodeSettingsMenu } from '@renderer/components/molecules/NodeSettingsMenu'
 import { ServiceNodeData } from '@renderer/types/ui'
+import { useFlowStore } from '../canvas/hooks/useFlowStore'
 
 const OFFSETS = ['25%', '50%', '75%']
 const POSITIONS = [Position.Left, Position.Top, Position.Right, Position.Bottom]
@@ -62,16 +63,15 @@ const ICON_LOOKUP: Record<string, LucideIcon> = {
 
 const ServiceNode = ({ id, data, selected }: NodeProps<ServiceNodeData>) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const { setNodes } = useReactFlow()
+
+  const { updateNodeData } = useFlowStore()
   const IconComponent = ICON_LOOKUP[data.iconKey] || Server
 
   const handleLabelChange = useCallback(
     (newLabel: string) => {
-      setNodes((nds) =>
-        nds.map((n) => (n.id === id ? { ...n, data: { ...n.data, label: newLabel } } : n))
-      )
+      updateNodeData(id, { label: newLabel })
     },
-    [id, setNodes]
+    [id, updateNodeData]
   )
 
   const containerClasses = useMemo(

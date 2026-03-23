@@ -26,12 +26,18 @@ export const VpcHeader = memo(
         </div>
 
         <div className="flex-1 overflow-hidden flex items-center">
-          <InlineEditableLabel
-            value={label || 'VPC Region'}
-            onSave={(newLabel) => onLabelChange?.(newLabel)}
-            textClassName="text-xs font-bold text-nss-muted uppercase tracking-wider truncate"
-            inputClassName="text-xs font-bold text-nss-text uppercase tracking-wider w-full min-w-[100px]"
-          />
+          {onLabelChange ? (
+            <InlineEditableLabel
+              value={label || 'VPC Region'}
+              onSave={(newLabel) => onLabelChange(newLabel)}
+              textClassName="text-xs font-bold text-nss-muted uppercase tracking-wider truncate"
+              inputClassName="text-xs font-bold text-nss-text uppercase tracking-wider w-full min-w-[100px]"
+            />
+          ) : (
+            <span className="text-xs font-bold text-nss-muted uppercase tracking-wider truncate">
+              {label || 'VPC Region'}
+            </span>
+          )}
         </div>
 
         <div className="ml-auto flex items-center gap-2 shrink-0">

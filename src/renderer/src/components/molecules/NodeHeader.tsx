@@ -35,12 +35,16 @@ export const NodeHeader = memo(
             <Icon size={16} className={color.replace('bg-', 'text-')} />
           </div>
 
-          <InlineEditableLabel
-            value={label}
-            onSave={(newLabel) => onLabelChange?.(newLabel)}
-            textClassName="font-bold text-sm max-w-[120px]"
-            inputClassName="font-bold text-sm w-24"
-          />
+          {onLabelChange ? (
+            <InlineEditableLabel
+              value={label}
+              onSave={(newLabel) => onLabelChange(newLabel)}
+              textClassName="font-bold text-sm max-w-[120px]"
+              inputClassName="font-bold text-sm w-24"
+            />
+          ) : (
+            <span className="font-bold text-sm max-w-[120px] truncate">{label}</span>
+          )}
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
