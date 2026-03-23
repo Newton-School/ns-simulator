@@ -20,6 +20,7 @@ const ICON_LOOKUP: Record<string, LucideIcon> = {
 
 const SecurityNode = ({ id, data, selected }: NodeProps<SecurityNodeData>) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  
   const { setNodes } = useReactFlow()
   const IconComponent = ICON_LOOKUP[data.iconKey] || ICON_LOOKUP.default
 
@@ -32,13 +33,26 @@ const SecurityNode = ({ id, data, selected }: NodeProps<SecurityNodeData>) => {
     [id, setNodes]
   )
 
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    setIsMenuOpen(true)
+  }, [])
+
+  const handleMenuClose = useCallback(() => setIsMenuOpen(false), [])
+
+  const handleMenuToggle = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    setIsMenuOpen((prev) => !prev)
+  }, [])
+
   // Distinct styling for security nodes - more protective/alert color scheme when selected
   const containerClasses = useMemo(
     () => `
-    group relative w-64 bg-nss-surface rounded-lg transition-all duration-200 overflow-visible
+    group relative w-64 bg-nss-surface rounded-lg transition-all duration-200
+    overflow-visible
     ${
       selected
-        ? 'ring-2 ring-nss-warning shadow-[0_0_20px_rgba(245,158,11,0.3)]'
+        ? 'ring-2 ring-nss-warning shadow-[0_0_20px_rgba(245,158,11,0.3)]' // Amber/Warning glow instead of blue
         : 'border border-nss-border hover:border-nss-warning/30 shadow-xl'
     }
   `,
