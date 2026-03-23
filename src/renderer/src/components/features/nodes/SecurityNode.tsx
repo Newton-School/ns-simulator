@@ -20,7 +20,7 @@ const ICON_LOOKUP: Record<string, LucideIcon> = {
 
 const SecurityNode = ({ id, data, selected }: NodeProps<SecurityNodeData>) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  
+
   const { setNodes } = useReactFlow()
   const IconComponent = ICON_LOOKUP[data.iconKey] || ICON_LOOKUP.default
 
@@ -32,18 +32,6 @@ const SecurityNode = ({ id, data, selected }: NodeProps<SecurityNodeData>) => {
     },
     [id, setNodes]
   )
-
-  const handleContextMenu = useCallback((e: React.MouseEvent) => {
-    e.preventDefault()
-    setIsMenuOpen(true)
-  }, [])
-
-  const handleMenuClose = useCallback(() => setIsMenuOpen(false), [])
-
-  const handleMenuToggle = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation()
-    setIsMenuOpen((prev) => !prev)
-  }, [])
 
   // Distinct styling for security nodes - more protective/alert color scheme when selected
   const containerClasses = useMemo(
