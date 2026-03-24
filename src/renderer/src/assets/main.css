@@ -88,7 +88,6 @@
   
 /* Source handles are on top so you can grab them to START a connection */
 .custom-source-handle {
->>>>>>> 46a03ad (Fixed bug for dark theme scrollbar)
     z-index: 10 !important;
     cursor: grab;
   }
