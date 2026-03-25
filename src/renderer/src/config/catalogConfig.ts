@@ -25,7 +25,9 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
     items: [
       fromRegistry('vpc-region')!,
       fromRegistry('availability-zone')!,
-      fromRegistry('subnet')!
+      fromRegistry('subnet')!,
+      fromRegistry('dns-server')!,
+      fromRegistry('discovery-service')!
     ]
   },
   {

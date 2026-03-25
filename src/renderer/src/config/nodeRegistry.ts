@@ -26,7 +26,9 @@ import {
   LockKeyhole,
   Waypoints,
   ArrowRightLeft,
-  LayoutGrid
+  LayoutGrid,
+  ServerCog,
+  BookOpen
 } from 'lucide-react'
 import { getTheme } from './themeConfig'
 
@@ -216,6 +218,25 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     lookupKey: 'subnet',
     defaultData: { iconKey: 'subnet' }
   },
+  'dns-server': {
+    id: 'dns-server',
+    type: 'serviceNode',
+    label: 'DNS Server',
+    subLabel: 'Internal DNS / Authoritative',
+    icon: ServerCog,
+    lookupKey: 'serverCog',
+    defaultData: { iconKey: 'serverCog', status: 'healthy', throughput: 5000, load: 10 }
+  },
+  'discovery-service': {
+    id: 'discovery-service',
+    type: 'serviceNode',
+    label: 'Discovery Service',
+    subLabel: 'Service Registry',
+    icon: BookOpen,
+    lookupKey: 'bookOpen',
+    defaultData: { iconKey: 'bookOpen', status: 'healthy', throughput: 3000, load: 15 }
+  },
+
 
   // Clients & Edge
   'client-user': {
