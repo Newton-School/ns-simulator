@@ -39,6 +39,19 @@ export const PropertiesForm = ({ data, onUpdate }: PropertiesFormProps) => {
 
   return (
     <div className="space-y-6">
+      <div className="space-y-2 mb-6 border-b border-nss-border pb-6">
+        <label className="text-[10px] font-bold text-nss-muted uppercase tracking-wider">
+          Node Label
+        </label>
+        <input
+          type="text"
+          value={data.label || ''}
+          onChange={(e) => onUpdate('label', e.target.value)}
+          placeholder="Enter node label"
+          className="w-full bg-nss-bg border border-nss-border rounded px-2 py-1.5 text-xs text-nss-text focus:border-nss-primary outline-none transition-colors"
+        />
+      </div>
+
       {isComputeNode && (
         <div className="space-y-5 mb-6 border-b border-nss-border pb-6">
           <div className="space-y-2">

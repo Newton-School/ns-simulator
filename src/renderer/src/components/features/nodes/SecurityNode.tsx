@@ -1,5 +1,5 @@
 import React, { memo, useState, useCallback, useMemo } from 'react'
-import { Position, NodeProps } from 'reactflow'
+import { Position, NodeProps } from 'reactflow' // <-- 1. Removed useReactFlow
 import { LucideIcon, Shield, ShieldAlert, Lock } from 'lucide-react'
 
 import UniversalHandle from '@renderer/components/atoms/UniversalHandle'
@@ -8,6 +8,7 @@ import { NodeHeader } from '@renderer/components/molecules/NodeHeader'
 import { MetricItem } from '@renderer/components/molecules/MetricItem'
 import { NodeSettingsMenu } from '@renderer/components/molecules/NodeSettingsMenu'
 import { SecurityNodeData } from '@renderer/types/ui'
+import { useFlowStore } from '../canvas/hooks/useFlowStore'
 
 const OFFSETS = ['25%', '50%', '75%']
 const POSITIONS = [Position.Left, Position.Top, Position.Right, Position.Bottom]
@@ -20,19 +21,16 @@ const ICON_LOOKUP: Record<string, LucideIcon> = {
 
 const SecurityNode = ({ id, data, selected }: NodeProps<SecurityNodeData>) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+
+  const { updateNodeData } = useFlowStore()
   const IconComponent = ICON_LOOKUP[data.iconKey] || ICON_LOOKUP.default
 
-  const handleContextMenu = useCallback((e: React.MouseEvent) => {
-    e.preventDefault()
-    setIsMenuOpen(true)
-  }, [])
-
-  const handleMenuClose = useCallback(() => setIsMenuOpen(false), [])
-
-  const handleMenuToggle = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation()
-    setIsMenuOpen((prev) => !prev)
-  }, [])
+  const handleLabelChange = useCallback(
+    (newLabel: string) => {
+      updateNodeData(id, { label: newLabel })
+    },
+    [id, updateNodeData]
+  )
 
   // Distinct styling for security nodes - more protective/alert color scheme when selected
   const containerClasses = useMemo(
@@ -49,7 +47,13 @@ const SecurityNode = ({ id, data, selected }: NodeProps<SecurityNodeData>) => {
   )
 
   return (
-    <div onContextMenu={handleContextMenu} className={containerClasses}>
+    <div
+      onContextMenu={(e) => {
+        e.preventDefault()
+        setIsMenuOpen(true)
+      }}
+      className={containerClasses}
+    >
       {POSITIONS.map((pos) => (
         <React.Fragment key={pos}>
           {OFFSETS.map((offset, i) => (
@@ -68,12 +72,16 @@ const SecurityNode = ({ id, data, selected }: NodeProps<SecurityNodeData>) => {
         icon={IconComponent}
         status={data.status}
         color={data.color}
+        onLabelChange={handleLabelChange}
       >
         <NodeSettingsMenu
           nodeId={id}
           isOpen={isMenuOpen}
-          onClose={handleMenuClose}
-          onToggle={handleMenuToggle}
+          onClose={() => setIsMenuOpen(false)}
+          onToggle={(e) => {
+            e.stopPropagation()
+            setIsMenuOpen((prev) => !prev)
+          }}
         />
       </NodeHeader>
 
