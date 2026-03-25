@@ -31,13 +31,17 @@ The result: P50/P95/P99 latency breakdowns, per-node utilization heatmaps, reque
 ## Three Phases
 
 ### 1 — BUILD
+
 Drag nodes from the palette onto the canvas. Connect them. Configure each node's queue parameters (workers, capacity, service time distribution, timeout), resilience settings (circuit breaker, rate limiter, retry policy), and SLO targets. Set up traffic patterns and fault injections in the scenario bar.
 
 ### 2 — SIMULATE
+
 Press Run. The engine runs in a Web Worker — a discrete event loop that processes millions of events in time order, sampling service times from probability distributions (log-normal, exponential, Poisson, etc.). The canvas updates live: nodes shift from green to yellow to red as they saturate; edges pulse with traffic load.
 
 ### 3 — ANALYSE
+
 When the simulation completes, a results tray expands with:
+
 - **Summary** — P50 / P90 / P95 / P99 latency, throughput, error rate, availability, Little's Law check
 - **Per-Node** — utilization, avg queue depth, RPS, rejection count, P99 per node
 - **Traces** — waterfall views of individual requests (like Chrome DevTools' Network tab)
@@ -46,14 +50,13 @@ When the simulation completes, a results tray expands with:
 
 ---
 
-
 ## System Lifecycle
 
 This project is structured into three major phases:
 
-* **Phase 1 · BUILD** (Implemented)
-* **Phase 2 · SIMULATE** (Planned)
-* **Phase 3 · ANALYSE** (Planned)
+- **Phase 1 · BUILD** (Implemented)
+- **Phase 2 · SIMULATE** (Planned)
+- **Phase 3 · ANALYSE** (Planned)
 
 It follows an iterative workflow:
 
@@ -111,11 +114,11 @@ flowchart TD
 
 ### Simulation Flow
 
-* Serialize topology + workload + fault config.
-* Send to Web Worker.
-* Run discrete event simulation (DES).
-* Emit periodic metric snapshots.
-* Update UI in real-time.
+- Serialize topology + workload + fault config.
+- Send to Web Worker.
+- Run discrete event simulation (DES).
+- Emit periodic metric snapshots.
+- Update UI in real-time.
 
 ---
 
@@ -138,12 +141,12 @@ flowchart TD
 
 ### Analysis Capabilities
 
-* Latency percentiles (P50–P99)
-* Throughput & availability
-* Per-node utilisation metrics
-* Request-level waterfall traces
-* Failure cascade graphs
-* Cloud cost estimation
+- Latency percentiles (P50–P99)
+- Throughput & availability
+- Per-node utilisation metrics
+- Request-level waterfall traces
+- Failure cascade graphs
+- Cloud cost estimation
 
 ---
 
@@ -158,34 +161,33 @@ flowchart LR
 
 ---
 
-
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Desktop shell | Electron 38 |
-| Build system | electron-vite + Vite 7 |
-| UI framework | React 19 + TypeScript 5 |
-| Styling | Tailwind CSS 3 |
-| Canvas | React Flow 11 |
-| State management | Zustand 5 |
-| Icons | Lucide React |
+| Layer             | Technology                                           |
+| ----------------- | ---------------------------------------------------- |
+| Desktop shell     | Electron 38                                          |
+| Build system      | electron-vite + Vite 7                               |
+| UI framework      | React 19 + TypeScript 5                              |
+| Styling           | Tailwind CSS 3                                       |
+| Canvas            | React Flow 11                                        |
+| State management  | Zustand 5                                            |
+| Icons             | Lucide React                                         |
 | Simulation engine | Discrete Event Simulation (DES) — planned Web Worker |
 
 ---
 
 ## Node Types
 
-| Node | Type | Description |
-|---|---|---|
-| API Server | `computeNode` | Long-running process, configurable CPU/queue |
-| Serverless Fn | `computeNode` | Event-driven, low baseline utilization |
-| Job Worker | `computeNode` | Background task processing |
-| Cron Job | `computeNode` | Scheduled execution |
-| Primary DB | `serviceNode` | Relational SQL datastore |
-| Redis Cache | `serviceNode` | In-memory key/value store |
-| Load Balancer | `serviceNode` | L7 request routing |
-| VPC Region | `vpcNode` | Isolated network boundary / grouping |
+| Node          | Type          | Description                                  |
+| ------------- | ------------- | -------------------------------------------- |
+| API Server    | `computeNode` | Long-running process, configurable CPU/queue |
+| Serverless Fn | `computeNode` | Event-driven, low baseline utilization       |
+| Job Worker    | `computeNode` | Background task processing                   |
+| Cron Job      | `computeNode` | Scheduled execution                          |
+| Primary DB    | `serviceNode` | Relational SQL datastore                     |
+| Redis Cache   | `serviceNode` | In-memory key/value store                    |
+| Load Balancer | `serviceNode` | L7 request routing                           |
+| VPC Region    | `vpcNode`     | Isolated network boundary / grouping         |
 
 ---
 
@@ -194,25 +196,26 @@ flowchart LR
 The engine is a **Discrete Event Simulation loop** — no real clocks, no real servers, only a priority queue of timestamped events processed in order.
 
 Each node is modelled as a **G/G/c/K queue**:
+
 - `c` — concurrent workers
 - `K` — max queue capacity (excess arrivals are rejected)
 - Service time sampled from a configurable probability distribution (log-normal, exponential, Poisson, Weibull, etc.)
 
 Key engine components being built (see `ns-simulator-docs/planning/`):
 
-| Component | Role |
-|---|---|
-| Min-Heap | O(log n) event priority queue |
-| SFC32 PRNG | Deterministic random (same seed = identical results every time) |
-| G/G/c/K Node | Per-node queue model with workers and capacity |
-| Workload Generator | Constant / Poisson / Spike / Diurnal / Bursty traffic |
-| Network Edge | Latency distributions, congestion, packet loss |
-| Failure Injector | Crash / latency spike / error rate faults at configurable times |
-| Failure Propagation | Cascade walk through the dependency graph |
-| Circuit Breaker | CLOSED / OPEN / HALF_OPEN state machine |
-| Metrics Collector | Latency percentiles, throughput, error rate, Little's Law check |
-| Request Tracer | Per-request waterfall data |
-| Web Worker | Runs engine off the main thread; streams snapshots to UI |
+| Component           | Role                                                            |
+| ------------------- | --------------------------------------------------------------- |
+| Min-Heap            | O(log n) event priority queue                                   |
+| SFC32 PRNG          | Deterministic random (same seed = identical results every time) |
+| G/G/c/K Node        | Per-node queue model with workers and capacity                  |
+| Workload Generator  | Constant / Poisson / Spike / Diurnal / Bursty traffic           |
+| Network Edge        | Latency distributions, congestion, packet loss                  |
+| Failure Injector    | Crash / latency spike / error rate faults at configurable times |
+| Failure Propagation | Cascade walk through the dependency graph                       |
+| Circuit Breaker     | CLOSED / OPEN / HALF_OPEN state machine                         |
+| Metrics Collector   | Latency percentiles, throughput, error rate, Little's Law check |
+| Request Tracer      | Per-request waterfall data                                      |
+| Web Worker          | Runs engine off the main thread; streams snapshots to UI        |
 
 ---
 
@@ -308,20 +311,20 @@ npm run build:linux
 
 ## Implementation Status
 
-| Area | Status |
-|---|---|
-| React Flow canvas (nodes + edges) | Done |
-| Drag-and-drop node palette | Done |
-| Node types (Compute, Service, VPC) | Done |
-| Atomic design system (atoms → organisms) | Done |
-| Zustand topology store | Done |
-| File save / load via Electron IPC | Done |
-| Simulation engine (DES loop) | Planned |
-| Inspector panel | Planned |
-| Scenario bar (workload + faults + controls) | Planned |
-| Web Worker + live canvas coloring | Planned |
+| Area                                           | Status  |
+| ---------------------------------------------- | ------- |
+| React Flow canvas (nodes + edges)              | Done    |
+| Drag-and-drop node palette                     | Done    |
+| Node types (Compute, Service, VPC)             | Done    |
+| Atomic design system (atoms → organisms)       | Done    |
+| Zustand topology store                         | Done    |
+| File save / load via Electron IPC              | Done    |
+| Simulation engine (DES loop)                   | Planned |
+| Inspector panel                                | Planned |
+| Scenario bar (workload + faults + controls)    | Planned |
+| Web Worker + live canvas coloring              | Planned |
 | Results tray (summary, traces, failures, cost) | Planned |
-| CLI (`simulator run / validate / compare`) | Planned |
+| CLI (`simulator run / validate / compare`)     | Planned |
 
 See `ns-simulator-docs/planning/TICKETS.md` for the full 46-ticket breakdown.
 

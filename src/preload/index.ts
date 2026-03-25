@@ -29,6 +29,24 @@ const api = {
       throw error
     }),
 
+  confirmDiscard: () =>
+    ipcRenderer.invoke('dialog:confirm-discard').catch((error) => {
+      console.error('Error in confirmDiscard:', error)
+      throw error
+    }),
+
+  onCloseRequest: (callback: () => boolean) => {
+    const handler = () => {
+      const isUnsaved = callback()
+      // Send the actual value of isUnsaved back to Main
+      ipcRenderer.send('window-close-response', isUnsaved)
+    }
+    ipcRenderer.on('window-close-attempt', handler)
+    return () => {
+      ipcRenderer.removeListener('window-close-attempt', handler)
+    }
+  },
+
   runSimulation: (config: any) => ipcRenderer.send('nssimulator:run-simulation', config)
 }
 
