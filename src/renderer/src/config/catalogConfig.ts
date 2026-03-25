@@ -42,7 +42,9 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
       fromRegistry('ingress-controller')!,
       fromRegistry('reverse-proxy')!,
       fromRegistry('nat-gateway')!,
-      fromRegistry('vpn-gateway')!
+      fromRegistry('vpn-gateway')!,
+      fromRegistry('routing-rule')!,
+      fromRegistry('routing-policy')!
     ]
   },
   {

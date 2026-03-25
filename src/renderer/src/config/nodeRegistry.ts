@@ -167,6 +167,24 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     lookupKey: 'vpn',
     defaultData: { iconKey: 'vpn', status: 'degraded', throughput: 500, load: 10 }
   },
+  'routing-rule': {
+    id: 'routing-rule',
+    type: 'serviceNode',
+    label: 'Routing Rule',
+    subLabel: 'Path / Header Matching',
+    icon: GitBranch,
+    lookupKey: 'routing',
+    defaultData: { iconKey: 'routing-rule', status: 'healthy', throughput: 20000, load: 5 }
+  },
+  'routing-policy': {
+    id: 'routing-policy',
+    type: 'serviceNode',
+    label: 'Routing Policy',
+    subLabel: 'Traffic Distribution',
+    icon: Waypoints,
+    lookupKey: 'routing',
+    defaultData: { iconKey: 'routing-policy', status: 'healthy', throughput: 20000, load: 5 }
+  },
 
   //Security Nodes
   waf: {

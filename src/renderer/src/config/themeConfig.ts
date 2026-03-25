@@ -17,6 +17,7 @@ export const THEME_CONFIG: Record<string, { bg: string; border: string; text: st
   server: { bg: 'bg-orange-500', border: 'border-orange-600', text: 'text-orange-600' }, // Redis/Cache
   network: { bg: 'bg-indigo-500', border: 'border-indigo-600', text: 'text-indigo-600' },
   globe: { bg: 'bg-purple-500', border: 'border-purple-600', text: 'text-purple-600' }, // API Gateway
+  routing: { bg: 'bg-violet-500', border: 'border-violet-600', text: 'text-violet-600' },
 
   // Clients & Edge
   monitor: { bg: 'bg-sky-500', border: 'border-sky-600', text: 'text-sky-600' }, // Client/User

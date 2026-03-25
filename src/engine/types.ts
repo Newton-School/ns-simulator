@@ -40,6 +40,8 @@ export type NetworkType =
   | 'reverse-proxy'
   | 'high-perf-nic'
   | 'network-policy'
+  | 'routing-rule'
+  | 'routing-policy'
 export type StorageType =
   | 'relational-db'
   | 'nosql-db'
