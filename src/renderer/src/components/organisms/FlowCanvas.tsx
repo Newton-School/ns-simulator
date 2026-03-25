@@ -6,7 +6,8 @@ import ReactFlow, {
   ReactFlowInstance,
   ReactFlowProvider,
   Edge,
-  ConnectionLineType
+  ConnectionLineType,
+  MiniMap
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 
@@ -90,6 +91,7 @@ const FlowCanvasInternal = () => {
       >
         <Background variant={BackgroundVariant.Dots} gap={20} size={1} color={GRID_COLOR} />
         <Controls className="!bg-nss-surface !border-nss-border" />
+        <MiniMap className="!bg-nss-surface !border-nss-border" />
       </ReactFlow>
       {/* Empty State */}
       <EmptyFlowState isEmpty={isEmpty} />
