@@ -32,17 +32,19 @@ function createWindow(): void {
   const handleCloseResponse = async (_event, isUnsaved) => {
     // Check if the window still exists before talking to it
     if (mainWindow.isDestroyed()) return
-    
+
     const unsaved = Boolean(isUnsaved)
 
     if (unsaved) {
-      const confirm = await registerIpcHandlers.handleConfirmDiscardChanges(
-         { sender: mainWindow.webContents } as Parameters<
-           typeof registerIpcHandlers.handleConfirmDiscardChanges
-         >[0]
-       )
+      let confirm = false
+      try {
+        confirm = await registerIpcHandlers.handleConfirmDiscardChanges(mainWindow)
+      } catch (error) {
+        console.log(error)
+        confirm = false
+      }
 
-      if (confirm) {
+      if (confirm && !mainWindow.isDestroyed()) {
         isQuitting = true
         mainWindow.close()
       }
@@ -117,7 +119,13 @@ app.whenReady().then(() => {
   })
 
   ipcMain.handle('dialog:confirm-discard', async (event) => {
-    const result = await registerIpcHandlers.handleConfirmDiscardChanges(event)
+    const win = BrowserWindow.fromWebContents(event.sender)
+    if (!win) {
+      console.warn('No window found for confirm-discard dialog')
+      return false // treat as "Cancel"
+    }
+
+    const result = await registerIpcHandlers.handleConfirmDiscardChanges(win)
     return result
   })
 

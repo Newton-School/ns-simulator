@@ -53,12 +53,12 @@ async function handleOpenScenario(
   }
 }
 
-async function handleConfirmDiscardChanges(event: IpcMainInvokeEvent): Promise<boolean> {
-  const win = BrowserWindow.fromWebContents(event.sender)
-  if (!win) {
-    console.warn('No parent window found for confirmDiscard dialog')
-    return false // treat as "Cancel"
-  }
+async function handleConfirmDiscardChanges(win: BrowserWindow): Promise<boolean> {
+  // const win = BrowserWindow.fromWebContents(event.sender)
+  // if (!win) {
+  //   console.warn('No parent window found for confirmDiscard dialog')
+  //   return false // treat as "Cancel"
+  // }
 
   const result = await dialog.showMessageBox(win, {
     type: 'warning',

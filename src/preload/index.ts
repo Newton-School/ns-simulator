@@ -36,15 +36,15 @@ const api = {
     }),
 
   onCloseRequest: (callback: () => boolean) => {
-     const handler = () => {
+    const handler = () => {
       const isUnsaved = callback()
       // Send the actual value of isUnsaved back to Main
       ipcRenderer.send('window-close-response', isUnsaved)
     }
     ipcRenderer.on('window-close-attempt', handler)
     return () => {
-       ipcRenderer.removeListener('window-close-attempt', handler)
-     }
+      ipcRenderer.removeListener('window-close-attempt', handler)
+    }
   },
 
   runSimulation: (config: any) => ipcRenderer.send('nssimulator:run-simulation', config)
