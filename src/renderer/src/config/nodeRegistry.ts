@@ -26,7 +26,8 @@ import {
   LockKeyhole,
   Waypoints,
   ArrowRightLeft,
-  LayoutGrid
+  LayoutGrid,
+  ShieldCheck
 } from 'lucide-react'
 import { getTheme } from './themeConfig'
 
@@ -186,6 +187,15 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     icon: ShieldAlert,
     lookupKey: 'firewall',
     defaultData: { iconKey: 'firewall', status: 'healthy', droppedPackets: 0 }
+  },
+  'security-group': {
+    id: 'security-group',
+    type: 'securityNode',
+    label: 'Security Group',
+    subLabel: 'Network Boundary',
+    icon: ShieldCheck,
+    lookupKey: 'securityGroup',
+    defaultData: { iconKey: 'securityGroup', status: 'healthy', throughput: 1000, load: 5 }
   },
 
   // Infrastructure

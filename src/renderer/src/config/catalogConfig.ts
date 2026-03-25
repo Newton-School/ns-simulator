@@ -48,7 +48,7 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
   {
     id: 'security',
     title: 'Security',
-    items: [fromRegistry('waf')!, fromRegistry('firewall-rule')!]
+    items: [fromRegistry('waf')!, fromRegistry('firewall-rule')!, fromRegistry('security-group')!]
   },
   {
     id: 'compute',
