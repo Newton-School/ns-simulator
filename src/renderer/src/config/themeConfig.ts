@@ -14,7 +14,6 @@ export const THEME_CONFIG: Record<string, { bg: string; border: string; text: st
   serverCog: { bg: 'bg-slate-500', border: 'border-slate-600', text: 'text-slate-600' },
   bookOpen: { bg: 'bg-fuchsia-500', border: 'border-fuchsia-600', text: 'text-fuchsia-600' },
 
-
   // Service Nodes (existing)
   database: { bg: 'bg-emerald-500', border: 'border-emerald-600', text: 'text-emerald-600' },
   server: { bg: 'bg-orange-500', border: 'border-orange-600', text: 'text-orange-600' }, // Redis/Cache

@@ -237,7 +237,6 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     defaultData: { iconKey: 'bookOpen', status: 'healthy', throughput: 3000, load: 15 }
   },
 
-
   // Clients & Edge
   'client-user': {
     id: 'client-user',
