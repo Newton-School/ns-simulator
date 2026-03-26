@@ -26,7 +26,13 @@ import {
   LockKeyhole,
   Waypoints,
   ArrowRightLeft,
-  LayoutGrid
+  LayoutGrid,
+  Activity,
+  FileText,
+  Library,
+  Radar,
+  BellRing,
+  HeartPulse
 } from 'lucide-react'
 import { getTheme } from './themeConfig'
 
@@ -322,6 +328,62 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     icon: ExternalLink,
     lookupKey: 'external',
     defaultData: { iconKey: 'external', status: 'healthy', throughput: 500, load: 5 }
+  },
+
+  // Observability
+  'metrics-collector-agent': {
+    id: 'metrics-collector-agent',
+    type: 'serviceNode',
+    label: 'Metrics Collector',
+    subLabel: 'Agent / Telegraf',
+    icon: Activity,
+    lookupKey: 'metricsCollector',
+    defaultData: { iconKey: 'metricsCollector', status: 'healthy', throughput: 1000, load: 5 }
+  },
+  'log-collector-agent': {
+    id: 'log-collector-agent',
+    type: 'serviceNode',
+    label: 'Log Collector',
+    subLabel: 'Fluentd / Promtail',
+    icon: FileText,
+    lookupKey: 'logCollector',
+    defaultData: { iconKey: 'logCollector', status: 'healthy', throughput: 5000, load: 10 }
+  },
+  'log-aggregation-service': {
+    id: 'log-aggregation-service',
+    type: 'serviceNode',
+    label: 'Centralized Logging',
+    subLabel: 'Elasticsearch / Loki',
+    icon: Library,
+    lookupKey: 'logAggregator',
+    defaultData: { iconKey: 'logAggregator', status: 'healthy', throughput: 15000, load: 20 }
+  },
+  'distributed-tracing-collector': {
+    id: 'distributed-tracing-collector',
+    type: 'serviceNode',
+    label: 'Distributed Tracing',
+    subLabel: 'Jaeger / Tempo',
+    icon: Radar,
+    lookupKey: 'tracing',
+    defaultData: { iconKey: 'tracing', status: 'healthy', throughput: 10000, load: 15 }
+  },
+  'alerting-engine': {
+    id: 'alerting-engine',
+    type: 'serviceNode',
+    label: 'Alerting Hook',
+    subLabel: 'Alertmanager / PagerDuty',
+    icon: BellRing,
+    lookupKey: 'alerting',
+    defaultData: { iconKey: 'alerting', status: 'healthy', throughput: 500, load: 5 }
+  },
+  'health-check-monitor': {
+    id: 'health-check-monitor',
+    type: 'serviceNode',
+    label: 'Health Check Manager',
+    subLabel: 'Synthetic Monitoring',
+    icon: HeartPulse,
+    lookupKey: 'healthCheck',
+    defaultData: { iconKey: 'healthCheck', status: 'healthy', throughput: 100, load: 5 }
   }
 }
 

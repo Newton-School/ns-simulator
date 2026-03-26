@@ -20,7 +20,13 @@ import {
   Router,
   LockKeyhole,
   Waypoints,
-  ArrowRightLeft
+  ArrowRightLeft,
+  Activity,
+  FileText,
+  Library,
+  Radar,
+  BellRing,
+  HeartPulse
 } from 'lucide-react'
 
 import UniversalHandle from '@renderer/components/atoms/UniversalHandle'
@@ -57,7 +63,14 @@ const ICON_LOOKUP: Record<string, LucideIcon> = {
   storage: HardDrive,
   search: Search,
   // External
-  external: ExternalLink
+  external: ExternalLink,
+  // Observability
+  metricsCollector: Activity,
+  logCollector: FileText,
+  logAggregator: Library,
+  tracing: Radar,
+  alerting: BellRing,
+  healthCheck: HeartPulse
 }
 
 const ServiceNode = ({ id, data, selected }: NodeProps<ServiceNodeData>) => {

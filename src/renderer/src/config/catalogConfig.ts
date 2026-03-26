@@ -83,5 +83,17 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
     id: 'external',
     title: 'External',
     items: [fromRegistry('external-service')!]
+  },
+  {
+    id: 'observability',
+    title: 'Observability',
+    items: [
+      fromRegistry('metrics-collector-agent')!,
+      fromRegistry('log-collector-agent')!,
+      fromRegistry('log-aggregation-service')!,
+      fromRegistry('distributed-tracing-collector')!,
+      fromRegistry('alerting-engine')!,
+      fromRegistry('health-check-monitor')!
+    ]
   }
 ]
