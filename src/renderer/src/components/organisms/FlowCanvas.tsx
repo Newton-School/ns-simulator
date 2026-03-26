@@ -88,6 +88,7 @@ const FlowCanvasInternal = () => {
         onNodeDragStop={onNodeDragStop}
         onEdgeClick={onEdgeClick}
         onPaneClick={onPaneClick}
+        fitView
       >
         <Background variant={BackgroundVariant.Dots} gap={20} size={1} color={GRID_COLOR} />
         <Controls className="!bg-nss-surface !border-nss-border" />

@@ -79,6 +79,17 @@
 }
 
 /* Reactflow overrides */
+.react-flow__minimap-node {
+  fill: #c6c9ce !important;
+  stroke: var(--nss-border) !important;
+  stroke-width: 1px !important;
+}
+
+[data-theme='dark'] .react-flow__minimap-node {
+  fill: #3c3e41 !important;
+  stroke: var(--nss-border) !important;
+  stroke-width: 1px !important;
+}
 
 .react-flow {
   --xy-minimap-background-color: var(--nss-panel);
