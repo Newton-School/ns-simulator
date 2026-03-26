@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import ReactFlow, {
   Background,
   Controls,
@@ -44,6 +44,27 @@ const FlowCanvasInternal = () => {
   })
 
   const isEmpty = nodes.length === 0
+  const prevNodeCount = useRef(nodes.length)
+
+  useEffect(() => {
+    const isInitialLoad = prevNodeCount.current === 0 && nodes.length > 0
+    
+    const isBulkLoad = Math.abs(nodes.length - prevNodeCount.current) > 1
+
+    if (reactFlowInstance && (isInitialLoad || isBulkLoad)) {
+      // Wait one frame to ensure React Flow has calculated the actual pixel dimensions of the new nodes
+      window.requestAnimationFrame(() => {
+        reactFlowInstance.fitView({
+          padding: 0.2,
+          maxZoom: 1.2,
+          duration: 800
+        })
+      })
+    }
+
+    prevNodeCount.current = nodes.length
+  }, [nodes.length, reactFlowInstance])
+
   const onEdgeClick = useCallback((event: React.MouseEvent, edge: Edge) => {
     event.stopPropagation()
     setSelectedEdge(edge)

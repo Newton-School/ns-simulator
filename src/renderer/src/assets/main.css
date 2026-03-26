@@ -134,8 +134,8 @@
 
 .react-flow__controls-button:hover {
   background-color: var(--nss-surface) !important;
-  color: var(--nss-primary) !important;
-  fill: var(--nss-primary) !important;
+  color: rgb(var(--nss-primary)) !important;
+  fill: rgb(var(--nss-primary)) !important;
 }
 
 .custom-source-handle {
