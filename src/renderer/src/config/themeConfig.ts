@@ -67,7 +67,7 @@ export const THEME_CONFIG: Record<string, { bg: string; border: string; text: st
     border: 'border-slate-500',
     text: 'text-slate-600'
   },
-  
+
   // Observability
   metricsCollector: { bg: 'bg-pink-500', border: 'border-pink-600', text: 'text-pink-600' },
   logCollector: { bg: 'bg-amber-400', border: 'border-amber-500', text: 'text-amber-500' },
