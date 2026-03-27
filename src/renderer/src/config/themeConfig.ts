@@ -69,12 +69,12 @@ export const THEME_CONFIG: Record<string, { bg: string; border: string; text: st
   },
 
   // Observability
-  metricsCollector: { bg: 'bg-pink-500', border: 'border-pink-600', text: 'text-pink-600' },
-  logCollector: { bg: 'bg-amber-400', border: 'border-amber-500', text: 'text-amber-500' },
-  logAggregator: { bg: 'bg-amber-600', border: 'border-amber-700', text: 'text-amber-700' },
+  'metrics-collector': { bg: 'bg-pink-500', border: 'border-pink-600', text: 'text-pink-600' },
+  'log-collector': { bg: 'bg-amber-400', border: 'border-amber-500', text: 'text-amber-500' },
+  'log-aggregator': { bg: 'bg-amber-600', border: 'border-amber-700', text: 'text-amber-700' },
   tracing: { bg: 'bg-indigo-400', border: 'border-indigo-500', text: 'text-indigo-500' },
   alerting: { bg: 'bg-red-500', border: 'border-red-600', text: 'text-red-600' },
-  healthCheck: { bg: 'bg-emerald-400', border: 'border-emerald-500', text: 'text-emerald-500' },
+  'health-check': { bg: 'bg-emerald-400', border: 'border-emerald-500', text: 'text-emerald-500' },
 
   // Fallbacks
   default: { bg: 'bg-slate-500', border: 'border-slate-600', text: 'text-slate-600' }

@@ -337,8 +337,8 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     label: 'Metrics Collector',
     subLabel: 'Agent / Telegraf',
     icon: Activity,
-    lookupKey: 'metricsCollector',
-    defaultData: { iconKey: 'metricsCollector', status: 'healthy', throughput: 1000, load: 5 }
+    lookupKey: 'metrics-collector',
+    defaultData: { iconKey: 'metrics-collector', status: 'healthy', throughput: 1000, load: 5 }
   },
   'log-collector-agent': {
     id: 'log-collector-agent',
@@ -346,8 +346,8 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     label: 'Log Collector',
     subLabel: 'Fluentd / Promtail',
     icon: FileText,
-    lookupKey: 'logCollector',
-    defaultData: { iconKey: 'logCollector', status: 'healthy', throughput: 5000, load: 10 }
+    lookupKey: 'log-collector',
+    defaultData: { iconKey: 'log-collector', status: 'healthy', throughput: 5000, load: 10 }
   },
   'log-aggregation-service': {
     id: 'log-aggregation-service',
@@ -355,8 +355,8 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     label: 'Centralized Logging',
     subLabel: 'Elasticsearch / Loki',
     icon: Library,
-    lookupKey: 'logAggregator',
-    defaultData: { iconKey: 'logAggregator', status: 'healthy', throughput: 15000, load: 20 }
+    lookupKey: 'log-aggregator',
+    defaultData: { iconKey: 'log-aggregator', status: 'healthy', throughput: 15000, load: 20 }
   },
   'distributed-tracing-collector': {
     id: 'distributed-tracing-collector',
@@ -382,8 +382,8 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     label: 'Health Check Manager',
     subLabel: 'Synthetic Monitoring',
     icon: HeartPulse,
-    lookupKey: 'healthCheck',
-    defaultData: { iconKey: 'healthCheck', status: 'healthy', throughput: 100, load: 5 }
+    lookupKey: 'health-check',
+    defaultData: { iconKey: 'health-check', status: 'healthy', throughput: 100, load: 5 }
   }
 }
 

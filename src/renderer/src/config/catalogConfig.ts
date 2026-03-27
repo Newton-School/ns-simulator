@@ -18,82 +18,82 @@ const fromRegistry = (id: string) => {
   }
 }
 
+const getItems = (ids: string[]) => {
+  return ids.map(fromRegistry).filter((item): item is NonNullable<typeof item> => item !== null)
+}
+
 export const CATALOG_CONFIG: CatalogCategory[] = [
   {
     id: 'infrastructure',
     title: 'Infrastructure',
-    items: [
-      fromRegistry('vpc-region')!,
-      fromRegistry('availability-zone')!,
-      fromRegistry('subnet')!
-    ]
+    items: getItems(['vpc-region', 'availability-zone', 'subnet'])
   },
   {
     id: 'clients-edge',
     title: 'Clients & Edge',
-    items: [fromRegistry('client-user')!, fromRegistry('dns')!, fromRegistry('cdn')!]
+    items: getItems(['client-user', 'dns', 'cdn'])
   },
   {
     id: 'network',
     title: 'Network',
-    items: [
-      fromRegistry('api-gateway')!,
-      fromRegistry('load-balancer')!,
-      fromRegistry('ingress-controller')!,
-      fromRegistry('reverse-proxy')!,
-      fromRegistry('nat-gateway')!,
-      fromRegistry('vpn-gateway')!
-    ]
+    items: getItems([
+      'api-gateway',
+      'load-balancer',
+      'ingress-controller',
+      'reverse-proxy',
+      'nat-gateway',
+      'vpn-gateway'
+    ])
   },
   {
     id: 'security',
     title: 'Security',
-    items: [fromRegistry('waf')!, fromRegistry('firewall-rule')!]
+    items: getItems(['waf', 'firewall-rule'])
   },
   {
     id: 'compute',
     title: 'Compute Abstractions',
-    items: [
-      fromRegistry('backend-server')!,
-      fromRegistry('lambda-function')!,
-      fromRegistry('async-worker')!,
-      fromRegistry('cron-job')!,
-      fromRegistry('auth-service')!,
-      fromRegistry('search-service')!
-    ]
+    items: getItems([
+      'backend-server',
+      'lambda-function',
+      'async-worker',
+      'cron-job',
+      'auth-service',
+      'search-service'
+    ])
   },
   {
     id: 'messaging',
     title: 'Messaging',
-    items: [fromRegistry('message-queue')!, fromRegistry('message-broker')!]
+    items: getItems(['message-queue', 'message-broker'])
   },
   {
     id: 'datastore',
     title: 'Data Store',
-    items: [
-      fromRegistry('primary-db')!,
-      fromRegistry('read-replica')!,
-      fromRegistry('redis-cache')!,
-      fromRegistry('nosql-db')!,
-      fromRegistry('object-storage')!,
-      fromRegistry('search-index')!
-    ]
+    items: getItems([
+      'primary-db',
+      'read-replica',
+      'redis-cache',
+      'nosql-db',
+      'object-storage',
+      'search-index'
+    ])
   },
   {
     id: 'external',
     title: 'External',
-    items: [fromRegistry('external-service')!]
+    items: getItems(['external-service'])
   },
   {
     id: 'observability',
     title: 'Observability',
-    items: [
-      fromRegistry('metrics-collector-agent')!,
-      fromRegistry('log-collector-agent')!,
-      fromRegistry('log-aggregation-service')!,
-      fromRegistry('distributed-tracing-collector')!,
-      fromRegistry('alerting-engine')!,
-      fromRegistry('health-check-monitor')!
-    ]
+    items: getItems([
+      'metrics-collector-agent',
+      'log-collector-agent',
+      'log-aggregation-service',
+      'distributed-tracing-collector',
+      'alerting-engine',
+      'health-check-monitor'
+    ])
   }
 ]

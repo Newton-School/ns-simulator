@@ -65,12 +65,12 @@ const ICON_LOOKUP: Record<string, LucideIcon> = {
   // External
   external: ExternalLink,
   // Observability
-  metricsCollector: Activity,
-  logCollector: FileText,
-  logAggregator: Library,
+  'metrics-collector': Activity,
+  'log-collector': FileText,
+  'log-aggregator': Library,
   tracing: Radar,
   alerting: BellRing,
-  healthCheck: HeartPulse
+  'health-check': HeartPulse
 }
 
 const ServiceNode = ({ id, data, selected }: NodeProps<ServiceNodeData>) => {
