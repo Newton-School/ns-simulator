@@ -198,11 +198,34 @@ export class Distributions {
 
   fromConfig(config: DistributionConfig): number {
     if (config.type === 'mixture') {
-      const distributions = config.components.map(
-        (component) => () => this.fromBaseConfig(component.distribution)
-      )
-      const weights = config.components.map((component) => component.weight)
-      return this.mixture(distributions, weights)
+      const components = config.components
+      if (components.length === 0) {
+        throw new Error(`fromConfig(config): mixture components must not be empty`)
+      }
+
+      let totalWeight = 0
+      for (let i = 0; i < components.length; i++) {
+        const weight = components[i].weight
+        if (!Number.isFinite(weight) || weight < 0) {
+          throw new Error(
+            `fromConfig(config): every mixture weight must be finite and >= 0`
+          )
+        }
+        totalWeight += weight
+      }
+
+      if (!(totalWeight > 0)) {
+        throw new Error(`fromConfig(config): mixture total weight must be > 0`)
+      }
+
+      const threshold = this.rng.next() * totalWeight
+      let cumulative = 0
+      for (let i = 0; i < components.length; i++) {
+        cumulative += components[i].weight
+        if (threshold < cumulative || i === components.length - 1) {
+          return this.fromBaseConfig(components[i].distribution)
+        }
+      }
     }
 
     return this.fromBaseConfig(config)
@@ -284,7 +307,10 @@ export class Distributions {
   }
 
   private nextOpen01(): number {
-    const u = this.rng.next()
-    return u <= 0 ? Number.MIN_VALUE : u
+    let u = this.rng.next()
+    while (u <= 0 || u >= 1) {
+      u = this.rng.next()
+    }
+    return u
   }
 }
