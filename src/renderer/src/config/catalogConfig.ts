@@ -13,7 +13,7 @@ const fromRegistry = (id: string) => {
     label: def.label,
     subLabel: def.subLabel,
     icon: def.icon,
-    color: theme.bg,
+    color: theme,
     data: def.defaultData
   }
 }

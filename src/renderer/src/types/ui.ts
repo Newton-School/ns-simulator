@@ -54,7 +54,11 @@ export interface CatalogItem {
   label: string
   subLabel: string
   icon: LucideIcon // Better type than 'any'
-  color: string
+  color: {
+    bg: string
+    border: string
+    text: string
+  }
 
   data: AnyNodeData
 }
