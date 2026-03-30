@@ -46,6 +46,9 @@ const ICON_LOOKUP: Record<string, LucideIcon> = {
   vpn: LockKeyhole,
   ingress: Waypoints,
   proxy: ArrowRightLeft,
+  //Routing
+  'routing-rule': GitBranch,
+  'routing-policy': Waypoints,
   // Clients & Edge
   monitor: Monitor,
   dns: Navigation,

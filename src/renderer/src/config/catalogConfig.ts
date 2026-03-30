@@ -42,7 +42,9 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
       fromRegistry('ingress-controller')!,
       fromRegistry('reverse-proxy')!,
       fromRegistry('nat-gateway')!,
-      fromRegistry('vpn-gateway')!
+      fromRegistry('vpn-gateway')!,
+      fromRegistry('routing-rule')!,
+      fromRegistry('routing-policy')!
     ]
   },
   {
@@ -88,5 +90,14 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
     id: 'external',
     title: 'External',
     items: [fromRegistry('external-service')!]
+  },
+  {
+    id: 'control-plane',
+    title: 'Control Plane',
+    items: [
+      fromRegistry('config-store')!,
+      fromRegistry('secrets-manager')!,
+      fromRegistry('feature-flag-service')!
+    ]
   }
 ]

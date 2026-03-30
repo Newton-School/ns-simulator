@@ -169,6 +169,24 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     lookupKey: 'vpn',
     defaultData: { iconKey: 'vpn', status: 'degraded', throughput: 500, load: 10 }
   },
+  'routing-rule': {
+    id: 'routing-rule',
+    type: 'serviceNode',
+    label: 'Routing Rule',
+    subLabel: 'Path / Header Matching',
+    icon: GitBranch,
+    lookupKey: 'routing',
+    defaultData: { iconKey: 'routing-rule', status: 'healthy', throughput: 20000, load: 5 }
+  },
+  'routing-policy': {
+    id: 'routing-policy',
+    type: 'serviceNode',
+    label: 'Routing Policy',
+    subLabel: 'Traffic Distribution',
+    icon: Waypoints,
+    lookupKey: 'routing',
+    defaultData: { iconKey: 'routing-policy', status: 'healthy', throughput: 20000, load: 5 }
+  },
 
   //Security Nodes
   waf: {
@@ -344,6 +362,35 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     icon: ExternalLink,
     lookupKey: 'external',
     defaultData: { iconKey: 'external', status: 'healthy', throughput: 500, load: 5 }
+  },
+
+  // Control Plane
+  'config-store': {
+    id: 'config-store',
+    type: 'serviceNode',
+    label: 'Config Store',
+    subLabel: 'Configuration',
+    icon: Sliders,
+    lookupKey: 'config',
+    defaultData: { iconKey: 'config', status: 'healthy', throughput: 1000, load: 10 }
+  },
+  'secrets-manager': {
+    id: 'secrets-manager',
+    type: 'serviceNode',
+    label: 'Secrets Manager',
+    subLabel: 'Secrets & Keys',
+    icon: Key,
+    lookupKey: 'secrets',
+    defaultData: { iconKey: 'secrets', status: 'healthy', throughput: 500, load: 5 }
+  },
+  'feature-flag-service': {
+    id: 'feature-flag-service',
+    type: 'serviceNode',
+    label: 'Feature Flag Service',
+    subLabel: 'Feature Flags',
+    icon: ToggleLeft,
+    lookupKey: 'flags',
+    defaultData: { iconKey: 'flags', status: 'healthy', throughput: 2000, load: 15 }
   }
 }
 
