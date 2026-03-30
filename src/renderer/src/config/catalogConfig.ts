@@ -85,5 +85,14 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
     id: 'external',
     title: 'External',
     items: [fromRegistry('external-service')!]
+  },
+  {
+    id: 'control-plane',
+    title: 'Control Plane',
+    items: [
+      fromRegistry('config-store')!,
+      fromRegistry('secrets-manager')!,
+      fromRegistry('feature-flag-service')!
+    ]
   }
 ]
