@@ -15,7 +15,7 @@ const POSITIONS = [Position.Left, Position.Top, Position.Right, Position.Bottom]
 const ICON_LOOKUP: Record<string, LucideIcon> = {
   waf: Shield,
   firewall: ShieldAlert,
-  securityGroup: ShieldCheck,
+  'security-group': ShieldCheck,
   default: Lock
 }
 

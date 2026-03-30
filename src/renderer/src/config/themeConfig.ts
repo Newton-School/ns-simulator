@@ -46,7 +46,7 @@ export const THEME_CONFIG: Record<string, { bg: string; border: string; text: st
     border: 'border-orange-500',
     text: 'text-orange-600'
   },
-  securityGroup: {
+  'security-group': {
     bg: 'bg-emerald-500',
     border: 'border-emerald-600',
     text: 'text-emerald-600'

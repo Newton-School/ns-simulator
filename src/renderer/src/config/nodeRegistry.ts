@@ -194,8 +194,8 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     label: 'Security Group',
     subLabel: 'Network Boundary',
     icon: ShieldCheck,
-    lookupKey: 'securityGroup',
-    defaultData: { iconKey: 'securityGroup', status: 'healthy', droppedPackets: 0, blockRate: 0 }
+    lookupKey: 'security-group',
+    defaultData: { iconKey: 'security-group', status: 'healthy', droppedPackets: 0, blockRate: 0 }
   },
 
   // Infrastructure
