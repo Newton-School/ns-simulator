@@ -1,4 +1,4 @@
-import { ColorTheme } from "@renderer/types/ui"
+import { ColorTheme } from '@renderer/types/ui'
 
 export const THEME_CONFIG: Record<string, ColorTheme> = {
   // Compute

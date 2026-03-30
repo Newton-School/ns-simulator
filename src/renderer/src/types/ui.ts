@@ -49,9 +49,9 @@ export type NodeType = 'serviceNode' | 'computeNode' | 'databaseNode' | 'vpcNode
 export type AnyNodeData = ServiceNodeData | ComputeNodeData | VpcNodeData | SecurityNodeData
 
 export interface ColorTheme {
-    bg: string
-    border: string
-    text: string
+  bg: string
+  border: string
+  text: string
 }
 
 export interface CatalogItem {

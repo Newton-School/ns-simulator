@@ -7,7 +7,7 @@ const fromRegistry = (id: string) => {
   if (!def) {
     console.warn(`Node registry missing definition for node id: ${id}`)
     return null // Handle error gracefully
-    }
+  }
   const theme = getTheme(def.lookupKey)
 
   return {
