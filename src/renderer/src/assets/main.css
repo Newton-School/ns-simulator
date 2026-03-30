@@ -5,103 +5,124 @@
 @layer base {
   :root {
     /* --- LIGHT THEME --- */
-    --nss-bg: #F8FAFC;
-    --nss-panel: #FFFFFF;
-    --nss-surface: #F1F5F9;
-    --nss-input-bg: #FFFFFF;
-    
-    --nss-border: #E2E8F0;
-    --nss-border-high: #CBD5E1;
-    --nss-text: #0F172A;
-    --nss-muted: #64748B;
-    --nss-placeholder: #94A3B8;
+    --nss-bg: #f8fafc;
+    --nss-panel: #ffffff;
+    --nss-surface: #f1f5f9;
+    --nss-input-bg: #ffffff;
+
+    --nss-border: #e2e8f0;
+    --nss-border-high: #cbd5e1;
+    --nss-text: #0f172a;
+    --nss-muted: #64748b;
+    --nss-placeholder: #94a3b8;
 
     /* VPC Specific (Light Mode) - Darker gray for visibility against white */
-    --nss-vpc-border: #94A3B8;     /* Slate-400 (Visible dashed line) */
-    --nss-vpc-bg: 241 245 249;     /* Slate-100 (RGB for opacity) */
+    --nss-vpc-border: #94a3b8; /* Slate-400 (Visible dashed line) */
+    --nss-vpc-bg: 241 245 249; /* Slate-100 (RGB for opacity) */
 
     /* RGB Values for Opacity Support (Light) */
-    --nss-primary: 37 99 235;        /* Blue-600 */
+    --nss-primary: 37 99 235; /* Blue-600 */
     --nss-primary-hover: 29 78 216;
-    
-    --nss-success: 16 185 129;       /* Emerald-500 */
-    --nss-warning: 245 158 11;       /* Amber-500 */
-    --nss-danger: 239 68 68;         /* Red-500 */
-    --nss-info: 79 70 229;           /* Indigo-600 */
+
+    --nss-success: 16 185 129; /* Emerald-500 */
+    --nss-warning: 245 158 11; /* Amber-500 */
+    --nss-danger: 239 68 68; /* Red-500 */
+    --nss-info: 79 70 229; /* Indigo-600 */
   }
 
   [data-theme='dark'] {
     /* --- DARK THEME --- */
     --nss-bg: #09090b;
-    --nss-panel: #15191E;
-    --nss-surface: #1F242C;
-    --nss-input-bg: #18181b; 
-    
-    --nss-border: #1f2937;         /* Gray-800 */
+    --nss-panel: #15191e;
+    --nss-surface: #1f242c;
+    --nss-input-bg: #18181b;
+
+    --nss-border: #1f2937; /* Gray-800 */
     --nss-border-high: #374151;
-    --nss-text: #E5E7EB;
-    --nss-muted: #6B7280;
-    --nss-placeholder: #4B5563;
+    --nss-text: #e5e7eb;
+    --nss-muted: #6b7280;
+    --nss-placeholder: #4b5563;
 
     /* VPC Specific (Dark Mode) - Lighter gray for visibility against dark bg */
-    --nss-vpc-border: #475569;     /* Slate-600 */
-    --nss-vpc-bg: 30 41 59;        /* Slate-800 (RGB) */
-    
+    --nss-vpc-border: #475569; /* Slate-600 */
+    --nss-vpc-bg: 30 41 59; /* Slate-800 (RGB) */
+
     /* RGB Values for Opacity Support (Dark) */
-    --nss-primary: 59 130 246;       /* Blue-500 */
+    --nss-primary: 59 130 246; /* Blue-500 */
     --nss-primary-hover: 37 99 235;
 
-    --nss-success: 52 211 153;       /* Emerald-400 */
-    --nss-warning: 251 191 36;       /* Amber-400 */
-    --nss-danger: 248 113 113;       /* Red-400 */
-    --nss-info: 129 140 248;         /* Indigo-400 */
+    --nss-success: 52 211 153; /* Emerald-400 */
+    --nss-warning: 251 191 36; /* Amber-400 */
+    --nss-danger: 248 113 113; /* Red-400 */
+    --nss-info: 129 140 248; /* Indigo-400 */
   }
-  
-   body {
+
+  body {
     @apply bg-nss-bg text-nss-text;
   }
 
-  *, ::before, ::after {
+  *,
+  ::before,
+  ::after {
     @apply transition-colors duration-200 ease-in-out;
   }
 
+  /* Custom scrollbar styling for dark/light theme consistency */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--nss-border-high);
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--nss-muted);
+  }
+  
 /* Source handles are on top so you can grab them to START a connection */
 .custom-source-handle {
     z-index: 10 !important;
     cursor: grab;
-}
+  }
 
-/* Target handles are hidden underneath */
-.custom-target-handle {
+  /* Target handles are hidden underneath */
+  .custom-target-handle {
     z-index: 1 !important;
     pointer-events: none; /* Ignore clicks so Source gets them */
-}
+  }
 
-/* When hovering a Source handle, pop it */
-.custom-source-handle:hover {
+  /* When hovering a Source handle, pop it */
+  .custom-source-handle:hover {
     opacity: 1 !important;
     transform: scale(1.5);
     background-color: #f59e0b !important;
-}
+  }
 
-/* Hide Source handles immediately - we are already dragging! */
-body.rel-flow-connecting .custom-source-handle {
+  /* Hide Source handles immediately - we are already dragging! */
+  body.rel-flow-connecting .custom-source-handle {
     opacity: 0 !important;
     pointer-events: none;
-}
+  }
 
-/* Reveal Target handles on ALL nodes to guide the user */
-body.rel-flow-connecting .custom-target-handle {
-    z-index: 20 !important; 
-    pointer-events: all;    
-    opacity: 0.4 !important; 
-}
+  /* Reveal Target handles on ALL nodes to guide the user */
+  body.rel-flow-connecting .custom-target-handle {
+    z-index: 20 !important;
+    pointer-events: all;
+    opacity: 0.4 !important;
+  }
 
-/* When the user hovers a Target to drop */
-body.rel-flow-connecting .custom-target-handle:hover {
+  /* When the user hovers a Target to drop */
+  body.rel-flow-connecting .custom-target-handle:hover {
     opacity: 1 !important;
-    transform: scale(1.7); 
+    transform: scale(1.7);
     background-color: #3b82f6 !important;
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
-}
+  }
 }
