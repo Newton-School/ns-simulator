@@ -73,7 +73,13 @@ const useStore = create<RFState>((set, get) => ({
       newId = `${newId}_${Math.floor(Math.random() * 10000)}`
     }
 
-    const safeNode = { ...node, id: newId }
+    const isVpcContainer = node.type === 'vpcNode'
+
+    const safeNode = {
+      ...node,
+      id: newId,
+      ...(isVpcContainer && { zIndex: -1 })
+    }
 
     set({ nodes: [...currentNodes, safeNode] })
   },
