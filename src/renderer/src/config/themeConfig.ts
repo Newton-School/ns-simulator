@@ -1,4 +1,6 @@
-export const THEME_CONFIG: Record<string, { bg: string; border: string; text: string }> = {
+import { ColorTheme } from "@renderer/types/ui"
+
+export const THEME_CONFIG: Record<string, ColorTheme> = {
   // Compute
   SERVER: { bg: 'bg-indigo-500', border: 'border-indigo-600', text: 'text-indigo-600' },
   LAMBDA: { bg: 'bg-yellow-500', border: 'border-yellow-600', text: 'text-yellow-600' },

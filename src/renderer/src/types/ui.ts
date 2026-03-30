@@ -48,18 +48,19 @@ export type NodeType = 'serviceNode' | 'computeNode' | 'databaseNode' | 'vpcNode
 
 export type AnyNodeData = ServiceNodeData | ComputeNodeData | VpcNodeData | SecurityNodeData
 
+export interface ColorTheme {
+    bg: string
+    border: string
+    text: string
+}
+
 export interface CatalogItem {
   id: string
   type: NodeType
   label: string
   subLabel: string
   icon: LucideIcon // Better type than 'any'
-  color: {
-    bg: string
-    border: string
-    text: string
-  }
-
+  color: ColorTheme
   data: AnyNodeData
 }
 

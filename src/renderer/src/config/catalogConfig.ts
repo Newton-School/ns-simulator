@@ -4,7 +4,10 @@ import { getTheme } from '@renderer/config/themeConfig'
 
 const fromRegistry = (id: string) => {
   const def = NODE_REGISTRY[id]
-  if (!def) return null // Handle error gracefully
+  if (!def) {
+    console.warn(`Node registry missing definition for node id: ${id}`)
+    return null // Handle error gracefully
+    }
   const theme = getTheme(def.lookupKey)
 
   return {
