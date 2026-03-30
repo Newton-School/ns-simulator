@@ -46,8 +46,8 @@ const ICON_LOOKUP: Record<string, LucideIcon> = {
   vpn: LockKeyhole,
   ingress: Waypoints,
   proxy: ArrowRightLeft,
-  serverCog: ServerCog,
-  bookOpen: BookOpen,
+  'server-cog': ServerCog,
+  'book-open': BookOpen,
   // Clients & Edge
   monitor: Monitor,
   dns: Navigation,

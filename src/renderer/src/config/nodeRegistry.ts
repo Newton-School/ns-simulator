@@ -224,8 +224,8 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     label: 'DNS Server',
     subLabel: 'Internal DNS / Authoritative',
     icon: ServerCog,
-    lookupKey: 'serverCog',
-    defaultData: { iconKey: 'serverCog', status: 'healthy', throughput: 5000, load: 10 }
+    lookupKey: 'server-cog',
+    defaultData: { iconKey: 'server-cog', status: 'healthy', throughput: 5000, load: 10 }
   },
   'discovery-service': {
     id: 'discovery-service',
@@ -233,8 +233,8 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     label: 'Discovery Service',
     subLabel: 'Service Registry',
     icon: BookOpen,
-    lookupKey: 'bookOpen',
-    defaultData: { iconKey: 'bookOpen', status: 'healthy', throughput: 3000, load: 15 }
+    lookupKey: 'book-open',
+    defaultData: { iconKey: 'book-open', status: 'healthy', throughput: 3000, load: 15 }
   },
 
   // Clients & Edge
