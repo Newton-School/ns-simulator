@@ -27,9 +27,8 @@ import {
   Waypoints,
   ArrowRightLeft,
   LayoutGrid,
-  Sliders,
-  Key,
-  ToggleLeft
+  Bell,
+  LineChart
 } from 'lucide-react'
 import { getTheme } from './themeConfig'
 
@@ -332,6 +331,26 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     icon: Search,
     lookupKey: 'search',
     defaultData: { iconKey: 'search', status: 'healthy', throughput: 1500, load: 25 }
+  },
+
+  // App Support
+  'push-notification-service': {
+    id: 'push-notification-service',
+    type: 'serviceNode',
+    label: 'Notification Service',
+    subLabel: 'Push / Email / SMS',
+    icon: Bell,
+    lookupKey: 'notification',
+    defaultData: { iconKey: 'notification', status: 'healthy', throughput: 3000, load: 15 }
+  },
+  'streaming-analytics': {
+    id: 'streaming-analytics',
+    type: 'serviceNode',
+    label: 'Analytics Service',
+    subLabel: 'Streaming Analytics',
+    icon: LineChart,
+    lookupKey: 'analytics',
+    defaultData: { iconKey: 'analytics', status: 'healthy', throughput: 10000, load: 40 }
   },
 
   // External

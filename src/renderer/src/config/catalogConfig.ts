@@ -82,6 +82,11 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
     ]
   },
   {
+    id: 'app-support',
+    title: 'App Support',
+    items: [fromRegistry('push-notification-service')!, fromRegistry('streaming-analytics')!]
+  },
+  {
     id: 'external',
     title: 'External',
     items: [fromRegistry('external-service')!]

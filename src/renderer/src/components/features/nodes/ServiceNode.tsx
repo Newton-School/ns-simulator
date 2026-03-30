@@ -21,9 +21,8 @@ import {
   LockKeyhole,
   Waypoints,
   ArrowRightLeft,
-  Sliders,
-  Key,
-  ToggleLeft
+  Bell,
+  LineChart
 } from 'lucide-react'
 
 import UniversalHandle from '@renderer/components/atoms/UniversalHandle'
@@ -62,10 +61,9 @@ const ICON_LOOKUP: Record<string, LucideIcon> = {
   replica: GitBranch,
   storage: HardDrive,
   search: Search,
-  // Control Plane
-  config: Sliders,
-  secrets: Key,
-  flags: ToggleLeft,
+  // App Support
+  notification: Bell,
+  analytics: LineChart,
   // External
   external: ExternalLink
 }
