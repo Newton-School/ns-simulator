@@ -27,8 +27,7 @@ import {
   Waypoints,
   ArrowRightLeft,
   LayoutGrid,
-  Bell,
-  LineChart
+  Fingerprint
 } from 'lucide-react'
 import { getTheme } from './themeConfig'
 
@@ -85,8 +84,8 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     type: 'computeNode',
     label: 'Auth Service',
     subLabel: 'Authentication / Tokens',
-    icon: Shield,
-    lookupKey: 'auth',
+    icon: Fingerprint,
+    lookupKey: 'AUTH',
     defaultData: { computeType: 'AUTH', cpu_usage: 25, queue_depth: 5, is_overloaded: false }
   },
   'search-service': {
@@ -95,7 +94,7 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     label: 'Search Service',
     subLabel: 'Query Processing',
     icon: Search,
-    lookupKey: 'search-service',
+    lookupKey: 'SEARCH_SERVICE',
     defaultData: {
       computeType: 'SEARCH_SERVICE',
       cpu_usage: 55,
@@ -424,5 +423,13 @@ export const COMPUTE_DEFAULTS = {
     label: NODE_REGISTRY['async-worker'].label,
     subLabel: NODE_REGISTRY['async-worker'].subLabel
   },
-  CRON: { label: NODE_REGISTRY['cron-job'].label, subLabel: NODE_REGISTRY['cron-job'].subLabel }
+  CRON: { label: NODE_REGISTRY['cron-job'].label, subLabel: NODE_REGISTRY['cron-job'].subLabel },
+  AUTH: {
+    label: NODE_REGISTRY['auth-service'].label,
+    subLabel: NODE_REGISTRY['auth-service'].subLabel
+  },
+  SEARCH_SERVICE: {
+    label: NODE_REGISTRY['search-service'].label,
+    subLabel: NODE_REGISTRY['search-service'].subLabel
+  }
 }
