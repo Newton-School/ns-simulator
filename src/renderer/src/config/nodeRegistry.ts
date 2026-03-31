@@ -27,6 +27,7 @@ import {
   Waypoints,
   ArrowRightLeft,
   LayoutGrid,
+  ShieldCheck,
   Fingerprint,
   Bell,
   LineChart,
@@ -210,6 +211,15 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     icon: ShieldAlert,
     lookupKey: 'firewall',
     defaultData: { iconKey: 'firewall', status: 'healthy', droppedPackets: 0 }
+  },
+  'security-group': {
+    id: 'security-group',
+    type: 'securityNode',
+    label: 'Security Group',
+    subLabel: 'Network Boundary',
+    icon: ShieldCheck,
+    lookupKey: 'security-group',
+    defaultData: { iconKey: 'security-group', status: 'healthy', droppedPackets: 0, blockRate: 0 }
   },
 
   // Infrastructure
