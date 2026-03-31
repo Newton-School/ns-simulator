@@ -27,8 +27,13 @@ import {
   Waypoints,
   ArrowRightLeft,
   LayoutGrid,
-  ShieldCheck
-  Fingerprint
+  ShieldCheck,
+  Fingerprint,
+  Bell,
+  LineChart,
+  Sliders,
+  Key,
+  ToggleLeft
 } from 'lucide-react'
 import { getTheme } from './themeConfig'
 
