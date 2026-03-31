@@ -29,7 +29,13 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
   {
     id: 'infrastructure',
     title: 'Infrastructure',
-    items: getItems(['vpc-region', 'availability-zone', 'subnet'])
+    items: getItems([
+      'vpc-region',
+      'availability-zone',
+      'subnet',
+      'dns-server',
+      'discovery-service'
+    ])
   },
   {
     id: 'clients-edge',
@@ -45,13 +51,15 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
       'ingress-controller',
       'reverse-proxy',
       'nat-gateway',
-      'vpn-gateway'
+      'vpn-gateway',
+      'routing-rule',
+      'routing-policy'
     ])
   },
   {
     id: 'security',
     title: 'Security',
-    items: getItems(['waf', 'firewall-rule'])
+    items: getItems(['waf', 'firewall-rule', 'security-group'])
   },
   {
     id: 'compute',
@@ -83,9 +91,19 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
     ])
   },
   {
+    id: 'app-support',
+    title: 'App Support',
+    items: getItems(['push-notification-service', 'streaming-analytics'])
+  },
+  {
     id: 'external',
     title: 'External',
     items: getItems(['external-service'])
+  },
+  {
+    id: 'control-plane',
+    title: 'Control Plane',
+    items: getItems(['config-store', 'secrets-manager', 'feature-flag-service'])
   },
   {
     id: 'observability',

@@ -18,8 +18,9 @@ export const NodeHeader = memo(
       critical: 'bg-nss-danger shadow-[0_0_8px_rgba(239,68,68,0.4)]'
     }
 
-    const safeBg = typeof color === 'object' ? color?.bg : 'bg-nss-primary'
-    const safeText = typeof color === 'object' ? color?.text : 'text-nss-primary'
+    const safeBg = typeof color === 'string' ? color : color?.bg || 'bg-nss-primary'
+    const safeText =
+      typeof color === 'string' ? color.replace('bg-', 'text-') : color?.text || 'text-nss-primary'
 
     const SafeIcon = Icon || HelpCircle
 

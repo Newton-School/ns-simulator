@@ -26,7 +26,7 @@ export interface SecurityNodeData {
 }
 
 // New Compute Node Data
-export type ComputeType = 'SERVER' | 'LAMBDA' | 'WORKER' | 'CRON'
+export type ComputeType = 'SERVER' | 'LAMBDA' | 'WORKER' | 'CRON' | 'AUTH' | 'SEARCH_SERVICE'
 
 export interface ComputeNodeData {
   computeType: ComputeType
