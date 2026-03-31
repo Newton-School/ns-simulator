@@ -54,12 +54,6 @@ async function handleOpenScenario(
 }
 
 async function handleConfirmDiscardChanges(win: BrowserWindow): Promise<boolean> {
-  // const win = BrowserWindow.fromWebContents(event.sender)
-  // if (!win) {
-  //   console.warn('No parent window found for confirmDiscard dialog')
-  //   return false // treat as "Cancel"
-  // }
-
   const result = await dialog.showMessageBox(win, {
     type: 'warning',
     buttons: ['Discard Changes', 'Cancel'],
@@ -70,7 +64,7 @@ async function handleConfirmDiscardChanges(win: BrowserWindow): Promise<boolean>
     detail: 'Discard changes and open another file'
   })
 
-  return result.response === 0 // Returns true if 'Discard Changes' is clicked
+  return result.response === 0
 }
 
 export const registerIpcHandlers = {

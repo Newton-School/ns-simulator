@@ -38,7 +38,6 @@ const api = {
   onCloseRequest: (callback: () => boolean) => {
     const handler = () => {
       const isUnsaved = callback()
-      // Send the actual value of isUnsaved back to Main
       ipcRenderer.send('window-close-response', isUnsaved)
     }
     ipcRenderer.on('window-close-attempt', handler)

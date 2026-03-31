@@ -8,7 +8,6 @@ import useStore from './store/useStore'
 let closeRequestUnsubscribe: (() => void) | undefined
 if (window.nssimulator && window.nssimulator.onCloseRequest) {
   closeRequestUnsubscribe = window.nssimulator.onCloseRequest(() => {
-    // Access the current value in the store from Zustand directly
     const isUnsaved = useStore.getState().isUnsaved
     return isUnsaved
   })

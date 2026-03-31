@@ -30,7 +30,6 @@ function createWindow(): void {
   let isQuitting = false
 
   const handleCloseResponse = async (_event, isUnsaved) => {
-    // Check if the window still exists before talking to it
     if (mainWindow.isDestroyed()) return
 
     const unsaved = Boolean(isUnsaved)
@@ -54,7 +53,6 @@ function createWindow(): void {
     }
   }
 
-  // Start listening
   ipcMain.on('window-close-response', handleCloseResponse)
 
   mainWindow.on('close', (event) => {
@@ -63,7 +61,6 @@ function createWindow(): void {
     mainWindow.webContents.send('window-close-attempt')
   })
 
-  // When the window is finally destroyed, remove the listener
   mainWindow.on('closed', () => {
     ipcMain.removeListener('window-close-response', handleCloseResponse)
   })
@@ -122,7 +119,7 @@ app.whenReady().then(() => {
     const win = BrowserWindow.fromWebContents(event.sender)
     if (!win) {
       console.warn('No window found for confirm-discard dialog')
-      return false // treat as "Cancel"
+      return false
     }
 
     const result = await registerIpcHandlers.handleConfirmDiscardChanges(win)
