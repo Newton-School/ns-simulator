@@ -21,6 +21,8 @@ import {
   LockKeyhole,
   Waypoints,
   ArrowRightLeft,
+  ServerCog,
+  BookOpen,
   Bell,
   LineChart
 } from 'lucide-react'
@@ -46,6 +48,8 @@ const ICON_LOOKUP: Record<string, LucideIcon> = {
   vpn: LockKeyhole,
   ingress: Waypoints,
   proxy: ArrowRightLeft,
+  'server-cog': ServerCog,
+  'book-open': BookOpen,
   //Routing
   'routing-rule': GitBranch,
   'routing-policy': Waypoints,

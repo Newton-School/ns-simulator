@@ -27,6 +27,8 @@ import {
   Waypoints,
   ArrowRightLeft,
   LayoutGrid,
+  ServerCog,
+  BookOpen,
   ShieldCheck,
   Fingerprint,
   Bell,
@@ -249,6 +251,24 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     icon: LayoutGrid,
     lookupKey: 'subnet',
     defaultData: { iconKey: 'subnet' }
+  },
+  'dns-server': {
+    id: 'dns-server',
+    type: 'serviceNode',
+    label: 'DNS Server',
+    subLabel: 'Internal DNS / Authoritative',
+    icon: ServerCog,
+    lookupKey: 'server-cog',
+    defaultData: { iconKey: 'server-cog', status: 'healthy', throughput: 5000, load: 10 }
+  },
+  'discovery-service': {
+    id: 'discovery-service',
+    type: 'serviceNode',
+    label: 'Discovery Service',
+    subLabel: 'Service Registry',
+    icon: BookOpen,
+    lookupKey: 'book-open',
+    defaultData: { iconKey: 'book-open', status: 'healthy', throughput: 3000, load: 15 }
   },
 
   // Clients & Edge
