@@ -9,7 +9,7 @@ export interface ServiceNodeData {
   queueDepth?: number
 
   label: string
-  color?: string
+  color?: ColorTheme | string
 }
 
 // Add this interface to your types file
@@ -18,7 +18,7 @@ export interface SecurityNodeData {
   subLabel?: string
   iconKey: string
   status: 'healthy' | 'degraded' | 'critical'
-  color?: string
+  color?: ColorTheme | string
   blockRate?: number
   droppedPackets?: number
   activeThreats?: number
@@ -48,14 +48,19 @@ export type NodeType = 'serviceNode' | 'computeNode' | 'databaseNode' | 'vpcNode
 
 export type AnyNodeData = ServiceNodeData | ComputeNodeData | VpcNodeData | SecurityNodeData
 
+export interface ColorTheme {
+  bg: string
+  border: string
+  text: string
+}
+
 export interface CatalogItem {
   id: string
   type: NodeType
   label: string
   subLabel: string
   icon: LucideIcon // Better type than 'any'
-  color: string
-
+  color: ColorTheme
   data: AnyNodeData
 }
 

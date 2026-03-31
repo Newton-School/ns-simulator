@@ -21,6 +21,12 @@ import {
   LockKeyhole,
   Waypoints,
   ArrowRightLeft,
+  Activity,
+  FileText,
+  Library,
+  Radar,
+  BellRing,
+  HeartPulse,
   ServerCog,
   BookOpen,
   Bell,
@@ -69,7 +75,14 @@ const ICON_LOOKUP: Record<string, LucideIcon> = {
   notification: Bell,
   analytics: LineChart,
   // External
-  external: ExternalLink
+  external: ExternalLink,
+  // Observability
+  'metrics-collector': Activity,
+  'log-collector': FileText,
+  'log-aggregator': Library,
+  tracing: Radar,
+  alerting: BellRing,
+  'health-check': HeartPulse
 }
 
 const ServiceNode = ({ id, data, selected }: NodeProps<ServiceNodeData>) => {
