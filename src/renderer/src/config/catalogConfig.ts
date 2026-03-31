@@ -44,13 +44,15 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
       fromRegistry('ingress-controller')!,
       fromRegistry('reverse-proxy')!,
       fromRegistry('nat-gateway')!,
-      fromRegistry('vpn-gateway')!
+      fromRegistry('vpn-gateway')!,
+      fromRegistry('routing-rule')!,
+      fromRegistry('routing-policy')!
     ]
   },
   {
     id: 'security',
     title: 'Security',
-    items: [fromRegistry('waf')!, fromRegistry('firewall-rule')!]
+    items: [fromRegistry('waf')!, fromRegistry('firewall-rule')!, fromRegistry('security-group')!]
   },
   {
     id: 'compute',
@@ -82,8 +84,22 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
     ]
   },
   {
+    id: 'app-support',
+    title: 'App Support',
+    items: [fromRegistry('push-notification-service')!, fromRegistry('streaming-analytics')!]
+  },
+  {
     id: 'external',
     title: 'External',
     items: [fromRegistry('external-service')!]
+  },
+  {
+    id: 'control-plane',
+    title: 'Control Plane',
+    items: [
+      fromRegistry('config-store')!,
+      fromRegistry('secrets-manager')!,
+      fromRegistry('feature-flag-service')!
+    ]
   }
 ]
