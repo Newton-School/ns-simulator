@@ -15,7 +15,7 @@ export const LibraryItem = ({ item }: LibraryItemProps) => {
       'application/reactflow/data',
       JSON.stringify({
         label,
-        color: bg,
+        color,
         ...data
       })
     )

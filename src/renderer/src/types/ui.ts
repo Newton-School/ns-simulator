@@ -9,7 +9,7 @@ export interface ServiceNodeData {
   queueDepth?: number
 
   label: string
-  color?: string
+  color?: ColorTheme | string
 }
 
 // Add this interface to your types file
@@ -18,7 +18,7 @@ export interface SecurityNodeData {
   subLabel?: string
   iconKey: string
   status: 'healthy' | 'degraded' | 'critical'
-  color?: string
+  color?: ColorTheme | string
   blockRate?: number
   droppedPackets?: number
   activeThreats?: number
