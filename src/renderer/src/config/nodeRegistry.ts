@@ -28,6 +28,7 @@ import {
   ArrowRightLeft,
   LayoutGrid,
   ShieldCheck
+  Fingerprint
 } from 'lucide-react'
 import { getTheme } from './themeConfig'
 
@@ -84,8 +85,8 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     type: 'computeNode',
     label: 'Auth Service',
     subLabel: 'Authentication / Tokens',
-    icon: Shield,
-    lookupKey: 'auth',
+    icon: Fingerprint,
+    lookupKey: 'AUTH',
     defaultData: { computeType: 'AUTH', cpu_usage: 25, queue_depth: 5, is_overloaded: false }
   },
   'search-service': {
@@ -94,7 +95,7 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     label: 'Search Service',
     subLabel: 'Query Processing',
     icon: Search,
-    lookupKey: 'search-service',
+    lookupKey: 'SEARCH_SERVICE',
     defaultData: {
       computeType: 'SEARCH_SERVICE',
       cpu_usage: 55,
@@ -167,6 +168,24 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     icon: LockKeyhole,
     lookupKey: 'vpn',
     defaultData: { iconKey: 'vpn', status: 'degraded', throughput: 500, load: 10 }
+  },
+  'routing-rule': {
+    id: 'routing-rule',
+    type: 'serviceNode',
+    label: 'Routing Rule',
+    subLabel: 'Path / Header Matching',
+    icon: GitBranch,
+    lookupKey: 'routing',
+    defaultData: { iconKey: 'routing-rule', status: 'healthy', throughput: 20000, load: 5 }
+  },
+  'routing-policy': {
+    id: 'routing-policy',
+    type: 'serviceNode',
+    label: 'Routing Policy',
+    subLabel: 'Traffic Distribution',
+    icon: Waypoints,
+    lookupKey: 'routing',
+    defaultData: { iconKey: 'routing-policy', status: 'healthy', throughput: 20000, load: 5 }
   },
 
   //Security Nodes
@@ -323,6 +342,26 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     defaultData: { iconKey: 'search', status: 'healthy', throughput: 1500, load: 25 }
   },
 
+  // App Support
+  'push-notification-service': {
+    id: 'push-notification-service',
+    type: 'serviceNode',
+    label: 'Notification Service',
+    subLabel: 'Push / Email / SMS',
+    icon: Bell,
+    lookupKey: 'notification',
+    defaultData: { iconKey: 'notification', status: 'healthy', throughput: 3000, load: 15 }
+  },
+  'streaming-analytics': {
+    id: 'streaming-analytics',
+    type: 'serviceNode',
+    label: 'Analytics Service',
+    subLabel: 'Streaming Analytics',
+    icon: LineChart,
+    lookupKey: 'analytics',
+    defaultData: { iconKey: 'analytics', status: 'healthy', throughput: 10000, load: 40 }
+  },
+
   // External
   'external-service': {
     id: 'external-service',
@@ -332,6 +371,35 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     icon: ExternalLink,
     lookupKey: 'external',
     defaultData: { iconKey: 'external', status: 'healthy', throughput: 500, load: 5 }
+  },
+
+  // Control Plane
+  'config-store': {
+    id: 'config-store',
+    type: 'serviceNode',
+    label: 'Config Store',
+    subLabel: 'Configuration',
+    icon: Sliders,
+    lookupKey: 'config',
+    defaultData: { iconKey: 'config', status: 'healthy', throughput: 1000, load: 10 }
+  },
+  'secrets-manager': {
+    id: 'secrets-manager',
+    type: 'serviceNode',
+    label: 'Secrets Manager',
+    subLabel: 'Secrets & Keys',
+    icon: Key,
+    lookupKey: 'secrets',
+    defaultData: { iconKey: 'secrets', status: 'healthy', throughput: 500, load: 5 }
+  },
+  'feature-flag-service': {
+    id: 'feature-flag-service',
+    type: 'serviceNode',
+    label: 'Feature Flag Service',
+    subLabel: 'Feature Flags',
+    icon: ToggleLeft,
+    lookupKey: 'flags',
+    defaultData: { iconKey: 'flags', status: 'healthy', throughput: 2000, load: 15 }
   }
 }
 
@@ -365,5 +433,13 @@ export const COMPUTE_DEFAULTS = {
     label: NODE_REGISTRY['async-worker'].label,
     subLabel: NODE_REGISTRY['async-worker'].subLabel
   },
-  CRON: { label: NODE_REGISTRY['cron-job'].label, subLabel: NODE_REGISTRY['cron-job'].subLabel }
+  CRON: { label: NODE_REGISTRY['cron-job'].label, subLabel: NODE_REGISTRY['cron-job'].subLabel },
+  AUTH: {
+    label: NODE_REGISTRY['auth-service'].label,
+    subLabel: NODE_REGISTRY['auth-service'].subLabel
+  },
+  SEARCH_SERVICE: {
+    label: NODE_REGISTRY['search-service'].label,
+    subLabel: NODE_REGISTRY['search-service'].subLabel
+  }
 }
