@@ -228,7 +228,7 @@ export class Distributions {
       }
     }
 
-    return this.fromBaseConfig(config)
+    return this.fromBaseConfig(config as BaseDistributionConfig)
   }
 
   private fromBaseConfig(config: BaseDistributionConfig): number {
