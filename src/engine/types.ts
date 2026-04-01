@@ -418,3 +418,17 @@ export interface RandomGenerator {
   integer(min: number, max: number): number // integer in [min, max]
   boolean(probability?: number): boolean // true with given probability (default 0.5)
 }
+
+export interface NodeMetrics {
+  totalArrivals: number
+  totalCompleted: number
+  totalFailed: number
+  totalTimeout: number
+  totalRejections: number
+  totalRetries: number
+  totalRetriesFailed: number
+  totalRetriesSucceeded: number
+  totalQueueTime: bigint
+  totalServiceTime: bigint
+  maxQueueLength: number
+}
