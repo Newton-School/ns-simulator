@@ -26,13 +26,14 @@ export const NodeHeader = memo(
     onLabelChange,
     children
   }: NodeHeaderProps) => {
+    const safeColor = typeof color === 'string' ? color : 'bg-nss-primary'
     return (
       <div className="bg-nss-panel p-3 border-b border-nss-border flex justify-between items-center rounded-t-lg">
         <div className="flex items-center gap-3 overflow-hidden">
           <div
-            className={`p-1.5 rounded bg-opacity-50 ${color} shrink-0 flex items-center justify-center`}
+            className={`p-1.5 rounded bg-opacity-50 ${safeColor} shrink-0 flex items-center justify-center`}
           >
-            <Icon size={16} className={color.replace('bg-', 'text-')} />
+            <Icon size={16} className={safeColor.replace('bg-', 'text-')} />
           </div>
 
           {onLabelChange ? (
