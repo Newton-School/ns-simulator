@@ -85,6 +85,26 @@ export const useFlowPersistence = () => {
     handleLoadFileData
   )
 
+  const confirmIfUnsaved = async (): Promise<boolean> => {
+    const { isUnsaved } = useStore.getState()
+
+    if (!isUnsaved) return true
+
+    try {
+      return await window.nssimulator.confirmDiscard()
+    } catch (error) {
+      console.error('Error during confirmDiscard:', error)
+      return false
+    }
+  }
+
+  const handleOpenWithCheckIfSaved = useCallback(async () => {
+    const ok = await confirmIfUnsaved()
+    if (!ok) return
+
+    handleOpen()
+  }, [handleOpen])
+
   const handleSaveWrapper = useCallback(async () => {
     const savedPath = await innerSave()
 
@@ -94,7 +114,7 @@ export const useFlowPersistence = () => {
     }
   }, [innerSave, setFileName, setUnsaved])
 
-  useKeyboardShortcuts(handleSaveWrapper, handleOpen)
+  useKeyboardShortcuts(handleSaveWrapper, handleOpenWithCheckIfSaved)
 
   useEffect(() => {
     if (isLoadingRef.current) return
@@ -104,5 +124,5 @@ export const useFlowPersistence = () => {
     }
   }, [nodes, edges, setUnsaved])
 
-  return { handleSave: handleSaveWrapper, handleOpen }
+  return { handleSave: handleSaveWrapper, handleOpen: handleOpenWithCheckIfSaved }
 }

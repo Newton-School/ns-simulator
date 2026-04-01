@@ -1,4 +1,4 @@
-import { dialog, IpcMainInvokeEvent } from 'electron'
+import { BrowserWindow, dialog, IpcMainInvokeEvent } from 'electron'
 import * as fs from 'fs/promises'
 
 async function handleSaveScenario(
@@ -53,7 +53,22 @@ async function handleOpenScenario(
   }
 }
 
+async function handleConfirmDiscardChanges(win: BrowserWindow): Promise<boolean> {
+  const result = await dialog.showMessageBox(win, {
+    type: 'warning',
+    buttons: ['Discard Changes', 'Cancel'],
+    defaultId: 1,
+    cancelId: 1,
+    title: 'Unsaved Changes',
+    message: 'You have unsaved changes.',
+    detail: 'Discard changes and open another file'
+  })
+
+  return result.response === 0
+}
+
 export const registerIpcHandlers = {
   handleOpenScenario,
-  handleSaveScenario
+  handleSaveScenario,
+  handleConfirmDiscardChanges
 }
