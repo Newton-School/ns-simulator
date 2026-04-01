@@ -108,19 +108,16 @@ describe('Distributions', () => {
     expect(empiricalWeighted.every((value) => value === 20)).toBe(true)
 
     const mixtureValues = Array.from({ length: 10_000 }, () =>
-      dist.mixture(
-        [() => 0, () => 1],
-        [0.8, 0.2]
-      )
+      dist.mixture([() => 0, () => 1], [0.8, 0.2])
     )
     const onesRatio = mean(mixtureValues)
     expect(onesRatio).toBeGreaterThan(0.17)
     expect(onesRatio).toBeLessThan(0.23)
 
     const binomialValues = Array.from({ length: 2000 }, () => dist.binomial(10, 0.3))
-    expect(binomialValues.every((value) => Number.isInteger(value) && value >= 0 && value <= 10)).toBe(
-      true
-    )
+    expect(
+      binomialValues.every((value) => Number.isInteger(value) && value >= 0 && value <= 10)
+    ).toBe(true)
   })
 
   it('dispatches through fromConfig including log-normal and mixture', () => {

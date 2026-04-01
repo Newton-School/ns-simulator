@@ -422,11 +422,12 @@ export interface RandomGenerator {
 }
 
 export interface NodeMetrics {
-  requestsProcessed?: number
-  requestsRejected?: number
-  totalWaitTime?: bigint
-  totalServiceTime?: bigint
-  currentQueueLength?: number
+  totalArrivals: number
+  totalCompleted: number
+  totalRejections: number
+  totalQueueTime: bigint
+  totalServiceTime: bigint
+  maxQueueLength: number
 }
 
 export interface NodeState {
@@ -435,12 +436,9 @@ export interface NodeState {
   activeWorkers: number
   queueLength: number
   utilization: number
+  totalInSystem: number
 }
 
 export interface EventScheduler {
-  scheduleTimeEvent: (event: SimulationEvent) => void
-}
-
-export interface Distributions {
-  service: DistributionConfig
+  schedule: (event: SimulationEvent) => void
 }

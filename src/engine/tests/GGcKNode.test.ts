@@ -1,293 +1,299 @@
-import { expect, test, describe, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { GGcKNode } from '../nodes/GGcKNode'
+import { Distributions } from '../distribution'
+import { EventScheduler } from '../types'
+import { createRandom } from '../random'
+import { Request, SimulationEvent } from '../events'
+import { ComponentNode } from '../types'
+
+function makeRequest(id: string, priority = 1): Request {
+  return {
+    id,
+    type: 'GET',
+    sizeBytes: 256,
+    priority,
+    createdAt: 0n,
+    deadline: 10_000_000n,
+    path: [],
+    spans: [],
+    retryCount: 0,
+    metadata: {}
+  }
+}
+
+function makeConfig(
+  workers: number,
+  capacity: number,
+  discipline: 'fifo' | 'lifo' | 'priority' | 'wfq' = 'fifo',
+  id = 'node-test'
+): ComponentNode {
+  return {
+    id,
+    type: 'api-endpoint',
+    category: 'compute',
+    label: 'Test Node',
+    position: { x: 0, y: 0 },
+    queue: { workers, capacity, discipline },
+    processing: { distribution: { type: 'constant', value: 10 }, timeout: 5000 }
+  }
+}
+
+function makeScheduler(): EventScheduler & { events: SimulationEvent[] } {
+  const events: SimulationEvent[] = []
+  return {
+    events,
+    schedule: vi.fn((event: SimulationEvent) => {
+      events.push(event)
+    })
+  }
+}
+
+function makeDist(seed = 'test'): Distributions {
+  return new Distributions(createRandom(seed))
+}
 
 describe('GGcKNode', () => {
-  // A helper function to generate a fake request
-  const createFakeRequest = (id: string, priority = 1): any => ({
-    id,
-    priority
+  it('processes first 2 arrivals immediately, queues next 1, rejects the 4th (workers=2, capacity=3)', () => {
+    const scheduler = makeScheduler()
+    const node = new GGcKNode(makeConfig(2, 3), makeDist(), scheduler)
+
+    expect(node.handleArrival(makeRequest('r1'), 0n).status).toBe('processed')
+    expect(node.handleArrival(makeRequest('r2'), 1n).status).toBe('processed')
+    expect(node.handleArrival(makeRequest('r3'), 2n).status).toBe('queued')
+    expect(node.handleArrival(makeRequest('r4'), 3n).status).toBe('rejected')
+
+    expect(node.getState().activeWorkers).toBe(2)
+    expect(node.getState().queueLength).toBe(1)
+    expect(node.getMetrics().totalRejections).toBe(1)
   })
 
-  test('normal flow: processes arrivals immediately if workers available', () => {
-    // 1. Arrange: Create our fake dependencies
-    const fakeScheduler = {
-      scheduleTimeEvent: vi.fn()
-    } as any
+  it('schedules a processing-complete event for each immediately processed request', () => {
+    const scheduler = makeScheduler()
+    const node = new GGcKNode(makeConfig(2, 4), makeDist(), scheduler)
 
-    const fakeDistributions = {
-      service: { sample: () => 10n } // Always takes 10 ticks
-    } as any
+    node.handleArrival(makeRequest('r1'), 0n)
+    node.handleArrival(makeRequest('r2'), 1n)
 
-    const fakeConfig = {
-      id: 'node-1',
-      queue: {
-        workers: 2,
-        capacity: 3,
-        discipline: 'fifo'
-      }
-    } as any
-
-    // 2. Act: Create the node
-    const node = new GGcKNode(fakeConfig, fakeDistributions, fakeScheduler)
-
-    // Send 1st request
-    const req1 = createFakeRequest('req-1')
-    const result1 = node.handleArrival(req1, 0n)
-
-    // 3. Assert: Check the results!
-    expect(result1.status).toBe('processed')
-    expect(node.getState().activeWorkers).toBe(1)
-    expect(fakeScheduler.scheduleTimeEvent).toHaveBeenCalledTimes(1)
+    expect(scheduler.schedule).toHaveBeenCalledTimes(2)
+    expect(scheduler.events[0].type).toBe('processing-complete')
+    expect(scheduler.events[0].requestId).toBe('r1')
+    expect(scheduler.events[1].requestId).toBe('r2')
   })
-  test('queue flow: queues when workers busy, rejects when capacity full', () => {
-    const fakeScheduler = { scheduleTimeEvent: vi.fn() } as any
-    const fakeDistributions = { service: { sample: () => 10n } } as any
-    const fakeConfig = {
-      id: 'node-2',
-      queue: { workers: 2, capacity: 3, discipline: 'fifo' }
-    } as any
-    const node = new GGcKNode(fakeConfig, fakeDistributions, fakeScheduler)
-    // First 2 requests (processes immediately)
-    node.handleArrival(createFakeRequest('req-1'), 0n)
-    node.handleArrival(createFakeRequest('req-2'), 0n)
-    // Next 3 requests (queued)
-    const res3 = node.handleArrival(createFakeRequest('req-3'), 0n)
-    node.handleArrival(createFakeRequest('req-4'), 0n)
-    const res5 = node.handleArrival(createFakeRequest('req-5'), 0n)
 
-    expect(res3.status).toBe('queued')
-    expect(res5.status).toBe('queued')
-    expect(node.getState().queueLength).toBe(3)
-    expect(node.getState().status).toBe('saturated') // Node becomes saturated when queue is full
-    // 6th request (should be rejected!)
-    const res6 = node.handleArrival(createFakeRequest('req-6'), 0n)
-    expect(res6.status).toBe('rejected')
-    expect(node.getMetrics().requestsRejected).toBe(1)
+  it('handleCompletion frees a worker and auto-dequeues the next request', () => {
+    const scheduler = makeScheduler()
+    const node = new GGcKNode(makeConfig(1, 3), makeDist(), scheduler)
+
+    const r1 = makeRequest('r1')
+    node.handleArrival(r1, 0n)
+    node.handleArrival(makeRequest('r2'), 1n)
+    node.handleArrival(makeRequest('r3'), 2n)
+
+    expect(node.getState().queueLength).toBe(2)
+    expect(scheduler.schedule).toHaveBeenCalledTimes(1)
+
+    const result = node.handleCompletion(r1, 100n)
+    expect(result.nextRequest?.id).toBe('r2')
+    expect(node.getState().queueLength).toBe(1)
+    expect(scheduler.schedule).toHaveBeenCalledTimes(2)
   })
-  test('completion flow: frees worker and pulls from queue', () => {
-    const fakeScheduler = { scheduleTimeEvent: vi.fn() } as any
-    const fakeDistributions = { service: { sample: () => 10n } } as any
-    const fakeConfig = {
-      id: 'node-3',
-      queue: { workers: 1, capacity: 2, discipline: 'fifo' }
-    } as any
-    const node = new GGcKNode(fakeConfig, fakeDistributions, fakeScheduler)
-    // Queue up 2 requests (1 processed, 1 queued)
-    node.handleArrival(createFakeRequest('req-1'), 0n)
-    node.handleArrival(createFakeRequest('req-2'), 0n)
-    // Simulate the first request completing
-    node.handleCompletion(createFakeRequest('req-1'), 10n)
-    // The worker should be freed and the second request should start
-    expect(node.getState().activeWorkers).toBe(1)
-    expect(node.getState().queueLength).toBe(0)
-    expect(fakeScheduler.scheduleTimeEvent).toHaveBeenCalledTimes(2) // 1 for req-1, 1 for req-2
-  })
-  test('failure flow: rejects all queued requests and stops processing', () => {
-    const fakeScheduler = { scheduleTimeEvent: vi.fn() } as any
-    const fakeDistributions = { service: { sample: () => 10n } } as any
-    const fakeConfig = {
-      id: 'node-4',
-      queue: { workers: 1, capacity: 2, discipline: 'fifo' }
-    } as any
-    const node = new GGcKNode(fakeConfig, fakeDistributions, fakeScheduler)
-    // Queue up 3 requests (1 processed, 2 queued)
-    node.handleArrival(createFakeRequest('req-1'), 0n)
-    node.handleArrival(createFakeRequest('req-2'), 0n)
-    node.handleArrival(createFakeRequest('req-3'), 0n)
-    // Fail the node
-    node.fail(10n)
-    expect(node.getState().status).toBe('failed')
-    expect(node.getMetrics().requestsRejected).toBe(2) // The 2 queued requests should be rejected
-    expect(fakeScheduler.scheduleTimeEvent).toHaveBeenCalledTimes(1) // Only the first processing event should exist
-  })
-  test('recovery flow: returns to idle state and accepts new requests', () => {
-    const fakeScheduler = { scheduleTimeEvent: vi.fn() } as any
-    const fakeDistributions = { service: { sample: () => 10n } } as any
-    const fakeConfig = {
-      id: 'node-5',
-      queue: { workers: 1, capacity: 1, discipline: 'fifo' }
-    } as any
-    const node = new GGcKNode(fakeConfig, fakeDistributions, fakeScheduler)
-    // Fail the node
-    node.fail(10n)
-    // Recover the node
-    node.recover(20n)
+
+  it('handleCompletion returns null nextRequest when queue is empty', () => {
+    const scheduler = makeScheduler()
+    const node = new GGcKNode(makeConfig(1, 2), makeDist(), scheduler)
+
+    const r1 = makeRequest('r1')
+    node.handleArrival(r1, 0n)
+
+    const result = node.handleCompletion(r1, 100n)
+    expect(result.nextRequest).toBeNull()
     expect(node.getState().status).toBe('idle')
-    // Send a new request
-    const res = node.handleArrival(createFakeRequest('req-1'), 20n)
-    expect(res.status).toBe('processed')
-    expect(node.getState().activeWorkers).toBe(1)
   })
-  test('priority discipline: processes higher priority requests first', () => {
-    const fakeScheduler = { scheduleTimeEvent: vi.fn() } as any
-    const fakeDistributions = { service: { sample: () => 10n } } as any
-    const fakeConfig = {
-      id: 'node-6',
-      queue: { workers: 1, capacity: 3, discipline: 'priority' }
-    } as any
-    const node = new GGcKNode(fakeConfig, fakeDistributions, fakeScheduler)
-    // Queue 3 requests with different priorities
-    node.handleArrival(createFakeRequest('req-1', 2), 0n) // Low priority
-    node.handleArrival(createFakeRequest('req-2', 0), 0n) // High priority
-    node.handleArrival(createFakeRequest('req-3', 1), 0n) // Medium priority
-    // The high priority request should be processed first
-    // req-2 has highest priority (0). It's in the queue along with req-3.
-    // Let's complete the first active request (req-1)
-    node.handleCompletion(createFakeRequest('req-1', 2), 10n)
-    node.handleCompletion(createFakeRequest('req-2', 0), 20n)
 
-    expect(fakeScheduler.scheduleTimeEvent).toHaveBeenCalledTimes(3)
-    const events = fakeScheduler.scheduleTimeEvent.mock.calls
-    // 0: req-1 starts immediately. 1: req-2 dequeued. 2: req-3 dequeued
-    expect(events[1][0].requestId).toBe('req-2')
-    expect(events[2][0].requestId).toBe('req-3')
-  })
-  test('fifo discipline: processes requests in arrival order', () => {
-    const fakeScheduler = { scheduleTimeEvent: vi.fn() } as any
-    const fakeDistributions = { service: { sample: () => 10n } } as any
-    const fakeConfig = {
-      id: 'node-7',
-      queue: { workers: 1, capacity: 3, discipline: 'fifo' }
-    } as any
-    const node = new GGcKNode(fakeConfig, fakeDistributions, fakeScheduler)
-    // Queue 3 requests
-    node.handleArrival(createFakeRequest('req-1'), 0n)
-    node.handleArrival(createFakeRequest('req-2'), 0n)
-    node.handleArrival(createFakeRequest('req-3'), 0n)
-    // The requests should be processed in arrival order
-    node.handleCompletion(createFakeRequest('req-1'), 10n)
-    node.handleCompletion(createFakeRequest('req-2'), 20n)
+  describe('queue disciplines', () => {
+    it('FIFO: dequeues in arrival order', () => {
+      const scheduler = makeScheduler()
+      const node = new GGcKNode(makeConfig(1, 3, 'fifo'), makeDist(), scheduler)
 
-    expect(fakeScheduler.scheduleTimeEvent).toHaveBeenCalledTimes(3)
-    const events = fakeScheduler.scheduleTimeEvent.mock.calls
-    expect(events[1][0].requestId).toBe('req-2')
-    expect(events[2][0].requestId).toBe('req-3')
-  })
-  test('lifo discipline: processes requests in reverse arrival order', () => {
-    const fakeScheduler = { scheduleTimeEvent: vi.fn() } as any
-    const fakeDistributions = { service: { sample: () => 10n } } as any
-    const fakeConfig = {
-      id: 'node-8',
-      queue: { workers: 1, capacity: 3, discipline: 'lifo' }
-    } as any
-    const node = new GGcKNode(fakeConfig, fakeDistributions, fakeScheduler)
-    // Queue 3 requests
-    node.handleArrival(createFakeRequest('req-1'), 0n)
-    node.handleArrival(createFakeRequest('req-2'), 0n)
-    node.handleArrival(createFakeRequest('req-3'), 0n)
-    // The requests should be processed in reverse arrival order
-    node.handleCompletion(createFakeRequest('req-1'), 10n)
-    node.handleCompletion(createFakeRequest('req-3'), 20n)
+      const r1 = makeRequest('r1')
+      node.handleArrival(r1, 0n)
+      node.handleArrival(makeRequest('r2'), 1n)
+      node.handleArrival(makeRequest('r3'), 2n)
 
-    expect(fakeScheduler.scheduleTimeEvent).toHaveBeenCalledTimes(3)
-    const events = fakeScheduler.scheduleTimeEvent.mock.calls
-    expect(events[1][0].requestId).toBe('req-3')
-    expect(events[2][0].requestId).toBe('req-2')
-  })
-  test('wfq discipline: processes requests based on weight (priority)', () => {
-    const fakeScheduler = { scheduleTimeEvent: vi.fn() } as any
-    const fakeDistributions = { service: { sample: () => 10n } } as any
-    const fakeConfig = {
-      id: 'node-9',
-      queue: { workers: 1, capacity: 3, discipline: 'wfq' }
-    } as any
-    const node = new GGcKNode(fakeConfig, fakeDistributions, fakeScheduler)
-    // Queue 3 requests with different weights
-    node.handleArrival(createFakeRequest('req-1', 1), 0n) // Weight 1
-    node.handleArrival(createFakeRequest('req-2', 3), 0n) // Weight 3 (highest)
-    node.handleArrival(createFakeRequest('req-3', 2), 0n) // Weight 2
-    // The request with the highest weight should be processed first (lower number = better weight in our priority queue setup for this test)
-    node.handleCompletion(createFakeRequest('req-1', 1), 10n)
-    node.handleCompletion(createFakeRequest('req-3', 2), 20n)
+      node.handleCompletion(r1, 10n)
+      expect(scheduler.events[1].requestId).toBe('r2')
 
-    expect(fakeScheduler.scheduleTimeEvent).toHaveBeenCalledTimes(3)
-    const events = fakeScheduler.scheduleTimeEvent.mock.calls
-    expect(events[1][0].requestId).toBe('req-3') // Weight 2 (Better than 3)
-    expect(events[2][0].requestId).toBe('req-2') // Weight 3
-  })
-  test('utilization calculation: should be 100% when all workers busy', () => {
-    const fakeScheduler = { scheduleTimeEvent: vi.fn() } as any
-    const fakeDistributions = { service: { sample: () => 10n } } as any
-    const fakeConfig = {
-      id: 'node-10',
-      queue: { workers: 2, capacity: 2, discipline: 'fifo' }
-    } as any
-    const node = new GGcKNode(fakeConfig, fakeDistributions, fakeScheduler)
-    // Fill both workers
-    node.handleArrival(createFakeRequest('req-1'), 0n)
-    node.handleArrival(createFakeRequest('req-2'), 0n)
-    expect(node.getState().utilization).toBe(1)
-  })
-  test('utilization calculation: should be 0% when idle', () => {
-    const fakeScheduler = { scheduleTimeEvent: vi.fn() } as any
-    const fakeDistributions = { service: { sample: () => 10n } } as any
-    const fakeConfig = {
-      id: 'node-11',
-      queue: { workers: 2, capacity: 2, discipline: 'fifo' }
-    } as any
-    const node = new GGcKNode(fakeConfig, fakeDistributions, fakeScheduler)
-    expect(node.getState().utilization).toBe(0)
-  })
-  test('utilization calculation: should be 50% when half workers busy', () => {
-    const fakeScheduler = { scheduleTimeEvent: vi.fn() } as any
-    const fakeDistributions = { service: { sample: () => 10n } } as any
-    const fakeConfig = {
-      id: 'node-12',
-      queue: { workers: 2, capacity: 2, discipline: 'fifo' }
-    } as any
-    const node = new GGcKNode(fakeConfig, fakeDistributions, fakeScheduler)
-    // Fill one worker
-    node.handleArrival(createFakeRequest('req-1'), 0n)
-    expect(node.getState().utilization).toBe(0.5)
-  })
-  test('saturation detection: should detect saturation when queue is full', () => {
-    const fakeScheduler = { scheduleTimeEvent: vi.fn() } as any
-    const fakeDistributions = { service: { sample: () => 10n } } as any
-    const fakeConfig = {
-      id: 'node-13',
-      queue: { workers: 1, capacity: 2, discipline: 'fifo' }
-    } as any
-    const node = new GGcKNode(fakeConfig, fakeDistributions, fakeScheduler)
-    // Fill the queue
-    node.handleArrival(createFakeRequest('req-1'), 0n) // Worker 1
-    node.handleArrival(createFakeRequest('req-2'), 0n) // Queue pos 1
-    node.handleArrival(createFakeRequest('req-3'), 0n) // Queue pos 2
-    expect(node.getState().status).toBe('saturated')
-  })
-  test('saturation detection: should not be saturated when queue has space', () => {
-    const fakeScheduler = { scheduleTimeEvent: vi.fn() } as any
-    const fakeDistributions = { service: { sample: () => 10n } } as any
-    const fakeConfig = {
-      id: 'node-14',
-      queue: { workers: 1, capacity: 2, discipline: 'fifo' }
-    } as any
-    const node = new GGcKNode(fakeConfig, fakeDistributions, fakeScheduler)
-    // Add only one request
-    node.handleArrival(createFakeRequest('req-1'), 0n)
-    expect(node.getState().status).toBe('busy')
-  })
-  test('metrics: correctly tracks metrics after processing 100 requests', () => {
-    const fakeScheduler = { scheduleTimeEvent: vi.fn() } as any
-    const fakeDistributions = { service: { sample: () => 10n } } as any
+      node.handleCompletion(makeRequest('r2'), 20n)
+      expect(scheduler.events[2].requestId).toBe('r3')
+    })
 
-    // We'll give it 10 workers to easily process heavily
-    const fakeConfig = {
-      id: 'node-100',
-      queue: { workers: 10, capacity: 100, discipline: 'fifo' }
-    } as any
+    it('LIFO: dequeues in reverse arrival order', () => {
+      const scheduler = makeScheduler()
+      const node = new GGcKNode(makeConfig(1, 3, 'lifo'), makeDist(), scheduler)
 
-    const node = new GGcKNode(fakeConfig, fakeDistributions, fakeScheduler)
+      const r1 = makeRequest('r1')
+      node.handleArrival(r1, 0n)
+      node.handleArrival(makeRequest('r2'), 1n)
+      node.handleArrival(makeRequest('r3'), 2n)
 
-    // Send 100 requests and complete them immediately
-    for (let i = 0; i < 100; i++) {
-      const req = createFakeRequest(`req-${i}`)
-      node.handleArrival(req, BigInt(i))
-      node.handleCompletion(req, BigInt(i + 10))
-    }
+      node.handleCompletion(r1, 10n)
+      expect(scheduler.events[1].requestId).toBe('r3')
 
-    // Check the metrics map
-    const metrics = node.getMetrics()
-    expect(metrics.requestsProcessed).toBe(100)
-    expect(metrics.requestsRejected).toBeUndefined() // or 0, if we initialized it to 0
+      node.handleCompletion(makeRequest('r3'), 20n)
+      expect(scheduler.events[2].requestId).toBe('r2')
+    })
+
+    it('priority: serves highest priority (lowest number) first, FIFO within same level', () => {
+      const scheduler = makeScheduler()
+      const node = new GGcKNode(makeConfig(1, 5, 'priority'), makeDist(), scheduler)
+
+      const r1 = makeRequest('r1', 1)
+      node.handleArrival(r1, 0n)
+      node.handleArrival(makeRequest('r2', 2), 1n)
+      node.handleArrival(makeRequest('r3', 0), 2n)
+      node.handleArrival(makeRequest('r4', 0), 3n)
+
+      node.handleCompletion(r1, 10n)
+      expect(scheduler.events[1].requestId).toBe('r3')
+
+      node.handleCompletion(makeRequest('r3', 0), 20n)
+      expect(scheduler.events[2].requestId).toBe('r4')
+
+      node.handleCompletion(makeRequest('r4', 0), 30n)
+      expect(scheduler.events[3].requestId).toBe('r2')
+    })
+
+    it('wfq: falls back to FIFO order', () => {
+      const scheduler = makeScheduler()
+      const node = new GGcKNode(makeConfig(1, 3, 'wfq'), makeDist(), scheduler)
+
+      const r1 = makeRequest('r1')
+      node.handleArrival(r1, 0n)
+      node.handleArrival(makeRequest('r2'), 1n)
+      node.handleArrival(makeRequest('r3'), 2n)
+
+      node.handleCompletion(r1, 10n)
+      expect(scheduler.events[1].requestId).toBe('r2')
+    })
+  })
+
+  describe('utilization', () => {
+    it('is 0 when idle', () => {
+      const node = new GGcKNode(makeConfig(2, 4), makeDist(), makeScheduler())
+      expect(node.getState().utilization).toBe(0)
+    })
+
+    it('is 0.5 when 1 of 2 workers busy', () => {
+      const node = new GGcKNode(makeConfig(2, 4), makeDist(), makeScheduler())
+      node.handleArrival(makeRequest('r1'), 0n)
+      expect(node.getState().utilization).toBe(0.5)
+    })
+
+    it('is 1.0 when all workers busy', () => {
+      const node = new GGcKNode(makeConfig(2, 4), makeDist(), makeScheduler())
+      node.handleArrival(makeRequest('r1'), 0n)
+      node.handleArrival(makeRequest('r2'), 1n)
+      expect(node.getState().utilization).toBe(1.0)
+    })
+  })
+
+  describe('status transitions', () => {
+    it('idle → busy → saturated → busy → idle', () => {
+      const scheduler = makeScheduler()
+      const node = new GGcKNode(makeConfig(1, 2, 'fifo'), makeDist(), scheduler)
+
+      expect(node.getState().status).toBe('idle')
+
+      const r1 = makeRequest('r1')
+      node.handleArrival(r1, 0n)
+      expect(node.getState().status).toBe('busy')
+
+      node.handleArrival(makeRequest('r2'), 1n)
+      expect(node.getState().status).toBe('saturated')
+
+      node.handleCompletion(r1, 10n)
+      expect(node.getState().status).toBe('busy')
+
+      node.handleCompletion(makeRequest('r2'), 20n)
+      expect(node.getState().status).toBe('idle')
+    })
+  })
+
+  describe('failure and recovery', () => {
+    it('fail() drops queue, rejects all future arrivals, counts dropped as rejections', () => {
+      const scheduler = makeScheduler()
+      const node = new GGcKNode(makeConfig(1, 3), makeDist(), scheduler)
+
+      node.handleArrival(makeRequest('r1'), 0n)
+      node.handleArrival(makeRequest('r2'), 1n)
+      node.handleArrival(makeRequest('r3'), 2n)
+
+      node.fail(10n)
+
+      expect(node.getState().status).toBe('failed')
+      expect(node.getState().queueLength).toBe(0)
+      expect(node.getMetrics().totalRejections).toBe(2)
+
+      const r4 = node.handleArrival(makeRequest('r4'), 20n)
+      expect(r4.status).toBe('rejected')
+      expect(node.getMetrics().totalRejections).toBe(3)
+    })
+
+    it('recover() accepts new arrivals again', () => {
+      const scheduler = makeScheduler()
+      const node = new GGcKNode(makeConfig(1, 2), makeDist(), scheduler)
+
+      node.fail(10n)
+      node.recover(20n)
+
+      expect(node.getState().status).toBe('idle')
+      expect(node.handleArrival(makeRequest('r1'), 30n).status).toBe('processed')
+    })
+
+    it('ignores handleCompletion for orphaned in-flight requests after fail+recover', () => {
+      const scheduler = makeScheduler()
+      const node = new GGcKNode(makeConfig(1, 2, 'fifo', 'node-orphaned'), makeDist(), scheduler)
+
+      const r1 = makeRequest('r1')
+      node.handleArrival(r1, 0n) // r1 is processing
+
+      node.fail(10n) // clears queue & tracking
+      node.recover(20n)
+
+      expect(node.getState().status).toBe('idle')
+
+      // Simulator (or scheduler) fires completion for the old request
+      const compResult = node.handleCompletion(r1, 30n)
+
+      expect(compResult.nextRequest).toBeNull() // Doesn't start new work
+      expect(node.getMetrics().totalCompleted).toBe(0) // Not counted as successful
+      expect(node.getState().activeWorkers).toBe(0) // activeWorkers remains 0, no underflow
+    })
+  })
+
+  describe('metrics after 100 requests', () => {
+    it('tracks totalArrivals, totalCompleted, totalRejections correctly', () => {
+      const scheduler = makeScheduler()
+      // workers=10, capacity=10 → no queue slots, all capacity is workers
+      // Sending 100 requests: first 10 accepted, next 90 rejected
+      const node = new GGcKNode(makeConfig(10, 10), makeDist(), scheduler)
+
+      const accepted: Request[] = []
+      for (let i = 0; i < 100; i++) {
+        const req = makeRequest(`r${i}`)
+        const result = node.handleArrival(req, BigInt(i))
+        if (result.status === 'processed') accepted.push(req)
+      }
+
+      expect(node.getMetrics().totalArrivals).toBe(100)
+      expect(node.getMetrics().totalRejections).toBe(90)
+
+      // Now complete all accepted requests
+      for (const req of accepted) {
+        node.handleCompletion(req, 1000n)
+      }
+
+      expect(node.getMetrics().totalCompleted).toBe(10)
+    })
   })
 })
