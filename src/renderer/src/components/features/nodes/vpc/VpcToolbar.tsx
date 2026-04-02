@@ -11,24 +11,24 @@ interface VpcToolbarProps {
 
 export const VpcToolbar = memo(
   ({ isVisible, isUngrouped, hasChildren, onUngroup }: VpcToolbarProps) => {
-    const isDoneState = isUngrouped && !hasChildren
+    if (!hasChildren) return null
 
     return (
       <NodeToolbar isVisible={isVisible} position={Position.Top} offset={8}>
         <button
           onClick={onUngroup}
-          disabled={isDoneState}
+          disabled={isUngrouped}
           className={`
-          flex items-center gap-1.5 px-2 py-1 rounded shadow-md text-[10px] font-bold uppercase tracking-wider transition-colors border
-                    ${
-                      isDoneState
-                        ? 'bg-nss-surface border-nss-border text-nss-muted cursor-default' // Grey (Done)
-                        : 'bg-[rgb(var(--nss-danger))]/10 border-[rgb(var(--nss-danger))]/50 text-[rgb(var(--nss-danger))] hover:bg-[rgb(var(--nss-danger))] hover:text-white cursor-pointer' // Red (Action)
-                    }
-                `}
+            flex items-center gap-1.5 px-2 py-1 rounded shadow-md text-[10px] font-bold uppercase tracking-wider transition-colors border
+            ${
+              isUngrouped
+                ? 'bg-nss-surface border-nss-border text-nss-muted cursor-default'
+                : 'bg-[rgb(var(--nss-danger))]/10 border-[rgb(var(--nss-danger))]/50 text-[rgb(var(--nss-danger))] hover:bg-[rgb(var(--nss-danger))] hover:text-white cursor-pointer'
+            }
+          `}
         >
-          {isDoneState ? <CheckCircle2 size={12} /> : <Ungroup size={12} />}
-          <span>{isDoneState ? 'Done' : 'Ungroup'}</span>
+          {isUngrouped ? <CheckCircle2 size={12} /> : <Ungroup size={12} />}
+          <span>{isUngrouped ? 'Done' : 'Ungroup'}</span>
         </button>
       </NodeToolbar>
     )
