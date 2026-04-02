@@ -207,9 +207,7 @@ export class Distributions {
       for (let i = 0; i < components.length; i++) {
         const weight = components[i].weight
         if (!Number.isFinite(weight) || weight < 0) {
-          throw new Error(
-            `fromConfig(config): every mixture weight must be finite and >= 0`
-          )
+          throw new Error(`fromConfig(config): every mixture weight must be finite and >= 0`)
         }
         totalWeight += weight
       }

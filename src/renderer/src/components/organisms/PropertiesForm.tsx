@@ -102,10 +102,11 @@ export const PropertiesForm = ({ data, onUpdate }: PropertiesFormProps) => {
           <label
             className={`
                         flex items-center justify-between p-3 rounded border cursor-pointer transition-all
-                        ${data.is_overloaded
-                ? 'bg-nss-danger/5 border-nss-danger/30'
-                : 'bg-nss-bg border-nss-border hover:border-nss-muted'
-              }
+                        ${
+                          data.is_overloaded
+                            ? 'bg-nss-danger/5 border-nss-danger/30'
+                            : 'bg-nss-bg border-nss-border hover:border-nss-muted'
+                        }
                     `}
           >
             <div className="flex items-center gap-2">

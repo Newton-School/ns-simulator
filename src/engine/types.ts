@@ -1,3 +1,5 @@
+import type { SimulationEvent } from './events'
+
 export type ComponentCategory =
   | 'compute'
   | 'network-and-edge'
@@ -417,4 +419,26 @@ export interface RandomGenerator {
   between(min: number, max: number): number // [min, max)
   integer(min: number, max: number): number // integer in [min, max]
   boolean(probability?: number): boolean // true with given probability (default 0.5)
+}
+
+export interface NodeMetrics {
+  totalArrivals: number
+  totalCompleted: number
+  totalRejections: number
+  totalQueueTime: bigint
+  totalServiceTime: bigint
+  maxQueueLength: number
+}
+
+export interface NodeState {
+  id: string
+  status: 'idle' | 'busy' | 'saturated' | 'failed'
+  activeWorkers: number
+  queueLength: number
+  utilization: number
+  totalInSystem: number
+}
+
+export interface EventScheduler {
+  schedule: (event: SimulationEvent) => void
 }
