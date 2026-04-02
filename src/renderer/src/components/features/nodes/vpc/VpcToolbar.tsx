@@ -11,7 +11,7 @@ interface VpcToolbarProps {
 
 export const VpcToolbar = memo(
   ({ isVisible, isUngrouped, hasChildren, onUngroup }: VpcToolbarProps) => {
-    if (!hasChildren) return null
+    if (!hasChildren && !isUngrouped) return null
 
     return (
       <NodeToolbar isVisible={isVisible} position={Position.Top} offset={8}>
