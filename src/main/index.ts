@@ -27,6 +27,44 @@ function createWindow(): void {
     return { action: 'deny' }
   })
 
+  let isQuitting = false
+
+  const handleCloseResponse = async (_event, isUnsaved) => {
+    if (mainWindow.isDestroyed()) return
+
+    const unsaved = Boolean(isUnsaved)
+
+    if (unsaved) {
+      let confirm = false
+      try {
+        confirm = await registerIpcHandlers.handleConfirmDiscardChanges(mainWindow)
+      } catch (error) {
+        console.log(error)
+        confirm = false
+      }
+
+      if (confirm && !mainWindow.isDestroyed()) {
+        isQuitting = true
+        mainWindow.close()
+      }
+    } else {
+      isQuitting = true
+      mainWindow.close()
+    }
+  }
+
+  ipcMain.on('window-close-response', handleCloseResponse)
+
+  mainWindow.on('close', (event) => {
+    if (isQuitting) return
+    event.preventDefault()
+    mainWindow.webContents.send('window-close-attempt')
+  })
+
+  mainWindow.on('closed', () => {
+    ipcMain.removeListener('window-close-response', handleCloseResponse)
+  })
+
   // HMR for renderer base on electron-vite cli.
   // Load the remote URL for development or the local html file for production.
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
@@ -75,6 +113,17 @@ app.whenReady().then(() => {
   ipcMain.handle('dialog:open', async (event) => {
     const content = await registerIpcHandlers.handleOpenScenario(event)
     return content
+  })
+
+  ipcMain.handle('dialog:confirm-discard', async (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    if (!win) {
+      console.warn('No window found for confirm-discard dialog')
+      return false
+    }
+
+    const result = await registerIpcHandlers.handleConfirmDiscardChanges(win)
+    return result
   })
 
   ipcMain.on('nssimulator:run-simulation', (_, config) => {
