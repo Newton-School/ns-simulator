@@ -12,7 +12,7 @@ export const PacketEdge = (props: EdgeProps) => {
     targetX,
     targetY,
     targetPosition,
-    borderRadius: 16 // Matches the visual style of TrafficEdge
+    borderRadius: 16
   })
 
   const hasLabel = typeof label === 'string' && label.trim().length > 0

@@ -127,29 +127,17 @@
   }
 }
 
-.react-flow__edge-path,
-.react-flow__edge-path-blur,
-.traffic-packet,
-.traffic-packet rect {
-  transition: none !important;
-}
-
-.react-flow__edge:hover .react-flow__edge-path {
-  transition:
-    stroke 0.3s,
-    stroke-width 0.3s !important;
-}
-
 @layer components {
   .react-flow__edge-path,
+  .react-flow__edge-path-blur,
   .arrow-lead,
   g[key*='arrow'] {
     transition: none !important;
   }
 
   .arrow-lead {
-    stroke: #3b82f6;
-    filter: drop-shadow(0 0 6px rgba(59, 130, 246, 0.5));
+    stroke: rgb(var(--nss-primary));
+    filter: drop-shadow(0 0 6px rgb(var(--nss-primary) / 0.5));
     animation: arrow-glow 2s infinite ease-in-out;
   }
 
@@ -171,10 +159,12 @@
     stroke-opacity: 0.3;
   }
 
-  .react-flow__edge:hover .react-flow__edge-path {
-    stroke: #3b82f6 !important;
+  .react-flow__edge:hover .react-flow__edge-path,
+  .react-flow__edge.selected .react-flow__edge-path {
+    stroke: rgb(var(--nss-primary)) !important;
     stroke-opacity: 1;
     stroke-width: 2px !important;
     stroke-dasharray: none;
+    transition: stroke 0.3s, stroke-width 0.3s !important;
   }
 }
