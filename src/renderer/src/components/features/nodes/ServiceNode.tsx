@@ -20,7 +20,11 @@ import {
   Router,
   LockKeyhole,
   Waypoints,
-  ArrowRightLeft
+  ArrowRightLeft,
+  Box,
+  Hexagon,
+  LogIn,
+  LogOut
 } from 'lucide-react'
 
 import UniversalHandle from '@renderer/components/atoms/UniversalHandle'
@@ -34,6 +38,11 @@ const OFFSETS = ['25%', '50%', '75%']
 const POSITIONS = [Position.Left, Position.Top, Position.Right, Position.Bottom]
 
 const ICON_LOOKUP: Record<string, LucideIcon> = {
+  // General
+  generic: Box,
+  myservice: Hexagon,
+  input: LogIn,
+  output: LogOut,
   // Existing
   globe: Globe,
   cpu: Cpu,
