@@ -26,7 +26,9 @@ import {
   LockKeyhole,
   Waypoints,
   ArrowRightLeft,
-  LayoutGrid
+  LayoutGrid,
+  Rss,
+  Workflow
 } from 'lucide-react'
 import { getTheme } from './themeConfig'
 
@@ -273,6 +275,24 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     icon: Radio,
     lookupKey: 'broker',
     defaultData: { iconKey: 'broker', status: 'healthy', throughput: 100000, load: 10 }
+  },
+  'pub-sub': {
+    id: 'pub-sub',
+    type: 'serviceNode',
+    label: 'Pub/Sub',
+    subLabel: 'Topic Fan-out',
+    icon: Rss,
+    lookupKey: 'pubSub',
+    defaultData: { iconKey: 'pubSub', status: 'healthy', throughput: 20000, load: 15 }
+  },
+  stream: {
+    id: 'stream',
+    type: 'serviceNode',
+    label: 'Event Stream',
+    subLabel: 'Continuous Data',
+    icon: Workflow,
+    lookupKey: 'stream',
+    defaultData: { iconKey: 'stream', status: 'healthy', throughput: 150000, load: 25 }
   },
 
   // Data Stores (additional)

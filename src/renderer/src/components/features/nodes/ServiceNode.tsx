@@ -20,7 +20,9 @@ import {
   Router,
   LockKeyhole,
   Waypoints,
-  ArrowRightLeft
+  ArrowRightLeft,
+  Rss,
+  Workflow
 } from 'lucide-react'
 
 import UniversalHandle from '@renderer/components/atoms/UniversalHandle'
@@ -51,6 +53,8 @@ const ICON_LOOKUP: Record<string, LucideIcon> = {
   // Messaging
   queue: Inbox,
   broker: Radio,
+  pubSub: Rss,
+  stream: Workflow,
   // Data Stores
   nosql: Layers,
   replica: GitBranch,
