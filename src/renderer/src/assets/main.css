@@ -126,3 +126,46 @@
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
   }
 }
+
+@layer components {
+  .react-flow__edge-path,
+  .react-flow__edge-path-blur,
+  .arrow-lead{
+    transition: none !important;
+  }
+
+  .arrow-lead {
+    stroke: rgb(var(--nss-primary));
+    filter: drop-shadow(0 0 6px rgb(var(--nss-primary) / 0.5));
+    animation: arrow-glow 2s infinite ease-in-out;
+  }
+
+  @keyframes arrow-glow {
+    0%,
+    100% {
+      opacity: 1;
+      stroke-width: 3;
+    }
+    50% {
+      opacity: 0.7;
+      stroke-width: 4;
+    }
+  }
+
+  /* The Wire */
+  .react-flow__edge-path {
+    stroke-dasharray: 6 10;
+    stroke-opacity: 0.3;
+  }
+
+  .react-flow__edge:hover .react-flow__edge-path,
+  .react-flow__edge.selected .react-flow__edge-path {
+    stroke: rgb(var(--nss-primary)) !important;
+    stroke-opacity: 1;
+    stroke-width: 2px !important;
+    stroke-dasharray: none;
+    transition:
+      stroke 0.3s,
+      stroke-width 0.3s !important;
+  }
+}
