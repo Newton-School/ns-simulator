@@ -10,7 +10,7 @@ const TrafficEdge = ({
   sourcePosition,
   targetPosition,
   style = {},
-  markerEnd, 
+  markerEnd,
   path,
   data
 }: EdgeProps & { path?: string }) => {

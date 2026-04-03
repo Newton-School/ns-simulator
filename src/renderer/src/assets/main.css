@@ -130,8 +130,7 @@
 @layer components {
   .react-flow__edge-path,
   .react-flow__edge-path-blur,
-  .arrow-lead,
-  g[key*='arrow'] {
+  .arrow-lead{
     transition: none !important;
   }
 
@@ -165,6 +164,8 @@
     stroke-opacity: 1;
     stroke-width: 2px !important;
     stroke-dasharray: none;
-    transition: stroke 0.3s, stroke-width 0.3s !important;
+    transition:
+      stroke 0.3s,
+      stroke-width 0.3s !important;
   }
 }
