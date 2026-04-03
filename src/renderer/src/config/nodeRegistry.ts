@@ -45,11 +45,43 @@ export interface NodeDef {
 
 export const NODE_REGISTRY: Record<string, NodeDef> = {
   // General / Abstract
-  'generic-service': { id: 'generic-service', type: 'serviceNode', label: 'Generic Service', subLabel: 'Component Placeholder', icon: Box, lookupKey: 'generic', defaultData: { iconKey: 'generic', status: 'healthy', throughput: 1000, load: 10 } },
-  'my-service': { id: 'my-service', type: 'serviceNode', label: 'My Service', subLabel: 'Custom Component', icon: Hexagon, lookupKey: 'myservice', defaultData: { iconKey: 'myservice', status: 'healthy', throughput: 1000, load: 10 } },
-  'input-source': { id: 'input-source', type: 'serviceNode', label: 'Input Source', subLabel: 'Data Origin', icon: LogIn, lookupKey: 'input', defaultData: { iconKey: 'input', status: 'healthy', throughput: 5000, load: 0 } },
-  'output-sink': { id: 'output-sink', type: 'serviceNode', label: 'Output Sink', subLabel: 'Data Destination', icon: LogOut, lookupKey: 'output', defaultData: { iconKey: 'output', status: 'healthy', throughput: 5000, load: 0 } },
-  
+  'generic-service': {
+    id: 'generic-service',
+    type: 'serviceNode',
+    label: 'Generic Service',
+    subLabel: 'Component Placeholder',
+    icon: Box,
+    lookupKey: 'generic',
+    defaultData: { iconKey: 'generic', status: 'healthy', throughput: 1000, load: 10 }
+  },
+  'my-service': {
+    id: 'my-service',
+    type: 'serviceNode',
+    label: 'My Service',
+    subLabel: 'Custom Component',
+    icon: Hexagon,
+    lookupKey: 'myservice',
+    defaultData: { iconKey: 'myservice', status: 'healthy', throughput: 1000, load: 10 }
+  },
+  'input-source': {
+    id: 'input-source',
+    type: 'serviceNode',
+    label: 'Input Source',
+    subLabel: 'Data Origin',
+    icon: LogIn,
+    lookupKey: 'input',
+    defaultData: { iconKey: 'input', status: 'healthy', throughput: 5000, load: 0 }
+  },
+  'output-sink': {
+    id: 'output-sink',
+    type: 'serviceNode',
+    label: 'Output Sink',
+    subLabel: 'Data Destination',
+    icon: LogOut,
+    lookupKey: 'output',
+    defaultData: { iconKey: 'output', status: 'healthy', throughput: 5000, load: 0 }
+  },
+
   //Compute Nodes
   'backend-server': {
     id: 'backend-server',

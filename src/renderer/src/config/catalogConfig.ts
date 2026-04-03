@@ -23,8 +23,8 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
     id: 'general',
     title: 'General / Abstract',
     items: [
-      fromRegistry('generic-service')!, 
-      fromRegistry('my-service')!, 
+      fromRegistry('generic-service')!,
+      fromRegistry('my-service')!,
       fromRegistry('input-source')!,
       fromRegistry('output-sink')!
     ]
