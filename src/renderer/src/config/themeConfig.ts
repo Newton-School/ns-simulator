@@ -26,7 +26,7 @@ export const THEME_CONFIG: Record<string, { bg: string; border: string; text: st
   // Messaging
   queue: { bg: 'bg-amber-500', border: 'border-amber-600', text: 'text-amber-600' }, // Message Queue
   broker: { bg: 'bg-red-500', border: 'border-red-600', text: 'text-red-600' }, // Event Broker
-  pubSub: { bg: 'bg-fuchsia-500', border: 'border-fuchsia-600', text: 'text-fuchsia-600' }, // Pub/Sub
+  'pub-sub': { bg: 'bg-fuchsia-500', border: 'border-fuchsia-600', text: 'text-fuchsia-600' }, // Pub/Sub
   stream: { bg: 'bg-blue-500', border: 'border-blue-600', text: 'text-blue-600' }, // Stream
 
   // Data Stores (new)

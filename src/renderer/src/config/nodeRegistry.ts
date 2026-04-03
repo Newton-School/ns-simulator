@@ -271,7 +271,7 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     id: 'message-broker',
     type: 'serviceNode',
     label: 'Event Broker',
-    subLabel: 'Kafka / Event Stream',
+    subLabel: 'Event Bus / Routing',
     icon: Radio,
     lookupKey: 'broker',
     defaultData: { iconKey: 'broker', status: 'healthy', throughput: 100000, load: 10 }
@@ -282,8 +282,8 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     label: 'Pub/Sub',
     subLabel: 'Topic Fan-out',
     icon: Rss,
-    lookupKey: 'pubSub',
-    defaultData: { iconKey: 'pubSub', status: 'healthy', throughput: 20000, load: 15 }
+    lookupKey: 'pub-sub',
+    defaultData: { iconKey: 'pub-sub', status: 'healthy', throughput: 20000, load: 15 }
   },
   stream: {
     id: 'stream',

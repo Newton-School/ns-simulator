@@ -53,7 +53,7 @@ const ICON_LOOKUP: Record<string, LucideIcon> = {
   // Messaging
   queue: Inbox,
   broker: Radio,
-  pubSub: Rss,
+  'pub-sub': Rss,
   stream: Workflow,
   // Data Stores
   nosql: Layers,
