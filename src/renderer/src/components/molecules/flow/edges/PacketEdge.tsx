@@ -1,17 +1,10 @@
-import { BaseEdge, getSmoothStepPath, EdgeProps, EdgeLabelRenderer } from 'reactflow'
+import { getSmoothStepPath, EdgeProps, EdgeLabelRenderer } from 'reactflow'
 import { StatusBadge } from '../../../atoms/StatusBadge'
+import TrafficEdge from '@renderer/components/atoms/TrafficEdge'
 
-export const PacketEdge = ({
-  sourceX,
-  sourceY,
-  targetX,
-  targetY,
-  sourcePosition,
-  targetPosition,
-  style = {},
-  markerEnd,
-  label
-}: EdgeProps) => {
+export const PacketEdge = (props: EdgeProps) => {
+  const { sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, label } = props
+
   const [edgePath, labelX, labelY] = getSmoothStepPath({
     sourceX,
     sourceY,
@@ -19,18 +12,14 @@ export const PacketEdge = ({
     targetX,
     targetY,
     targetPosition,
-    borderRadius: 16
+    borderRadius: 16 // Matches the visual style of TrafficEdge
   })
 
   const hasLabel = typeof label === 'string' && label.trim().length > 0
 
   return (
     <>
-      <BaseEdge
-        path={edgePath}
-        markerEnd={markerEnd}
-        style={{ ...style, strokeWidth: 2, stroke: 'var(--nss-border-high)' }}
-      />
+      <TrafficEdge {...props} path={edgePath} />
 
       {hasLabel && (
         <EdgeLabelRenderer>
