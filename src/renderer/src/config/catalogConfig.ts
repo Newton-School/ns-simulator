@@ -65,7 +65,12 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
   {
     id: 'messaging',
     title: 'Messaging',
-    items: [fromRegistry('message-queue')!, fromRegistry('message-broker')!, fromRegistry('pub-sub')!, fromRegistry('stream')!]
+    items: [
+      fromRegistry('message-queue')!,
+      fromRegistry('message-broker')!,
+      fromRegistry('pub-sub')!,
+      fromRegistry('stream')!
+    ]
   },
   {
     id: 'datastore',

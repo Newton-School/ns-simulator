@@ -84,10 +84,11 @@ const ServiceNode = ({ id, data, selected }: NodeProps<ServiceNodeData>) => {
     () => `
     group relative w-64 bg-nss-surface rounded-lg transition-all duration-200
     overflow-visible
-    ${selected
+    ${
+      selected
         ? 'ring-2 ring-nss-primary shadow-[0_0_20px_rgba(59,130,246,0.3)]'
         : 'border border-nss-border hover:border-nss-muted/30 shadow-xl'
-      }
+    }
   `,
     [selected]
   )

@@ -29,7 +29,6 @@ export const THEME_CONFIG: Record<string, { bg: string; border: string; text: st
   pubSub: { bg: 'bg-fuchsia-500', border: 'border-fuchsia-600', text: 'text-fuchsia-600' }, // Pub/Sub
   stream: { bg: 'bg-blue-500', border: 'border-blue-600', text: 'text-blue-600' }, // Stream
 
-
   // Data Stores (new)
   nosql: { bg: 'bg-lime-500', border: 'border-lime-600', text: 'text-lime-600' }, // NoSQL DB
   replica: { bg: 'bg-cyan-500', border: 'border-cyan-600', text: 'text-cyan-600' }, // Read Replica
