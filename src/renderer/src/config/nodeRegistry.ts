@@ -29,7 +29,22 @@ import {
   LayoutGrid,
   Hexagon,
   LogIn,
-  LogOut
+  LogOut,
+  Activity,
+  FileText,
+  Library,
+  Radar,
+  BellRing,
+  HeartPulse,
+  ServerCog,
+  BookOpen,
+  ShieldCheck,
+  Fingerprint,
+  Bell,
+  LineChart,
+  Sliders,
+  Key,
+  ToggleLeft
 } from 'lucide-react'
 import { getTheme } from './themeConfig'
 
@@ -124,8 +139,8 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     type: 'computeNode',
     label: 'Auth Service',
     subLabel: 'Authentication / Tokens',
-    icon: Shield,
-    lookupKey: 'auth',
+    icon: Fingerprint,
+    lookupKey: 'AUTH',
     defaultData: { computeType: 'AUTH', cpu_usage: 25, queue_depth: 5, is_overloaded: false }
   },
   'search-service': {
@@ -134,7 +149,7 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     label: 'Search Service',
     subLabel: 'Query Processing',
     icon: Search,
-    lookupKey: 'search-service',
+    lookupKey: 'SEARCH_SERVICE',
     defaultData: {
       computeType: 'SEARCH_SERVICE',
       cpu_usage: 55,
@@ -208,6 +223,24 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     lookupKey: 'vpn',
     defaultData: { iconKey: 'vpn', status: 'degraded', throughput: 500, load: 10 }
   },
+  'routing-rule': {
+    id: 'routing-rule',
+    type: 'serviceNode',
+    label: 'Routing Rule',
+    subLabel: 'Path / Header Matching',
+    icon: GitBranch,
+    lookupKey: 'routing',
+    defaultData: { iconKey: 'routing-rule', status: 'healthy', throughput: 20000, load: 5 }
+  },
+  'routing-policy': {
+    id: 'routing-policy',
+    type: 'serviceNode',
+    label: 'Routing Policy',
+    subLabel: 'Traffic Distribution',
+    icon: Waypoints,
+    lookupKey: 'routing',
+    defaultData: { iconKey: 'routing-policy', status: 'healthy', throughput: 20000, load: 5 }
+  },
 
   //Security Nodes
   waf: {
@@ -227,6 +260,15 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     icon: ShieldAlert,
     lookupKey: 'firewall',
     defaultData: { iconKey: 'firewall', status: 'healthy', droppedPackets: 0 }
+  },
+  'security-group': {
+    id: 'security-group',
+    type: 'securityNode',
+    label: 'Security Group',
+    subLabel: 'Network Boundary',
+    icon: ShieldCheck,
+    lookupKey: 'security-group',
+    defaultData: { iconKey: 'security-group', status: 'healthy', droppedPackets: 0, blockRate: 0 }
   },
 
   // Infrastructure
@@ -256,6 +298,24 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     icon: LayoutGrid,
     lookupKey: 'subnet',
     defaultData: { iconKey: 'subnet' }
+  },
+  'dns-server': {
+    id: 'dns-server',
+    type: 'serviceNode',
+    label: 'DNS Server',
+    subLabel: 'Internal DNS / Authoritative',
+    icon: ServerCog,
+    lookupKey: 'server-cog',
+    defaultData: { iconKey: 'server-cog', status: 'healthy', throughput: 5000, load: 10 }
+  },
+  'discovery-service': {
+    id: 'discovery-service',
+    type: 'serviceNode',
+    label: 'Discovery Service',
+    subLabel: 'Service Registry',
+    icon: BookOpen,
+    lookupKey: 'book-open',
+    defaultData: { iconKey: 'book-open', status: 'healthy', throughput: 3000, load: 15 }
   },
 
   // Clients & Edge
@@ -354,6 +414,26 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     defaultData: { iconKey: 'search', status: 'healthy', throughput: 1500, load: 25 }
   },
 
+  // App Support
+  'push-notification-service': {
+    id: 'push-notification-service',
+    type: 'serviceNode',
+    label: 'Notification Service',
+    subLabel: 'Push / Email / SMS',
+    icon: Bell,
+    lookupKey: 'notification',
+    defaultData: { iconKey: 'notification', status: 'healthy', throughput: 3000, load: 15 }
+  },
+  'streaming-analytics': {
+    id: 'streaming-analytics',
+    type: 'serviceNode',
+    label: 'Analytics Service',
+    subLabel: 'Streaming Analytics',
+    icon: LineChart,
+    lookupKey: 'analytics',
+    defaultData: { iconKey: 'analytics', status: 'healthy', throughput: 10000, load: 40 }
+  },
+
   // External
   'external-service': {
     id: 'external-service',
@@ -363,6 +443,91 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     icon: ExternalLink,
     lookupKey: 'external',
     defaultData: { iconKey: 'external', status: 'healthy', throughput: 500, load: 5 }
+  },
+
+  // Control Plane
+  'config-store': {
+    id: 'config-store',
+    type: 'serviceNode',
+    label: 'Config Store',
+    subLabel: 'Configuration',
+    icon: Sliders,
+    lookupKey: 'config',
+    defaultData: { iconKey: 'config', status: 'healthy', throughput: 1000, load: 10 }
+  },
+  'secrets-manager': {
+    id: 'secrets-manager',
+    type: 'serviceNode',
+    label: 'Secrets Manager',
+    subLabel: 'Secrets & Keys',
+    icon: Key,
+    lookupKey: 'secrets',
+    defaultData: { iconKey: 'secrets', status: 'healthy', throughput: 500, load: 5 }
+  },
+  'feature-flag-service': {
+    id: 'feature-flag-service',
+    type: 'serviceNode',
+    label: 'Feature Flag Service',
+    subLabel: 'Feature Flags',
+    icon: ToggleLeft,
+    lookupKey: 'flags',
+    defaultData: { iconKey: 'flags', status: 'healthy', throughput: 2000, load: 15 }
+  },
+
+  // Observability
+  'metrics-collector-agent': {
+    id: 'metrics-collector-agent',
+    type: 'serviceNode',
+    label: 'Metrics Collector',
+    subLabel: 'Agent / Telegraf',
+    icon: Activity,
+    lookupKey: 'metrics-collector',
+    defaultData: { iconKey: 'metrics-collector', status: 'healthy', throughput: 1000, load: 5 }
+  },
+  'log-collector-agent': {
+    id: 'log-collector-agent',
+    type: 'serviceNode',
+    label: 'Log Collector',
+    subLabel: 'Fluentd / Promtail',
+    icon: FileText,
+    lookupKey: 'log-collector',
+    defaultData: { iconKey: 'log-collector', status: 'healthy', throughput: 5000, load: 10 }
+  },
+  'log-aggregation-service': {
+    id: 'log-aggregation-service',
+    type: 'serviceNode',
+    label: 'Centralized Logging',
+    subLabel: 'Elasticsearch / Loki',
+    icon: Library,
+    lookupKey: 'log-aggregator',
+    defaultData: { iconKey: 'log-aggregator', status: 'healthy', throughput: 15000, load: 20 }
+  },
+  'distributed-tracing-collector': {
+    id: 'distributed-tracing-collector',
+    type: 'serviceNode',
+    label: 'Distributed Tracing',
+    subLabel: 'Jaeger / Tempo',
+    icon: Radar,
+    lookupKey: 'tracing',
+    defaultData: { iconKey: 'tracing', status: 'healthy', throughput: 10000, load: 15 }
+  },
+  'alerting-engine': {
+    id: 'alerting-engine',
+    type: 'serviceNode',
+    label: 'Alerting Hook',
+    subLabel: 'Alertmanager / PagerDuty',
+    icon: BellRing,
+    lookupKey: 'alerting',
+    defaultData: { iconKey: 'alerting', status: 'healthy', throughput: 500, load: 5 }
+  },
+  'health-check-monitor': {
+    id: 'health-check-monitor',
+    type: 'serviceNode',
+    label: 'Health Check Manager',
+    subLabel: 'Synthetic Monitoring',
+    icon: HeartPulse,
+    lookupKey: 'health-check',
+    defaultData: { iconKey: 'health-check', status: 'healthy', throughput: 100, load: 5 }
   }
 }
 
@@ -396,5 +561,13 @@ export const COMPUTE_DEFAULTS = {
     label: NODE_REGISTRY['async-worker'].label,
     subLabel: NODE_REGISTRY['async-worker'].subLabel
   },
-  CRON: { label: NODE_REGISTRY['cron-job'].label, subLabel: NODE_REGISTRY['cron-job'].subLabel }
+  CRON: { label: NODE_REGISTRY['cron-job'].label, subLabel: NODE_REGISTRY['cron-job'].subLabel },
+  AUTH: {
+    label: NODE_REGISTRY['auth-service'].label,
+    subLabel: NODE_REGISTRY['auth-service'].subLabel
+  },
+  SEARCH_SERVICE: {
+    label: NODE_REGISTRY['search-service'].label,
+    subLabel: NODE_REGISTRY['search-service'].subLabel
+  }
 }

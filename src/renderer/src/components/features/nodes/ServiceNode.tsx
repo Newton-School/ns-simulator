@@ -24,7 +24,17 @@ import {
   Box,
   Hexagon,
   LogIn,
-  LogOut
+  LogOut,
+  Activity,
+  FileText,
+  Library,
+  Radar,
+  BellRing,
+  HeartPulse,
+  ServerCog,
+  BookOpen,
+  Bell,
+  LineChart
 } from 'lucide-react'
 
 import UniversalHandle from '@renderer/components/atoms/UniversalHandle'
@@ -53,6 +63,11 @@ const ICON_LOOKUP: Record<string, LucideIcon> = {
   vpn: LockKeyhole,
   ingress: Waypoints,
   proxy: ArrowRightLeft,
+  'server-cog': ServerCog,
+  'book-open': BookOpen,
+  //Routing
+  'routing-rule': GitBranch,
+  'routing-policy': Waypoints,
   // Clients & Edge
   monitor: Monitor,
   dns: Navigation,
@@ -65,8 +80,18 @@ const ICON_LOOKUP: Record<string, LucideIcon> = {
   replica: GitBranch,
   storage: HardDrive,
   search: Search,
+  // App Support
+  notification: Bell,
+  analytics: LineChart,
   // External
-  external: ExternalLink
+  external: ExternalLink,
+  // Observability
+  'metrics-collector': Activity,
+  'log-collector': FileText,
+  'log-aggregator': Library,
+  tracing: Radar,
+  alerting: BellRing,
+  'health-check': HeartPulse
 }
 
 const ServiceNode = ({ id, data, selected }: NodeProps<ServiceNodeData>) => {
