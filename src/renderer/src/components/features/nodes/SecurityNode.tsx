@@ -1,6 +1,6 @@
 import React, { memo, useState, useCallback, useMemo } from 'react'
 import { Position, NodeProps } from 'reactflow'
-import { LucideIcon, Shield, ShieldAlert, Lock } from 'lucide-react'
+import { LucideIcon, Shield, ShieldAlert, Lock, ShieldCheck } from 'lucide-react'
 
 import UniversalHandle from '@renderer/components/atoms/UniversalHandle'
 import { ProgressBar } from '@renderer/components/atoms/ProgressBar'
@@ -15,6 +15,7 @@ const POSITIONS = [Position.Left, Position.Top, Position.Right, Position.Bottom]
 const ICON_LOOKUP: Record<string, LucideIcon> = {
   waf: Shield,
   firewall: ShieldAlert,
+  'security-group': ShieldCheck,
   default: Lock
 }
 

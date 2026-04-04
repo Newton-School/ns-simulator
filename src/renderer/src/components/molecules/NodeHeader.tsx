@@ -1,11 +1,12 @@
 import { memo } from 'react'
 import { LucideIcon, HelpCircle } from 'lucide-react'
+import { ColorTheme } from '@renderer/types/ui'
 
 interface NodeHeaderProps {
   label: string
   icon: LucideIcon
   status?: 'healthy' | 'degraded' | 'critical'
-  color?: string
+  color?: ColorTheme | string
   children?: React.ReactNode
 }
 
@@ -17,7 +18,9 @@ export const NodeHeader = memo(
       critical: 'bg-nss-danger shadow-[0_0_8px_rgba(239,68,68,0.4)]'
     }
 
-    const safeColor = color || 'bg-nss-primary'
+    const safeBg = typeof color === 'string' ? color : color?.bg || 'bg-nss-primary'
+    const safeText =
+      typeof color === 'string' ? color.replace('bg-', 'text-') : color?.text || 'text-nss-primary'
 
     const SafeIcon = Icon || HelpCircle
 
@@ -26,9 +29,9 @@ export const NodeHeader = memo(
         {/* Left Side: Icon + Label */}
         <div className="flex items-center gap-3 overflow-hidden">
           <div
-            className={`p-1.5 rounded bg-opacity-50 ${safeColor} shrink-0 flex items-center justify-center`}
+            className={`p-1.5 rounded bg-opacity-50 ${safeBg} shrink-0 flex items-center justify-center`}
           >
-            <SafeIcon size={16} className={safeColor.replace('bg-', 'text-')} />
+            <SafeIcon size={16} className={safeText} />
           </div>
 
           <span className="font-bold text-sm text-nss-text truncate max-w-[120px]">{label}</span>

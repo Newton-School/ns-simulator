@@ -7,6 +7,7 @@ interface LibraryItemProps {
 
 export const LibraryItem = ({ item }: LibraryItemProps) => {
   const { icon: Icon, label, subLabel, color, type, data } = item
+  const { bg, text } = color
 
   const onDragStart = (event: React.DragEvent) => {
     event.dataTransfer.setData('application/reactflow/type', type)
@@ -36,9 +37,9 @@ export const LibraryItem = ({ item }: LibraryItemProps) => {
     >
       {/* Icon Well */}
       <div
-        className={`p-2 rounded bg-opacity-40 group-hover:bg-opacity-20 ${color} shrink-0 transition-all`}
+        className={`p-2 rounded bg-opacity-40 group-hover:bg-opacity-20 ${bg} shrink-0 transition-all`}
       >
-        <Icon size={18} className={color.replace('bg-', 'text-')} />
+        <Icon size={18} className={text} />
       </div>
 
       {/* Text Content */}
