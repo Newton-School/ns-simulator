@@ -27,6 +27,11 @@ const getItems = (ids: string[]) => {
 
 export const CATALOG_CONFIG: CatalogCategory[] = [
   {
+    id: 'general',
+    title: 'General / Abstract',
+    items: getItems(['generic-service', 'my-service', 'input-source', 'output-sink'])
+  },
+  {
     id: 'infrastructure',
     title: 'Infrastructure',
     items: getItems([

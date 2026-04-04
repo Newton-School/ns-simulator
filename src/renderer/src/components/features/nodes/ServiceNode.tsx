@@ -21,6 +21,10 @@ import {
   LockKeyhole,
   Waypoints,
   ArrowRightLeft,
+  Box,
+  Hexagon,
+  LogIn,
+  LogOut,
   Activity,
   FileText,
   Library,
@@ -44,6 +48,11 @@ const OFFSETS = ['25%', '50%', '75%']
 const POSITIONS = [Position.Left, Position.Top, Position.Right, Position.Bottom]
 
 const ICON_LOOKUP: Record<string, LucideIcon> = {
+  // General
+  generic: Box,
+  myservice: Hexagon,
+  input: LogIn,
+  output: LogOut,
   // Existing
   globe: Globe,
   cpu: Cpu,

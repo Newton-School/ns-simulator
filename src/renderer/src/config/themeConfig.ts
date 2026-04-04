@@ -1,6 +1,12 @@
 import { ColorTheme } from '@renderer/types/ui'
 
 export const THEME_CONFIG: Record<string, ColorTheme> = {
+  // General / Abstract
+  generic: { bg: 'bg-slate-400', border: 'border-slate-500', text: 'text-slate-500' },
+  myservice: { bg: 'bg-zinc-500', border: 'border-zinc-600', text: 'text-zinc-600' },
+  input: { bg: 'bg-teal-500', border: 'border-teal-600', text: 'text-teal-600' },
+  output: { bg: 'bg-rose-500', border: 'border-rose-600', text: 'text-rose-600' },
+
   // Compute
   SERVER: { bg: 'bg-indigo-500', border: 'border-indigo-600', text: 'text-indigo-600' },
   LAMBDA: { bg: 'bg-yellow-500', border: 'border-yellow-600', text: 'text-yellow-600' },
