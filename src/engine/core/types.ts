@@ -362,6 +362,15 @@ export interface WorkloadProfile {
      */
     spikeDuration: number
   }
+  bursty?: {
+    burstRps: number
+    burstDuration: number // ms
+    normalDuration: number // ms
+  }
+  sawtooth?: {
+    peakRps: number
+    rampDuration: number // ms
+  }
   requestDistribution: Array<{
     type: string
     /**
