@@ -1,6 +1,6 @@
-import { createEvent, Request } from '../events'
-import { ComponentNode, DistributionConfig, EventScheduler, NodeMetrics, NodeState } from '../types'
-import { Distributions } from '../distribution'
+import { createEvent, Request } from '../core/events'
+import { ComponentNode, DistributionConfig, EventScheduler, NodeMetrics, NodeState } from '../core/types'
+import { Distributions } from '../stochastic/distribution'
 
 export type ArrivalResult =
   | { status: 'processed' }

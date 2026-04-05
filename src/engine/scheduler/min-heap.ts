@@ -1,4 +1,4 @@
-import { SimulationEvent } from './events'
+import { SimulationEvent } from '../core/events'
 
 export class MinHeap<T extends SimulationEvent> {
   private heap: { event: T; seq: number }[] = []

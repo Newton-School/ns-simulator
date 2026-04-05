@@ -1,4 +1,4 @@
-import { RandomGenerator } from './types'
+import { RandomGenerator } from '../core/types'
 
 function xmur3(str: string): () => number {
   let h = 1779033703 ^ str.length

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { MinHeap } from '../min-heap'
-import { SimulationEvent, EventType } from '../events'
+import { SimulationEvent, EventType } from '../../core/events'
 
 class MockSimulationEvent implements SimulationEvent {
   timestamp: bigint

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { Distributions } from '../distribution'
 import { createRandom } from '../random'
-import { DistributionConfig } from '../types'
+import { DistributionConfig } from '../../core/types'
 
 function makeDistributions(seed: string): Distributions {
   return new Distributions(createRandom(seed))

@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
-import { GGcKNode } from '../nodes/GGcKNode'
-import { Distributions } from '../distribution'
-import { EventScheduler } from '../types'
-import { createRandom } from '../random'
-import { Request, SimulationEvent } from '../events'
-import { ComponentNode } from '../types'
+import { GGcKNode } from '../GGcKNode'
+import { Distributions } from '../../stochastic/distribution'
+import { EventScheduler } from '../../core/types'
+import { createRandom } from '../../stochastic/random'
+import { Request, SimulationEvent } from '../../core/events'
+import { ComponentNode } from '../../core/types'
 
 function makeRequest(id: string, priority = 1): Request {
   return {

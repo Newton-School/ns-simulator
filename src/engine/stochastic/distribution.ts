@@ -1,4 +1,4 @@
-import { BaseDistributionConfig, DistributionConfig, RandomGenerator } from './types'
+import { BaseDistributionConfig, DistributionConfig, RandomGenerator } from '../core/types'
 
 type DistributionSampler = () => number
 

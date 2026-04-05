@@ -1,4 +1,4 @@
-import { TopologyJSON } from '../types'
+import { TopologyJSON } from '../core/types'
 
 export const mockArchitecture: TopologyJSON = {
   id: 'arch-123',

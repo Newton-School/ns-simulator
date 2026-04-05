@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { TopologyJSON } from './types'
+import { TopologyJSON } from '../core/types'
 
 const COMPONENT_CATEGORIES = [
   'compute',
