@@ -1,8 +1,7 @@
-import { createEvent, type Request } from "./core/events"
-import { microToMs, msToMicro } from "./core/time"
-import { EventScheduler, RandomGenerator, WorkloadProfile } from "./core/types"
-import { Distributions } from "./stochastic/distribution"
-
+import { createEvent, type Request } from './core/events'
+import { microToMs, msToMicro } from './core/time'
+import { EventScheduler, RandomGenerator, WorkloadProfile } from './core/types'
+import { Distributions } from './stochastic/distribution'
 
 const DEFAULT_TIMEOUT_MS = 30_000
 const DEFAULT_BURST_MULTIPLIER = 5
@@ -138,7 +137,8 @@ export class WorkloadGenerator {
           return this.intervalForRps(baseRps)
         }
 
-        const rampDuration = sawtooth.rampDuration > 0 ? sawtooth.rampDuration : DEFAULT_RAMP_DURATION_MS
+        const rampDuration =
+          sawtooth.rampDuration > 0 ? sawtooth.rampDuration : DEFAULT_RAMP_DURATION_MS
         const elapsedInRamp = this.elapsedMs(currentTime) % rampDuration
         const t = elapsedInRamp / rampDuration
         const currentRps = baseRps + (sawtooth.peakRps - baseRps) * t

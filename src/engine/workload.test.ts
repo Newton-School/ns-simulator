@@ -1,10 +1,9 @@
-import { describe, expect, it } from "vitest"
-import { SimulationEvent, type Request } from "./core/events"
-import { msToMicro } from "./core/time"
-import { EventScheduler, WorkloadProfile } from "./core/types"
-import { createRandom } from "./stochastic/random"
-import { WorkloadGenerator } from "./workload"
-
+import { describe, expect, it } from 'vitest'
+import { SimulationEvent, type Request } from './core/events'
+import { msToMicro } from './core/time'
+import { EventScheduler, WorkloadProfile } from './core/types'
+import { createRandom } from './stochastic/random'
+import { WorkloadGenerator } from './workload'
 
 function makeWorkload(overrides: Partial<WorkloadProfile> = {}): WorkloadProfile {
   return {
@@ -115,10 +114,15 @@ function collectSequence(seed: string, count = 200): Request[] {
 describe('WorkloadGenerator', () => {
   it('constant pattern at 100 RPS generates 100 requests in 1 simulated second', () => {
     const scheduler = makeScheduler()
-    const generator = new WorkloadGenerator(makeWorkload(), createRandom('constant-rate'), scheduler, {
-      defaultTimeoutMs: 5000,
-      simulationDurationMs: 1000
-    })
+    const generator = new WorkloadGenerator(
+      makeWorkload(),
+      createRandom('constant-rate'),
+      scheduler,
+      {
+        defaultTimeoutMs: 5000,
+        simulationDurationMs: 1000
+      }
+    )
 
     generator.initialize(0n)
 
@@ -255,9 +259,14 @@ describe('WorkloadGenerator', () => {
 
   it('request type distribution matches configured weights within 5% over 10,000 requests', () => {
     const scheduler = makeScheduler()
-    const generator = new WorkloadGenerator(makeWorkload(), createRandom('weight-seed'), scheduler, {
-      defaultTimeoutMs: 5000
-    })
+    const generator = new WorkloadGenerator(
+      makeWorkload(),
+      createRandom('weight-seed'),
+      scheduler,
+      {
+        defaultTimeoutMs: 5000
+      }
+    )
 
     generator.initialize(0n)
     scheduler.clear()

@@ -334,6 +334,24 @@ export const WorkloadProfileSchema = z.object({
       spikeRps: z.number().nonnegative(),
       spikeDuration: z.number().nonnegative()
     })
+    .optional(),
+
+  bursty: z
+    .object({
+      burstRps: z.number().nonnegative(),
+      burstDuration: z.number().nonnegative(),
+      normalDuration: z.number().nonnegative()
+    })
+    .refine((config) => config.burstDuration + config.normalDuration > 0, {
+      message: 'bursty.burstDuration + bursty.normalDuration must be > 0'
+    })
+    .optional(),
+
+  sawtooth: z
+    .object({
+      peakRps: z.number().nonnegative(),
+      rampDuration: z.number().nonnegative()
+    })
     .optional()
 })
 
