@@ -2,14 +2,14 @@ import { memo } from 'react'
 import { Sidebar, Save, FolderOpen } from 'lucide-react'
 
 // Atoms & Molecules
-import { Divider } from '../atoms/Divider'
-import { IconButton } from '../atoms/IconButton'
-import { CtaButton } from '../atoms/CtaButton'
-import { ToggleButton } from '../atoms/ToggleButton'
-import { Branding } from '../molecules/Branding'
-import { FileStatus } from '../molecules/FileStatus'
+import { Divider } from '../ui/Divider'
+import { IconButton } from '../ui/IconButton'
+import { CtaButton } from '../ui/CtaButton'
+import { ToggleButton } from '../ui/ToggleButton'
+import { Branding } from './Branding'
+import { FileStatus } from './FileStatus'
 
-import { ThemeToggle } from '../features/ThemeToggle'
+import { ThemeToggle } from './ThemeToggle'
 
 interface HeaderProps {
   // Layout Actions

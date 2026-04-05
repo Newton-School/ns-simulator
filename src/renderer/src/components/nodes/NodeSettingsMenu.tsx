@@ -2,9 +2,9 @@ import { useRef, useEffect, useCallback } from 'react'
 import { useReactFlow } from 'reactflow'
 import { Trash2 } from 'lucide-react'
 
-import { MenuTrigger } from '../atoms/MenuTrigger'
-import { MenuHeader } from '../atoms/MenuHeader'
-import { MenuOption } from '../atoms/MenuOption'
+import { MenuTrigger } from '../ui/MenuTrigger'
+import { MenuHeader } from '../ui/MenuHeader'
+import { MenuOption } from '../ui/MenuOption'
 
 interface NodeSettingsMenuProps {
   nodeId: string

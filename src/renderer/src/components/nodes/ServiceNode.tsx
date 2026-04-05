@@ -33,11 +33,11 @@ import {
   LineChart
 } from 'lucide-react'
 
-import UniversalHandle from '@renderer/components/atoms/UniversalHandle'
-import { ProgressBar } from '@renderer/components/atoms/ProgressBar'
-import { NodeHeader } from '@renderer/components/molecules/NodeHeader'
-import { MetricItem } from '@renderer/components/molecules/MetricItem'
-import { NodeSettingsMenu } from '@renderer/components/molecules/NodeSettingsMenu'
+import UniversalHandle from '@renderer/components/ui/UniversalHandle'
+import { ProgressBar } from '@renderer/components/ui/ProgressBar'
+import { NodeHeader } from '@renderer/components/nodes/NodeHeader'
+import { MetricItem } from '@renderer/components/properties/MetricItem'
+import { NodeSettingsMenu } from '@renderer/components/nodes/NodeSettingsMenu'
 import { ServiceNodeData } from '@renderer/types/ui'
 
 const OFFSETS = ['25%', '50%', '75%']

@@ -3,7 +3,7 @@ import ServiceNode from '../../nodes/ServiceNode'
 import VpcNode from '../../nodes/VpcNode'
 import ComputeNode from '../../nodes/ComputeNode'
 import SecurityNode from '../../nodes/SecurityNode'
-import { PacketEdge } from '@renderer/components/molecules/flow/edges/PacketEdge'
+import { PacketEdge } from '@renderer/components/canvas/PacketEdge'
 
 export const GRID_COLOR = '#2A303C'
 

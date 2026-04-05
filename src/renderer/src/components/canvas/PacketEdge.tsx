@@ -1,5 +1,5 @@
 import { BaseEdge, getSmoothStepPath, EdgeProps, EdgeLabelRenderer } from 'reactflow'
-import { StatusBadge } from '../../../atoms/StatusBadge'
+import { StatusBadge } from '../ui/StatusBadge'
 
 export const PacketEdge = ({
   sourceX,

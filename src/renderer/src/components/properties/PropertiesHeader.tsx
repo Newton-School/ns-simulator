@@ -1,4 +1,4 @@
-import { StatusBadge } from '../atoms/StatusBadge'
+import { StatusBadge } from '../ui/StatusBadge'
 import { resolveNodeConfig } from '@renderer/config/nodeRegistry'
 
 interface PropertiesHeaderProps {

@@ -4,7 +4,7 @@ import { Cloud, Box, LucideIcon, LayoutGrid } from 'lucide-react'
 import { useVpcLogic } from './vpc/useVpcLogic'
 import { VpcToolbar } from './vpc/VpcToolbar'
 import { VpcHeader } from './vpc/VpcHeader'
-import { NodeSettingsMenu } from '@renderer/components/molecules/NodeSettingsMenu'
+import { NodeSettingsMenu } from '@renderer/components/nodes/NodeSettingsMenu'
 
 const VPC_ICON_LOOKUP: Record<string, LucideIcon> = {
   cloud: Cloud,

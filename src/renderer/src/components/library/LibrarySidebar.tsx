@@ -1,5 +1,5 @@
 import { CATALOG_CONFIG } from '../../config/catalogConfig'
-import { LibraryItem } from '../molecules/LibraryItem'
+import { LibraryItem } from './LibraryItem'
 
 export const LibrarySidebar = () => {
   return (

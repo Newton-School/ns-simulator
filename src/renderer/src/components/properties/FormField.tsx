@@ -1,7 +1,7 @@
-import { Label } from '../atoms/Label'
-import { Input } from '../atoms/Input'
-import { Select } from '../atoms/Select'
-import { Slider } from '../atoms/Slider'
+import { Label } from '../ui/Label'
+import { Input } from '../ui/Input'
+import { Select } from '../ui/Select'
+import { Slider } from '../ui/Slider'
 
 interface FormFieldProps {
   fieldKey: string

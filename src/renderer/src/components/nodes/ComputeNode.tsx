@@ -2,8 +2,8 @@ import React, { memo, useMemo } from 'react'
 import { Position, NodeProps } from 'reactflow'
 import { ComputeNodeData } from '@renderer/types/ui'
 import { resolveNodeConfig } from '@renderer/config/nodeRegistry'
-import { ProgressBar } from '@renderer/components/atoms/ProgressBar'
-import UniversalHandle from '@renderer/components/atoms/UniversalHandle'
+import { ProgressBar } from '@renderer/components/ui/ProgressBar'
+import UniversalHandle from '@renderer/components/ui/UniversalHandle'
 
 const OFFSETS = ['25%', '50%', '75%']
 const POSITIONS = [Position.Left, Position.Top, Position.Right, Position.Bottom]

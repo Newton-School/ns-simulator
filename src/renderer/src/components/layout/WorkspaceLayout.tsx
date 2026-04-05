@@ -8,13 +8,13 @@ import useStore from '@renderer/store/useStore'
 import { useFlowPersistence } from '@renderer/hooks/useFlowPersistence'
 
 // Organisms
-import { LibrarySidebar } from '../organisms/LibrarySidebar'
-import { PropertiesPanel } from '../organisms/PropertiesPanel'
-import { FlowCanvas } from '../organisms/FlowCanvas'
-import { Header } from '../organisms/Header'
+import { LibrarySidebar } from '../library/LibrarySidebar'
+import { PropertiesPanel } from '../properties/PropertiesPanel'
+import { FlowCanvas } from '../canvas/FlowCanvas'
+import { Header } from './Header'
 
 // Atoms
-import { ResizeHandle } from '../atoms/ResizeHandle'
+import { ResizeHandle } from '../ui/ResizeHandle'
 
 export const WorkspaceLayout = () => {
   // Sidebar State

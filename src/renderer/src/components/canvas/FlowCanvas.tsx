@@ -10,13 +10,13 @@ import ReactFlow, {
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 
-import EmptyFlowState from '../atoms/EmptyFlowState'
+import EmptyFlowState from '../ui/EmptyFlowState'
 // Hooks & Config
-import { EdgePropertiesPanel } from '../atoms/EdgePropertiesPanel'
+import { EdgePropertiesPanel } from '../ui/EdgePropertiesPanel'
 
-import { useFlowStore } from '../features/canvas/hooks/useFlowStore'
-import { useFlowDnD } from '../features/canvas/hooks/useFlowDnD'
-import { useFlowConfig, nodeTypes, GRID_COLOR } from '../features/canvas/config/flowConfig'
+import { useFlowStore } from './hooks/useFlowStore'
+import { useFlowDnD } from './hooks/useFlowDnD'
+import { useFlowConfig, nodeTypes, GRID_COLOR } from './config/flowConfig'
 
 const FlowCanvasInternal = () => {
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null)

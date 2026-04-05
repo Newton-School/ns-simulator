@@ -1,5 +1,5 @@
 import { FIELD_DEFINITIONS, FIELD_GROUPS } from '@renderer/config/fieldConfig'
-import { FormField } from '../molecules/FormField'
+import { FormField } from './FormField'
 import { Cpu, Zap, Layers, AlertTriangle } from 'lucide-react'
 import { COMPUTE_DEFAULTS } from '@renderer/config/nodeRegistry'
 import { ComputeType } from '@renderer/types/ui'
