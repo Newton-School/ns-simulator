@@ -5,6 +5,8 @@ import icon from '../../resources/icon.png?asset'
 import { registerIpcHandlers } from './ipcHandlers'
 
 function createWindow(): void {
+  const CLOSE_RESPONSE_TIMEOUT_MS = 5000
+
   // Create the browser window.
   const mainWindow = new BrowserWindow({
     width: 900,
@@ -28,8 +30,30 @@ function createWindow(): void {
   })
 
   let isQuitting = false
+  let awaitingCloseResponse = false
+  let closeResponseTimer: ReturnType<typeof setTimeout> | null = null
+
+  const clearCloseResponseTimeout = (): void => {
+    if (closeResponseTimer) {
+      clearTimeout(closeResponseTimer)
+      closeResponseTimer = null
+    }
+  }
+
+  const forceCloseWindow = (): void => {
+    if (mainWindow.isDestroyed()) return
+    isQuitting = true
+    awaitingCloseResponse = false
+    clearCloseResponseTimeout()
+    mainWindow.close()
+  }
 
   const handleCloseResponse = async (_event, isUnsaved) => {
+    if (mainWindow.isDestroyed() || !awaitingCloseResponse) return
+
+    awaitingCloseResponse = false
+    clearCloseResponseTimeout()
+
     if (mainWindow.isDestroyed()) return
 
     const unsaved = Boolean(isUnsaved)
@@ -44,12 +68,10 @@ function createWindow(): void {
       }
 
       if (confirm && !mainWindow.isDestroyed()) {
-        isQuitting = true
-        mainWindow.close()
+        forceCloseWindow()
       }
     } else {
-      isQuitting = true
-      mainWindow.close()
+      forceCloseWindow()
     }
   }
 
@@ -58,10 +80,35 @@ function createWindow(): void {
   mainWindow.on('close', (event) => {
     if (isQuitting) return
     event.preventDefault()
-    mainWindow.webContents.send('window-close-attempt')
+
+    if (awaitingCloseResponse) return
+
+    if (mainWindow.webContents.isDestroyed() || mainWindow.webContents.isCrashed()) {
+      forceCloseWindow()
+      return
+    }
+
+    awaitingCloseResponse = true
+    closeResponseTimer = setTimeout(() => {
+      if (mainWindow.isDestroyed() || isQuitting) return
+
+      console.warn(
+        `Renderer did not respond to close request within ${CLOSE_RESPONSE_TIMEOUT_MS}ms; forcing close.`
+      )
+      forceCloseWindow()
+    }, CLOSE_RESPONSE_TIMEOUT_MS)
+
+    try {
+      mainWindow.webContents.send('window-close-attempt')
+    } catch (error) {
+      console.error('Failed to dispatch close request to renderer:', error)
+      forceCloseWindow()
+    }
   })
 
   mainWindow.on('closed', () => {
+    awaitingCloseResponse = false
+    clearCloseResponseTimeout()
     ipcMain.removeListener('window-close-response', handleCloseResponse)
   })
 

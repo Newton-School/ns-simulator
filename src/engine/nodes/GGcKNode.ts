@@ -47,10 +47,30 @@ export class GGcKNode {
     if (!config.queue) {
       throw new Error(`GGcKNode requires a 'queue' configuration for component '${config.id}'.`)
     }
+
+    const { workers, capacity, discipline } = config.queue
+    if (!Number.isInteger(workers) || workers < 1) {
+      throw new Error(
+        `GGcKNode for component '${config.id}' requires 'queue.workers' to be a positive integer (got ${workers}).`
+      )
+    }
+
+    if (!Number.isInteger(capacity) || capacity < 1) {
+      throw new Error(
+        `GGcKNode for component '${config.id}' requires 'queue.capacity' to be a positive integer (got ${capacity}).`
+      )
+    }
+
+    if (capacity < workers) {
+      throw new Error(
+        `GGcKNode for component '${config.id}' requires 'queue.capacity' to be greater than or equal to 'queue.workers' (capacity=${capacity}, workers=${workers}).`
+      )
+    }
+
     this.id = config.id
-    this.maxWorkers = config.queue.workers
-    this.maxCapacity = config.queue.capacity
-    this.discipline = config.queue.discipline
+    this.maxWorkers = workers
+    this.maxCapacity = capacity
+    this.discipline = discipline
     this.serviceDistribution = config.processing?.distribution ?? { type: 'constant', value: 10 }
     this.distributions = distributions
     this.scheduler = scheduler
@@ -157,7 +177,13 @@ export class GGcKNode {
     const arrivalTime = this.arrivalTimes.get(request.id) ?? currentTime
     this.metrics.totalQueueTime += currentTime - arrivalTime
 
-    const serviceTimeMs = Math.max(0, this.distributions.fromConfig(this.serviceDistribution))
+    const rawServiceTimeMs = this.distributions.fromConfig(this.serviceDistribution)
+    if (!Number.isFinite(rawServiceTimeMs)) {
+      throw new Error(
+        `Invalid service time generated for node ${this.id}: ${String(rawServiceTimeMs)}`
+      )
+    }
+    const serviceTimeMs = Math.max(0, rawServiceTimeMs)
     const serviceTimeMicro = BigInt(Math.round(serviceTimeMs * 1000))
 
     this.scheduler.schedule(

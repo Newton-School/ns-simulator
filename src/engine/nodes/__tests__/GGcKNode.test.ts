@@ -53,6 +53,38 @@ function makeDist(seed = 'test'): Distributions {
 }
 
 describe('GGcKNode', () => {
+  describe('constructor validation', () => {
+    it('throws when workers is not a positive integer', () => {
+      expect(() => new GGcKNode(makeConfig(0, 1), makeDist(), makeScheduler())).toThrow(
+        /queue\.workers/
+      )
+    })
+
+    it('throws when capacity is not a positive integer', () => {
+      expect(() => new GGcKNode(makeConfig(1, 0), makeDist(), makeScheduler())).toThrow(
+        /queue\.capacity/
+      )
+    })
+
+    it('throws when capacity is less than workers', () => {
+      expect(() => new GGcKNode(makeConfig(3, 2), makeDist(), makeScheduler())).toThrow(
+        /greater than or equal/
+      )
+    })
+  })
+
+  it('throws on non-finite sampled service time before converting to bigint', () => {
+    const scheduler = makeScheduler()
+    const nonFiniteDistributions = {
+      fromConfig: () => Number.NaN
+    } as unknown as Distributions
+
+    const node = new GGcKNode(makeConfig(1, 2), nonFiniteDistributions, scheduler)
+    expect(() => node.handleArrival(makeRequest('r1'), 0n)).toThrow(
+      /Invalid service time generated/
+    )
+  })
+
   it('processes first 2 arrivals immediately, queues next 1, rejects the 4th (workers=2, capacity=3)', () => {
     const scheduler = makeScheduler()
     const node = new GGcKNode(makeConfig(2, 3), makeDist(), scheduler)
