@@ -54,7 +54,7 @@ export class WorkloadGenerator {
 
   private scheduleNext(currentTime: bigint): void {
     const interArrivalMs = this.nextInterArrivalMs(currentTime)
-    if (!Number.isFinite(interArrivalMs) || interArrivalMs <= 0) {
+    if (!Number.isFinite(interArrivalMs) || interArrivalMs < 0) {
       return
     }
 
