@@ -90,6 +90,21 @@ export const THEME_CONFIG: Record<string, ColorTheme> = {
   alerting: { bg: 'bg-red-500', border: 'border-red-600', text: 'text-red-600' },
   'health-check': { bg: 'bg-emerald-400', border: 'border-emerald-500', text: 'text-emerald-500' },
 
+  // Ai Agents
+  'llm-gateway': { bg: 'bg-purple-500', border: 'border-purple-600', text: 'text-purple-600' },
+  'tool-registry': { bg: 'bg-violet-500', border: 'border-violet-600', text: 'text-violet-600' },
+  'memory-fabric': { bg: 'bg-blue-500', border: 'border-blue-600', text: 'text-blue-600' },
+  'agent-orchestrator': {
+    bg: 'bg-orange-500',
+    border: 'border-orange-600',
+    text: 'text-orange-600'
+  },
+  'safety-observability-mesh': {
+    bg: 'bg-pink-500',
+    border: 'border-pink-600',
+    text: 'text-pink-600'
+  },
+
   // Fallbacks
   default: { bg: 'bg-slate-500', border: 'border-slate-600', text: 'text-slate-600' }
 }

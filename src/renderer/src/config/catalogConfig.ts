@@ -116,5 +116,16 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
       'alerting-engine',
       'health-check-monitor'
     ])
+  },
+  {
+    id: 'ai-agent',
+    title: 'AI Agent',
+    items: getItems([
+      'llm-gateway',
+      'tool-registry',
+      'memory-fabric',
+      'agent-orchestrator',
+      'safety-observability-mesh'
+    ])
   }
 ]
