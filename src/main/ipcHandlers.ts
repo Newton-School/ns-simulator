@@ -61,7 +61,7 @@ async function handleConfirmDiscardChanges(win: BrowserWindow): Promise<boolean>
     cancelId: 1,
     title: 'Unsaved Changes',
     message: 'You have unsaved changes.',
-    detail: 'Discard changes and open another file'
+    detail: 'Discard changes and continue?'
   })
 
   return result.response === 0
