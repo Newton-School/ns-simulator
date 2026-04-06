@@ -2,7 +2,7 @@ import './assets/main.css'
 
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { WorkspaceLayout } from './components/templates/WorkspaceLayout'
+import { WorkspaceLayout } from './components/layout/WorkspaceLayout'
 import useStore from './store/useStore'
 
 let closeRequestUnsubscribe: (() => void) | undefined
