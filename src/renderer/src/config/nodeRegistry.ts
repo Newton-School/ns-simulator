@@ -41,7 +41,10 @@ import {
   LineChart,
   Sliders,
   Key,
-  ToggleLeft
+  ToggleLeft,
+  Bot,
+  Wrench,
+  BrainCircuit
 } from 'lucide-react'
 import { getTheme } from './themeConfig'
 
@@ -487,6 +490,58 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     icon: HeartPulse,
     lookupKey: 'health-check',
     defaultData: { iconKey: 'health-check', status: 'healthy', throughput: 100, load: 5 }
+  },
+
+  // Ai Agents
+  'llm-gateway': {
+    id: 'llm-gateway',
+    type: 'serviceNode',
+    label: 'LLM Gateway',
+    subLabel: 'AI Router',
+    icon: BrainCircuit,
+    lookupKey: 'llm-gateway',
+    defaultData: { iconKey: 'llm-gateway', status: 'healthy', throughput: 100, load: 10 }
+  },
+  'tool-registry': {
+    id: 'tool-registry',
+    type: 'serviceNode',
+    label: 'Tool Registry',
+    subLabel: 'Function Calling',
+    icon: Wrench,
+    lookupKey: 'tool-registry',
+    defaultData: { iconKey: 'tool-registry', status: 'healthy', throughput: 50, load: 5 }
+  },
+  'memory-fabric': {
+    id: 'memory-fabric',
+    type: 'serviceNode',
+    label: 'Memory Fabric',
+    subLabel: 'Context / Vector DB',
+    icon: Database,
+    lookupKey: 'memory-fabric',
+    defaultData: { iconKey: 'memory-fabric', status: 'healthy', throughput: 200, load: 15 }
+  },
+  'agent-orchestrator': {
+    id: 'agent-orchestrator',
+    type: 'serviceNode',
+    label: 'Agent Orchestrator',
+    subLabel: 'Task Routing',
+    icon: Bot,
+    lookupKey: 'agent-orchestrator',
+    defaultData: { iconKey: 'agent-orchestrator', status: 'healthy', throughput: 100, load: 20 }
+  },
+  'safety-observability-mesh': {
+    id: 'safety-observability-mesh',
+    type: 'serviceNode',
+    label: 'Safety Mesh',
+    subLabel: 'AI Guardrails',
+    icon: ShieldCheck,
+    lookupKey: 'safety-observability-mesh',
+    defaultData: {
+      iconKey: 'safety-observability-mesh',
+      status: 'healthy',
+      throughput: 500,
+      load: 10
+    }
   }
 }
 
