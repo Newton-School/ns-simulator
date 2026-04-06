@@ -76,7 +76,7 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
   {
     id: 'messaging',
     title: 'Messaging',
-    items: getItems(['message-queue', 'message-broker'])
+    items: getItems(['message-queue', 'message-broker', 'pub-sub', 'stream'])
   },
   {
     id: 'datastore',

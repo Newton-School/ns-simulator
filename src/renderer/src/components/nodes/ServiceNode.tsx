@@ -21,16 +21,18 @@ import {
   LockKeyhole,
   Waypoints,
   ArrowRightLeft,
+  ServerCog,
+  BookOpen,
+  Rss,
+  Workflow,
+  Bell,
+  LineChart,
   Activity,
   FileText,
   Library,
   Radar,
   BellRing,
-  HeartPulse,
-  ServerCog,
-  BookOpen,
-  Bell,
-  LineChart
+  HeartPulse
 } from 'lucide-react'
 
 import UniversalHandle from '@renderer/components/ui/UniversalHandle'
@@ -66,6 +68,8 @@ const ICON_LOOKUP: Record<string, LucideIcon> = {
   // Messaging
   queue: Inbox,
   broker: Radio,
+  'pub-sub': Rss,
+  stream: Workflow,
   // Data Stores
   nosql: Layers,
   replica: GitBranch,
