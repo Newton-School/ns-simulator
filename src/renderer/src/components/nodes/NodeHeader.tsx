@@ -1,6 +1,6 @@
 import { memo } from 'react'
 import { LucideIcon, HelpCircle } from 'lucide-react'
-import { InlineEditableLabel } from './InlineEditable'
+import { InlineEditableLabel } from '../properties/InlineEditable'
 import { ColorTheme } from '@renderer/types/ui'
 
 const STATUS_COLORS = {

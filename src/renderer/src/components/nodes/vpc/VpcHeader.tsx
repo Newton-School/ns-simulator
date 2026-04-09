@@ -1,6 +1,6 @@
 import { memo } from 'react'
 import { Cloud, Lock, LucideIcon } from 'lucide-react'
-import { InlineEditableLabel } from '@renderer/components/molecules/InlineEditable'
+import { InlineEditableLabel } from '@renderer/components/properties/InlineEditable'
 interface VpcHeaderProps {
   label: string
   isSuccessState: boolean
