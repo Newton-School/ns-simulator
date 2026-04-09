@@ -39,6 +39,7 @@ import { NodeHeader } from '@renderer/components/nodes/NodeHeader'
 import { MetricItem } from '@renderer/components/properties/MetricItem'
 import { NodeSettingsMenu } from '@renderer/components/nodes/NodeSettingsMenu'
 import { ServiceNodeData } from '@renderer/types/ui'
+import { useFlowStore } from '../canvas/hooks/useFlowStore'
 
 const OFFSETS = ['25%', '50%', '75%']
 const POSITIONS = [Position.Left, Position.Top, Position.Right, Position.Bottom]
@@ -87,19 +88,16 @@ const ICON_LOOKUP: Record<string, LucideIcon> = {
 
 const ServiceNode = ({ id, data, selected }: NodeProps<ServiceNodeData>) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+
+  const { updateNodeData } = useFlowStore()
   const IconComponent = ICON_LOOKUP[data.iconKey] || Server
 
-  const handleContextMenu = useCallback((e: React.MouseEvent) => {
-    e.preventDefault()
-    setIsMenuOpen(true)
-  }, [])
-
-  const handleMenuClose = useCallback(() => setIsMenuOpen(false), [])
-
-  const handleMenuToggle = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation()
-    setIsMenuOpen((prev) => !prev)
-  }, [])
+  const handleLabelChange = useCallback(
+    (newLabel: string) => {
+      updateNodeData(id, { label: newLabel })
+    },
+    [id, updateNodeData]
+  )
 
   const containerClasses = useMemo(
     () => `
@@ -115,7 +113,13 @@ const ServiceNode = ({ id, data, selected }: NodeProps<ServiceNodeData>) => {
   )
 
   return (
-    <div onContextMenu={handleContextMenu} className={containerClasses}>
+    <div
+      onContextMenu={(e) => {
+        e.preventDefault()
+        setIsMenuOpen(true)
+      }}
+      className={containerClasses}
+    >
       {POSITIONS.map((pos) => (
         <React.Fragment key={pos}>
           {OFFSETS.map((offset, i) => (
@@ -128,17 +132,22 @@ const ServiceNode = ({ id, data, selected }: NodeProps<ServiceNodeData>) => {
           ))}
         </React.Fragment>
       ))}
+
       <NodeHeader
         label={data.label || 'Service'}
         icon={IconComponent}
         status={data.status}
         color={data.color}
+        onLabelChange={handleLabelChange}
       >
         <NodeSettingsMenu
           nodeId={id}
           isOpen={isMenuOpen}
-          onClose={handleMenuClose}
-          onToggle={handleMenuToggle}
+          onClose={() => setIsMenuOpen(false)}
+          onToggle={(e) => {
+            e.stopPropagation()
+            setIsMenuOpen((prev) => !prev)
+          }}
         />
       </NodeHeader>
 
