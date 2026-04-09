@@ -37,7 +37,11 @@ function makeEdge(
   }
 }
 
-function makeTopology(overrides: Partial<TopologyJSON> = {}): TopologyJSON {
+type TopologyOverrides = Omit<Partial<TopologyJSON>, 'global'> & {
+  global?: Partial<TopologyJSON['global']>
+}
+
+function makeTopology(overrides: TopologyOverrides = {}): TopologyJSON {
   return {
     id: 'topology-test',
     name: 'engine-test',
