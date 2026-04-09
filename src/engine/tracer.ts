@@ -1,0 +1,147 @@
+import { RequestSpan } from "./core/events"
+import { microToMs } from "./core/time"
+
+
+export interface RequestTraceSpan {
+  nodeId: string
+  start: number
+  end: number
+  queueWait: number
+  serviceTime: number
+  edgeLatency: number
+}
+
+export interface RequestTrace {
+  requestId: string
+  totalLatency: number
+  status: 'success' | 'timeout' | 'rejected' | 'error'
+  spans: RequestTraceSpan[]
+}
+
+interface TraceState {
+  requestId: string
+  spans: RequestSpan[]
+  status: RequestTrace['status']
+  createdAtUs?: bigint
+}
+
+export class RequestTracer {
+  private readonly sampleRate: number
+  private readonly traceDecisions = new Map<string, boolean>()
+  private readonly traces = new Map<string, TraceState>()
+
+  constructor(config: { sampleRate: number }) {
+    this.sampleRate = Math.min(1, Math.max(0, config.sampleRate))
+  }
+
+  shouldTrace(requestId: string): boolean {
+    const cached = this.traceDecisions.get(requestId)
+    if (cached !== undefined) {
+      return cached
+    }
+
+    const hash = this.hash32(requestId)
+    const normalized = hash / 0xffffffff
+    const decision = normalized < this.sampleRate
+    this.traceDecisions.set(requestId, decision)
+    return decision
+  }
+
+  recordSpan(requestId: string, span: RequestSpan): void {
+    if (!this.shouldTrace(requestId)) {
+      return
+    }
+
+    const state = this.ensureTraceState(requestId)
+    state.spans.push(span)
+  }
+
+  setRequestCreatedAt(requestId: string, createdAt: bigint): void {
+    if (!this.shouldTrace(requestId)) {
+      return
+    }
+
+    const state = this.ensureTraceState(requestId)
+    state.createdAtUs = createdAt
+  }
+
+  markStatus(requestId: string, status: RequestTrace['status']): void {
+    if (!this.shouldTrace(requestId)) {
+      return
+    }
+
+    const state = this.ensureTraceState(requestId)
+    state.status = status
+  }
+
+  getTraces(): RequestTrace[] {
+    const traces: RequestTrace[] = []
+
+    for (const state of this.traces.values()) {
+      if (state.spans.length === 0) {
+        continue
+      }
+
+      const orderedSpans = [...state.spans].sort((a, b) => {
+        if (a.arrivalTime < b.arrivalTime) return -1
+        if (a.arrivalTime > b.arrivalTime) return 1
+        return 0
+      })
+
+      const baseline = state.createdAtUs ?? orderedSpans[0].arrivalTime
+      let prevEnd = 0
+      const converted: RequestTraceSpan[] = orderedSpans.map((span, index) => {
+        const start = microToMs(span.arrivalTime - baseline)
+        const end = microToMs(span.departureTime - baseline)
+        const queueWait = microToMs(span.queueWait)
+        const serviceTime = microToMs(span.serviceTime)
+        const edgeLatency = index === 0 ? Math.max(0, start) : Math.max(0, start - prevEnd)
+        prevEnd = end
+
+        return {
+          nodeId: span.nodeId,
+          start,
+          end,
+          queueWait,
+          serviceTime,
+          edgeLatency
+        }
+      })
+
+      const totalLatency = converted[converted.length - 1]?.end ?? 0
+
+      traces.push({
+        requestId: state.requestId,
+        totalLatency,
+        status: state.status,
+        spans: converted
+      })
+    }
+
+    return traces.sort((a, b) => a.requestId.localeCompare(b.requestId))
+  }
+
+  private ensureTraceState(requestId: string): TraceState {
+    const existing = this.traces.get(requestId)
+    if (existing) {
+      return existing
+    }
+
+    const created: TraceState = {
+      requestId,
+      spans: [],
+      status: 'success'
+    }
+    this.traces.set(requestId, created)
+    return created
+  }
+
+  private hash32(value: string): number {
+    let hash = 2166136261
+    for (let i = 0; i < value.length; i++) {
+      hash ^= value.charCodeAt(i)
+      hash = Math.imul(hash, 16777619)
+    }
+    return hash >>> 0
+  }
+}
