@@ -15,7 +15,7 @@ export interface TimeSeriesSnapshot {
   >
 }
 
-export interface CasualGraph {
+export interface CausalGraph {
   rootCauses: Array<{
     nodeId: string
     event: string
@@ -65,7 +65,7 @@ export interface SimulationOutput {
   perNode: Record<string, PerNodeMetrics>
   timeSeries: TimeSeriesSnapshot[]
   traces: RequestTrace[]
-  causalGraph: CasualGraph | null
+  causalGraph: CausalGraph | null
   sloBreaches: SLOBreach[]
   invariantViolations: InvariantViolation[]
   littlesLawCheck: LittlesLawResult[]
@@ -78,9 +78,10 @@ export function generateSimulationOutput(
   metrics: MetricsCollector,
   tracer: RequestTracer,
   timeSeries: TimeSeriesSnapshot[],
-  causalGraph: CasualGraph | null,
+  causalGraph: CausalGraph | null,
   invariantViolations: InvariantViolation[],
-  config: GlobalConfig
+  config: GlobalConfig,
+  eventsProcessed: number
 ): SimulationOutput {
   const summary = metrics.generateSummary(config.simulationDuration)
   const perNode = Object.fromEntries(metrics.getPerNodeMetrics(config.simulationDuration)) as Record<
@@ -101,7 +102,7 @@ export function generateSimulationOutput(
     littlesLawCheck,
     seed: config.seed,
     reproducible: true,
-    eventsProcessed: 0
+    eventsProcessed
   }
 }
 
@@ -139,8 +140,7 @@ function detectSLOBreaches(
         target: slo.availabilityTarget,
         actual: nodeMetrics.availability,
         severity: severityForRatio(
-          Math.max(0.0001, slo.availabilityTarget - nodeMetrics.availability) /
-            Math.max(slo.availabilityTarget, 0.0001)
+          slo.availabilityTarget / Math.max(nodeMetrics.availability, 0.0001)
         )
       })
     }
@@ -156,7 +156,7 @@ function calculateLittlesLaw(
   const durationSec = Math.max(0.001, (config.simulationDuration - config.warmupDuration) / 1000)
 
   return Object.entries(perNode).map(([nodeId, metrics]) => {
-    const lambda = metrics.totalArrived / durationSec
+    const lambda = metrics.postWarmupArrived / durationSec
     const wObservedSec = metrics.avgTimeInSystem / 1000
     const expectedL = lambda * wObservedSec
     const observedL = metrics.avgInSystem

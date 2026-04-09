@@ -41,7 +41,7 @@ export class RequestTracer {
     }
 
     const hash = this.hash32(requestId)
-    const normalized = hash / 0xffffffff
+    const normalized = hash / 0x100000000
     const decision = normalized < this.sampleRate
     this.traceDecisions.set(requestId, decision)
     return decision

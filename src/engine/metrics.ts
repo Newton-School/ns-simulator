@@ -26,6 +26,7 @@ export interface LatencyPercentiles {
 export interface PerNodeMetrics {
   nodeLabel?: string
   totalArrived: number
+  postWarmupArrived: number
   totalProcessed: number
   totalRejected: number
   totalTimedOut: number
@@ -56,6 +57,7 @@ export interface SimulationSummary {
 
 interface InternalNodeMetrics {
   totalArrived: number
+  postWarmupArrived: number
   totalProcessed: number
   totalRejected: number
   totalTimedOut: number
@@ -86,6 +88,7 @@ export class MetricsCollector {
 
   private totalRequests = 0
   private successfulRequests = 0
+  private postWarmupSuccessfulRequests = 0
   private failedRequests = 0
   private rejectedRequests = 0
   private timedOutRequests = 0
@@ -110,6 +113,7 @@ export class MetricsCollector {
     if (request.status === 'success') {
       this.successfulRequests++
       if (request.createdAt >= this.warmupDurationUs) {
+        this.postWarmupSuccessfulRequests++
         this.successfulLatencies.push(request.totalLatency)
       }
     } else {
@@ -122,9 +126,13 @@ export class MetricsCollector {
       }
     }
 
+    const isPostWarmup = request.createdAt >= this.warmupDurationUs
     for (const span of request.spans) {
       const node = this.ensureNodeMetrics(span.nodeId)
       node.totalArrived++
+      if (isPostWarmup) {
+        node.postWarmupArrived++
+      }
       node.totalProcessed++
       node.queueWaitSumMs += microToMs(span.queueWait)
       node.serviceTimeSumMs += microToMs(span.serviceTime)
@@ -156,6 +164,7 @@ export class MetricsCollector {
     this.timedOutRequests++
 
     const node = this.ensureNodeMetrics(nodeId)
+    node.totalArrived++
     node.totalTimedOut++
   }
 
@@ -178,7 +187,7 @@ export class MetricsCollector {
   generateSummary(duration: number): SimulationSummary {
     const effectiveDurationMs = Math.max(0, duration - this.warmupDurationMs)
     const throughput =
-      effectiveDurationMs > 0 ? this.successfulRequests / (effectiveDurationMs / 1000) : 0
+      effectiveDurationMs > 0 ? this.postWarmupSuccessfulRequests / (effectiveDurationMs / 1000) : 0
     const errorRate = this.totalRequests > 0 ? this.failedRequests / this.totalRequests : 0
 
     return {
@@ -214,6 +223,7 @@ export class MetricsCollector {
       result.set(nodeId, {
         nodeLabel: metadata?.label,
         totalArrived,
+        postWarmupArrived: metrics?.postWarmupArrived ?? 0,
         totalProcessed,
         totalRejected,
         totalTimedOut,
@@ -276,7 +286,7 @@ export class MetricsCollector {
       sortedAsc = [...sortedAsc].sort((a, b) => a - b)
     }
 
-    const idx = Math.floor(p * sortedAsc.length)
+    const idx = Math.floor(p * (sortedAsc.length - 1))
     return sortedAsc[Math.min(sortedAsc.length - 1, Math.max(0, idx))]
   }
 
@@ -297,6 +307,7 @@ export class MetricsCollector {
 
     const created: InternalNodeMetrics = {
       totalArrived: 0,
+      postWarmupArrived: 0,
       totalProcessed: 0,
       totalRejected: 0,
       totalTimedOut: 0,
