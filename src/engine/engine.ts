@@ -1,5 +1,5 @@
 import { generateSimulationOutput, SimulationOutput, TimeSeriesSnapshot } from "./analysis/output"
-import { createEvent, SimulationEvent } from "./core/events"
+import { createEvent, Request, SimulationEvent } from "./core/events"
 import { microToMs, msToMicro, secToMicro } from "./core/time"
 import { ComponentNode, EdgeDefinition, EventScheduler, TopologyJSON } from "./core/types"
 import { MetricsCollector } from "./metrics"
@@ -37,7 +37,7 @@ export class SimulationEngine {
   constructor(private readonly topology: TopologyJSON) {
     const rng = createRandom(topology.global.seed)
     this.distributions = new Distributions(rng)
-    this.routing = new RoutingTable(topology.edges, rng)
+    this.routing = new RoutingTable(topology.edges, rng, topology.nodes)
     this.metrics = new MetricsCollector({
       warmupDuration: topology.global.warmupDuration,
       nodes: topology.nodes.map((node) => ({
@@ -46,7 +46,7 @@ export class SimulationEngine {
         slo: node.slo
       }))
     })
-    this.tracer = new RequestTracer({ sampleRate: 0.01 })
+    this.tracer = new RequestTracer({ sampleRate: topology.global.traceSampleRate ?? 0.01 })
     this.simulationDurationUs = msToMicro(topology.global.simulationDuration)
 
     const scheduler: EventScheduler = {
@@ -333,14 +333,14 @@ export class SimulationEngine {
       this.requestById.delete(request.id)
     }
 
-    this.metrics.recordTimeout(event.requestId, event.nodeId)
+    this.metrics.recordTimeout(event.requestId, event.nodeId, request?.createdAt)
   }
 
   private handleRequestRejected(event: SimulationEvent): void {
     const reason = (event.data.reason as string | undefined) ?? 'rejected'
-    this.metrics.recordRejection(event.nodeId, reason)
-
     const request = this.getRequest(event)
+    this.metrics.recordRejection(event.nodeId, reason, request?.createdAt)
+
     if (request) {
       for (const span of request.spans) {
         this.tracer.recordSpan(request.id, span)
@@ -392,16 +392,15 @@ export class SimulationEngine {
   }
 
   private generateResults(): SimulationOutput {
-    const output = generateSimulationOutput(
+    return generateSimulationOutput(
       this.metrics,
       this.tracer,
       this.timeSeries,
       null,
       [],
-      this.topology.global
+      this.topology.global,
+      this.eventsProcessed
     )
-    output.eventsProcessed = this.eventsProcessed
-    return output
   }
 
   private withNodeDefaults(node: ComponentNode): ComponentNode {
