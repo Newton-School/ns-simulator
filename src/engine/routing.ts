@@ -27,8 +27,8 @@ export class RoutingTable {
   private readonly outgoingBySource = new Map<string, EdgeDefinition[]>()
 
   /**
-   * Per-source monotonic counter used to rotate choices in round-robin mode.
-   * Stored unbounded; modulo is applied at read time against the live candidate count.
+   * Per-source bounded cursor used to rotate choices in round-robin mode.
+   * Always stored modulo the active candidate count to avoid unsafe-integer drift.
    */
   private readonly roundRobinIndexBySource = new Map<string, number>()
 
@@ -113,8 +113,9 @@ export class RoutingTable {
   private pickSyncRoute(sourceNodeId: string, edges: EdgeDefinition[]): EdgeDefinition {
     if (this.isRoundRobinSource(sourceNodeId)) {
       const current = this.roundRobinIndexBySource.get(sourceNodeId) ?? 0
-      const edge = edges[current % edges.length]
-      this.roundRobinIndexBySource.set(sourceNodeId, current + 1)
+      const safeIndex = current % edges.length
+      const edge = edges[safeIndex]
+      this.roundRobinIndexBySource.set(sourceNodeId, (safeIndex + 1) % edges.length)
       return edge
     }
 
@@ -182,7 +183,7 @@ export class RoutingTable {
       total += normalized
     }
 
-    // If configured weight are unusable, fall back to uniform random
+    // If configured weights are unusable, fall back to uniform random
     if (total <= 0) {
       return edges[this.rng.integer(0, edges.length - 1)]
     }
