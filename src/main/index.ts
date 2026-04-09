@@ -5,6 +5,8 @@ import icon from '../../resources/icon.png?asset'
 import { registerIpcHandlers } from './ipcHandlers'
 
 function createWindow(): void {
+  const CLOSE_RESPONSE_TIMEOUT_MS = 5000
+
   // Create the browser window.
   const mainWindow = new BrowserWindow({
     width: 900,
@@ -25,6 +27,89 @@ function createWindow(): void {
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
     return { action: 'deny' }
+  })
+
+  let isQuitting = false
+  let awaitingCloseResponse = false
+  let closeResponseTimer: ReturnType<typeof setTimeout> | null = null
+
+  const clearCloseResponseTimeout = (): void => {
+    if (closeResponseTimer) {
+      clearTimeout(closeResponseTimer)
+      closeResponseTimer = null
+    }
+  }
+
+  const forceCloseWindow = (): void => {
+    if (mainWindow.isDestroyed()) return
+    isQuitting = true
+    awaitingCloseResponse = false
+    clearCloseResponseTimeout()
+    mainWindow.close()
+  }
+
+  const handleCloseResponse = async (_event, isUnsaved) => {
+    if (mainWindow.isDestroyed() || !awaitingCloseResponse) return
+
+    awaitingCloseResponse = false
+    clearCloseResponseTimeout()
+
+    if (mainWindow.isDestroyed()) return
+
+    const unsaved = Boolean(isUnsaved)
+
+    if (unsaved) {
+      let confirm = false
+      try {
+        confirm = await registerIpcHandlers.handleConfirmDiscardChanges(mainWindow)
+      } catch (error) {
+        console.log(error)
+        confirm = false
+      }
+
+      if (confirm && !mainWindow.isDestroyed()) {
+        forceCloseWindow()
+      }
+    } else {
+      forceCloseWindow()
+    }
+  }
+
+  ipcMain.on('window-close-response', handleCloseResponse)
+
+  mainWindow.on('close', (event) => {
+    if (isQuitting) return
+    event.preventDefault()
+
+    if (awaitingCloseResponse) return
+
+    if (mainWindow.webContents.isDestroyed() || mainWindow.webContents.isCrashed()) {
+      forceCloseWindow()
+      return
+    }
+
+    awaitingCloseResponse = true
+    closeResponseTimer = setTimeout(() => {
+      if (mainWindow.isDestroyed() || isQuitting) return
+
+      console.warn(
+        `Renderer did not respond to close request within ${CLOSE_RESPONSE_TIMEOUT_MS}ms; forcing close.`
+      )
+      forceCloseWindow()
+    }, CLOSE_RESPONSE_TIMEOUT_MS)
+
+    try {
+      mainWindow.webContents.send('window-close-attempt')
+    } catch (error) {
+      console.error('Failed to dispatch close request to renderer:', error)
+      forceCloseWindow()
+    }
+  })
+
+  mainWindow.on('closed', () => {
+    awaitingCloseResponse = false
+    clearCloseResponseTimeout()
+    ipcMain.removeListener('window-close-response', handleCloseResponse)
   })
 
   // HMR for renderer base on electron-vite cli.
@@ -75,6 +160,17 @@ app.whenReady().then(() => {
   ipcMain.handle('dialog:open', async (event) => {
     const content = await registerIpcHandlers.handleOpenScenario(event)
     return content
+  })
+
+  ipcMain.handle('dialog:confirm-discard', async (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    if (!win) {
+      console.warn('No window found for confirm-discard dialog')
+      return false
+    }
+
+    const result = await registerIpcHandlers.handleConfirmDiscardChanges(win)
+    return result
   })
 
   ipcMain.on('nssimulator:run-simulation', (_, config) => {
