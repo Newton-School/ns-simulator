@@ -139,10 +139,7 @@ describe('RoutingTable', () => {
   })
 
   it('round-robin falls back to id heuristic when no nodes provided', () => {
-    const edges = [
-      makeEdge('e1', 'load-balancer-1', 'a'),
-      makeEdge('e2', 'load-balancer-1', 'b')
-    ]
+    const edges = [makeEdge('e1', 'load-balancer-1', 'a'), makeEdge('e2', 'load-balancer-1', 'b')]
 
     const routing = new RoutingTable(edges, createRandom('rr-fallback'))
     const picks = Array.from(
@@ -182,8 +179,12 @@ describe('RoutingTable', () => {
     const routing = new RoutingTable(edges, createRandom('mixed'))
     const results = routing.resolveTarget('node-a', makeRequest())
 
-    const asyncTargets = results.filter((r) => r.edge.mode === 'asynchronous').map((r) => r.targetNodeId)
-    const syncTargets = results.filter((r) => r.edge.mode !== 'asynchronous').map((r) => r.targetNodeId)
+    const asyncTargets = results
+      .filter((r) => r.edge.mode === 'asynchronous')
+      .map((r) => r.targetNodeId)
+    const syncTargets = results
+      .filter((r) => r.edge.mode !== 'asynchronous')
+      .map((r) => r.targetNodeId)
 
     expect(asyncTargets.sort()).toEqual(['queue-1', 'queue-2'])
     expect(syncTargets).toHaveLength(1)
