@@ -84,10 +84,9 @@ export function generateSimulationOutput(
   eventsProcessed: number
 ): SimulationOutput {
   const summary = metrics.generateSummary(config.simulationDuration)
-  const perNode = Object.fromEntries(metrics.getPerNodeMetrics(config.simulationDuration)) as Record<
-    string,
-    PerNodeMetrics
-  >
+  const perNode = Object.fromEntries(
+    metrics.getPerNodeMetrics(config.simulationDuration)
+  ) as Record<string, PerNodeMetrics>
   const littlesLawCheck = calculateLittlesLaw(perNode, config)
   const sloBreaches = detectSLOBreaches(metrics, perNode)
 

@@ -1,6 +1,5 @@
-import { RequestSpan } from "./core/events"
-import { microToMs } from "./core/time"
-
+import { RequestSpan } from './core/events'
+import { microToMs } from './core/time'
 
 export interface RequestTraceSpan {
   nodeId: string
@@ -27,7 +26,6 @@ interface TraceState {
 
 export class RequestTracer {
   private readonly sampleRate: number
-  private readonly traceDecisions = new Map<string, boolean>()
   private readonly traces = new Map<string, TraceState>()
 
   constructor(config: { sampleRate: number }) {
@@ -35,16 +33,13 @@ export class RequestTracer {
   }
 
   shouldTrace(requestId: string): boolean {
-    const cached = this.traceDecisions.get(requestId)
-    if (cached !== undefined) {
-      return cached
+    if (this.traces.has(requestId)) {
+      return true
     }
 
     const hash = this.hash32(requestId)
     const normalized = hash / 0x100000000
-    const decision = normalized < this.sampleRate
-    this.traceDecisions.set(requestId, decision)
-    return decision
+    return normalized < this.sampleRate
   }
 
   recordSpan(requestId: string, span: RequestSpan): void {
@@ -96,7 +91,7 @@ export class RequestTracer {
         const queueWait = microToMs(span.queueWait)
         const serviceTime = microToMs(span.serviceTime)
         const edgeLatency = index === 0 ? Math.max(0, start) : Math.max(0, start - prevEnd)
-        prevEnd = end
+        prevEnd = Math.max(prevEnd, end)
 
         return {
           nodeId: span.nodeId,
@@ -108,7 +103,7 @@ export class RequestTracer {
         }
       })
 
-      const totalLatency = converted[converted.length - 1]?.end ?? 0
+      const totalLatency = prevEnd
 
       traces.push({
         requestId: state.requestId,

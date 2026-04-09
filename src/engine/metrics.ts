@@ -1,7 +1,6 @@
-import { RequestSpan } from "./core/events"
-import { microToMs, msToMicro } from "./core/time"
-import { ComponentNode, NodeState, SLOConfig } from "./core/types"
-
+import { RequestSpan } from './core/events'
+import { microToMs, msToMicro } from './core/time'
+import { ComponentNode, NodeState, SLOConfig } from './core/types'
 
 export interface CompletedRequest {
   id: string
@@ -142,12 +141,16 @@ export class MetricsCollector {
     // If spans are unavailable, path still gives visibility into arrivals.
     if (request.spans.length === 0 && request.path.length > 0) {
       for (const nodeId of request.path) {
-        this.ensureNodeMetrics(nodeId).totalArrived++
+        const node = this.ensureNodeMetrics(nodeId)
+        node.totalArrived++
+        if (isPostWarmup) {
+          node.postWarmupArrived++
+        }
       }
     }
   }
 
-  recordRejection(nodeId: string, reason: string): void {
+  recordRejection(nodeId: string, reason: string, createdAt?: bigint): void {
     void reason
     this.totalRequests++
     this.failedRequests++
@@ -155,16 +158,22 @@ export class MetricsCollector {
 
     const node = this.ensureNodeMetrics(nodeId)
     node.totalArrived++
+    if (this.isPostWarmup(createdAt)) {
+      node.postWarmupArrived++
+    }
     node.totalRejected++
   }
 
-  recordTimeout(_requestId: string, nodeId: string): void {
+  recordTimeout(_requestId: string, nodeId: string, createdAt?: bigint): void {
     this.totalRequests++
     this.failedRequests++
     this.timedOutRequests++
 
     const node = this.ensureNodeMetrics(nodeId)
     node.totalArrived++
+    if (this.isPostWarmup(createdAt)) {
+      node.postWarmupArrived++
+    }
     node.totalTimedOut++
   }
 
@@ -227,17 +236,29 @@ export class MetricsCollector {
         totalProcessed,
         totalRejected,
         totalTimedOut,
-        avgQueueLength: metrics && metrics.queueSamples > 0 ? metrics.queueLengthSum / metrics.queueSamples : 0,
-        avgServiceTime: metrics && metrics.totalProcessed > 0 ? metrics.serviceTimeSumMs / metrics.totalProcessed : 0,
-        avgQueueWait: metrics && metrics.totalProcessed > 0 ? metrics.queueWaitSumMs / metrics.totalProcessed : 0,
+        avgQueueLength:
+          metrics && metrics.queueSamples > 0 ? metrics.queueLengthSum / metrics.queueSamples : 0,
+        avgServiceTime:
+          metrics && metrics.totalProcessed > 0
+            ? metrics.serviceTimeSumMs / metrics.totalProcessed
+            : 0,
+        avgQueueWait:
+          metrics && metrics.totalProcessed > 0
+            ? metrics.queueWaitSumMs / metrics.totalProcessed
+            : 0,
         avgTimeInSystem:
           metrics && metrics.totalProcessed > 0
             ? (metrics.queueWaitSumMs + metrics.serviceTimeSumMs) / metrics.totalProcessed
             : 0,
-        avgInSystem: metrics && metrics.inSystemSamples > 0 ? metrics.inSystemSum / metrics.inSystemSamples : 0,
+        avgInSystem:
+          metrics && metrics.inSystemSamples > 0
+            ? metrics.inSystemSum / metrics.inSystemSamples
+            : 0,
         peakQueueLength: metrics?.peakQueueLength ?? 0,
         utilization:
-          metrics && metrics.utilizationSamples > 0 ? metrics.utilizationSum / metrics.utilizationSamples : 0,
+          metrics && metrics.utilizationSamples > 0
+            ? metrics.utilizationSum / metrics.utilizationSamples
+            : 0,
         throughput: durationSec > 0 ? totalProcessed / durationSec : 0,
         errorRate,
         availability: 1 - errorRate,
@@ -297,6 +318,10 @@ export class MetricsCollector {
       }
     }
     return true
+  }
+
+  private isPostWarmup(createdAt?: bigint): boolean {
+    return createdAt !== undefined && createdAt >= this.warmupDurationUs
   }
 
   private ensureNodeMetrics(nodeId: string): InternalNodeMetrics {
