@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Request } from './core/events'
-import { EdgeDefinition } from './core/types'
+import { ComponentNode, EdgeDefinition } from './core/types'
 import { RoutingTable } from './routing'
 import { createRandom } from './stochastic/random'
 
@@ -37,6 +37,16 @@ function makeEdge(
     packetLossRate: 0,
     errorRate: 0,
     ...overrides
+  }
+}
+
+function makeNode(id: string, type: ComponentNode['type'] = 'microservice'): ComponentNode {
+  return {
+    id,
+    type,
+    category: 'compute',
+    label: id,
+    position: { x: 0, y: 0 }
   }
 }
 
@@ -110,14 +120,15 @@ describe('RoutingTable', () => {
     expect(resolved.map((r) => r.targetNodeId).sort()).toEqual(['node-b', 'node-c', 'node-d'])
   })
 
-  it('round-robin cycles through targets for load-balancer-like source ids', () => {
+  it('round-robin cycles through targets using node type metadata', () => {
     const edges = [
       makeEdge('e1', 'load-balancer-1', 'a'),
       makeEdge('e2', 'load-balancer-1', 'b'),
       makeEdge('e3', 'load-balancer-1', 'c')
     ]
+    const nodes = [makeNode('load-balancer-1', 'load-balancer')]
 
-    const routing = new RoutingTable(edges, createRandom('rr'))
+    const routing = new RoutingTable(edges, createRandom('rr'), nodes)
     const request = makeRequest()
 
     const picks = Array.from(
@@ -125,6 +136,20 @@ describe('RoutingTable', () => {
       () => routing.resolveTarget('load-balancer-1', request)[0]
     )
     expect(picks.map((r) => r.targetNodeId)).toEqual(['a', 'b', 'c', 'a', 'b', 'c', 'a'])
+  })
+
+  it('round-robin falls back to id heuristic when no nodes provided', () => {
+    const edges = [
+      makeEdge('e1', 'load-balancer-1', 'a'),
+      makeEdge('e2', 'load-balancer-1', 'b')
+    ]
+
+    const routing = new RoutingTable(edges, createRandom('rr-fallback'))
+    const picks = Array.from(
+      { length: 4 },
+      () => routing.resolveTarget('load-balancer-1', makeRequest())[0]
+    )
+    expect(picks.map((r) => r.targetNodeId)).toEqual(['a', 'b', 'a', 'b'])
   })
 
   it('conditional routing includes only edges whose condition matches request context', () => {
@@ -143,6 +168,40 @@ describe('RoutingTable', () => {
       const getPick = routing.resolveTarget('node-a', makeRequest('GET'))[0].targetNodeId
       expect(['get-target', 'always-target']).toContain(getPick)
       expect(getPick).not.toBe('post-target')
+    }
+  })
+
+  it('mixed async and sync edges fan-out to all async and pick one sync', () => {
+    const edges = [
+      makeEdge('e1', 'node-a', 'queue-1', { mode: 'asynchronous' }),
+      makeEdge('e2', 'node-a', 'queue-2', { mode: 'asynchronous' }),
+      makeEdge('e3', 'node-a', 'service-1'),
+      makeEdge('e4', 'node-a', 'service-2')
+    ]
+
+    const routing = new RoutingTable(edges, createRandom('mixed'))
+    const results = routing.resolveTarget('node-a', makeRequest())
+
+    const asyncTargets = results.filter((r) => r.edge.mode === 'asynchronous').map((r) => r.targetNodeId)
+    const syncTargets = results.filter((r) => r.edge.mode !== 'asynchronous').map((r) => r.targetNodeId)
+
+    expect(asyncTargets.sort()).toEqual(['queue-1', 'queue-2'])
+    expect(syncTargets).toHaveLength(1)
+    expect(['service-1', 'service-2']).toContain(syncTargets[0])
+  })
+
+  it('conditional-mode edge with no condition string is never eligible', () => {
+    const edges = [
+      makeEdge('e1', 'node-a', 'guarded', { mode: 'conditional' }),
+      makeEdge('e2', 'node-a', 'always')
+    ]
+
+    const routing = new RoutingTable(edges, createRandom('cond-mode'))
+
+    for (let i = 0; i < 50; i++) {
+      const resolved = routing.resolveTarget('node-a', makeRequest())
+      expect(resolved).toHaveLength(1)
+      expect(resolved[0].targetNodeId).toBe('always')
     }
   })
 

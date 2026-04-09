@@ -1,5 +1,5 @@
 import type { Request } from './core/events'
-import type { EdgeDefinition, RandomGenerator } from './core/types'
+import type { ComponentNode, EdgeDefinition, RandomGenerator } from './core/types'
 
 /**
  * Normalized output for a single routing choice.
@@ -27,17 +27,27 @@ export class RoutingTable {
   private readonly outgoingBySource = new Map<string, EdgeDefinition[]>()
 
   /**
-   * Per-source cursor used to rotate choices in round-robin mode.
+   * Per-source monotonic counter used to rotate choices in round-robin mode.
+   * Stored unbounded; modulo is applied at read time against the live candidate count.
    */
   private readonly roundRobinIndexBySource = new Map<string, number>()
 
   /**
+   * Set of node IDs that should use round-robin routing, derived from node
+   * type metadata. Only populated when node definitions are provided.
+   */
+  private readonly roundRobinSourceIds: Set<string>
+
+  /**
    * @param edges Topology edges used to build routing lookup tables.
-   * @param rng RNG dependency used for probabilistic routing decisions.
+   * @param rng   RNG dependency used for probabilistic routing decisions.
+   * @param nodes Optional node definitions used to identify round-robin sources
+   *              by type rather than by ID heuristic.
    */
   constructor(
     edges: EdgeDefinition[],
-    private readonly rng: RandomGenerator
+    private readonly rng: RandomGenerator,
+    nodes: ComponentNode[] = []
   ) {
     for (const edge of edges) {
       const list = this.outgoingBySource.get(edge.source)
@@ -47,6 +57,10 @@ export class RoutingTable {
         this.outgoingBySource.set(edge.source, [edge])
       }
     }
+
+    this.roundRobinSourceIds = new Set(
+      nodes.filter((n) => n.type === 'load-balancer').map((n) => n.id)
+    )
   }
 
   /**
@@ -60,6 +74,12 @@ export class RoutingTable {
   /**
    * Resolves the next route(s) for a request based on source edges,
    * edge mode, edge conditions, and selection strategy.
+   *
+   * Async edges always fan-out: every eligible async edge produces a route.
+   * Sync/streaming/conditional edges compete: exactly one is selected via
+   * round-robin, weighted, or uniform random selection.
+   * Both groups are evaluated independently, so a mixed topology fans out
+   * to all async targets while still picking one sync target.
    */
   resolveTarget(sourceNodeId: string, request: Request): ResolveRoute[] {
     const outgoing = this.outgoingBySource.get(sourceNodeId)
@@ -67,53 +87,62 @@ export class RoutingTable {
       return []
     }
 
-    // Conditional edges are evaluated first. Any edge with no conditions is always eligible.
-    const eligible = outgoing.filter((edge) => this.matchesCondition(edge.condition, request))
+    const eligible = outgoing.filter((edge) => this.matchesCondition(edge, request))
     if (eligible.length === 0) {
       return []
     }
 
-    if (eligible.length === 1) {
-      return [this.toResolved(eligible[0])]
+    const asyncEdges = eligible.filter((edge) => edge.mode === 'asynchronous')
+    const syncEdges = eligible.filter((edge) => edge.mode !== 'asynchronous')
+
+    const results: ResolveRoute[] = asyncEdges.map((edge) => this.toResolved(edge))
+
+    if (syncEdges.length === 1) {
+      results.push(this.toResolved(syncEdges[0]))
+    } else if (syncEdges.length > 1) {
+      results.push(this.toResolved(this.pickSyncRoute(sourceNodeId, syncEdges)))
     }
 
-    // Fan-out for async edges
-    if (eligible.every((edge) => edge.mode === 'asynchronous')) {
-      return eligible.map((edge) => this.toResolved(edge))
-    }
-
-    const routable = eligible.filter((edge) => edge.mode !== 'asynchronous')
-    if (routable.length === 0) {
-      return []
-    }
-
-    if (routable.length === 1) {
-      return [this.toResolved(routable[0])]
-    }
-
-    // Round-robin for load-balancer-like sources.
-    if (this.isRoundRobinSource(sourceNodeId)) {
-      const current = this.roundRobinIndexBySource.get(sourceNodeId) ?? 0
-      const edge = routable[current % routable.length]
-      this.roundRobinIndexBySource.set(sourceNodeId, (current + 1) % routable.length)
-      return [this.toResolved(edge)]
-    }
-
-    // Weighted selection when any weight is configured
-    if (routable.some((edge) => edge.weight !== undefined)) {
-      return [this.toResolved(this.pickByWeight(routable))]
-    }
-
-    // Default fallback for multi-target non-weighted routes
-    const index = this.rng.integer(0, routable.length - 1)
-    return [this.toResolved(routable[index])]
+    return results
   }
 
   /**
-   * Evaluates an optional condition string against request data to determine
-   * whether the edge is eligible for routing.
+   * Selects one edge from synchronous candidates using round-robin,
+   * weighted, or uniform random strategy.
    */
-  private matchesCondition(condition: string | undefined, request: Request): boolean {
+  private pickSyncRoute(sourceNodeId: string, edges: EdgeDefinition[]): EdgeDefinition {
+    if (this.isRoundRobinSource(sourceNodeId)) {
+      const current = this.roundRobinIndexBySource.get(sourceNodeId) ?? 0
+      const edge = edges[current % edges.length]
+      this.roundRobinIndexBySource.set(sourceNodeId, current + 1)
+      return edge
+    }
+
+    if (edges.some((edge) => edge.weight !== undefined)) {
+      return this.pickByWeight(edges)
+    }
+
+    return edges[this.rng.integer(0, edges.length - 1)]
+  }
+
+  /**
+   * Evaluates whether an edge is eligible for routing given the request context.
+   *
+   * Supported condition formats:
+   *   - No condition / empty string: always eligible (unless mode is 'conditional')
+   *   - `request.type === "X"` / `request.type == "X"`
+   *   - `request.type !== "X"` / `request.type != "X"`
+   *
+   * Edges with mode 'conditional' must have a non-empty condition string;
+   * they are treated as ineligible if the condition is absent or empty.
+   */
+  private matchesCondition(edge: EdgeDefinition, request: Request): boolean {
+    const { condition, mode } = edge
+
+    if (mode === 'conditional' && (!condition || condition.trim().length === 0)) {
+      return false
+    }
+
     if (!condition || condition.trim().length === 0) {
       return true
     }
@@ -172,9 +201,15 @@ export class RoutingTable {
   }
 
   /**
-   * Reports whether the given source node should use round-robin routing.
+   * Returns true if the source node should use round-robin routing.
+   * Uses node type metadata when available (node type === 'load-balancer').
+   * Falls back to an ID substring heuristic when the RoutingTable was
+   * constructed without node definitions.
    */
   private isRoundRobinSource(sourceNodeId: string): boolean {
+    if (this.roundRobinSourceIds.size > 0) {
+      return this.roundRobinSourceIds.has(sourceNodeId)
+    }
     const id = sourceNodeId.toLowerCase()
     return id.includes('load-balancer') || id.includes('lb')
   }
