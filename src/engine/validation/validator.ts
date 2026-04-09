@@ -201,7 +201,8 @@ export const GlobalConfigSchema = z.object({
   seed: z.string(),
   warmupDuration: z.number().nonnegative(),
   timeResolution: z.enum(['microsecond', 'millisecond']),
-  defaultTimeout: z.number().positive()
+  defaultTimeout: z.number().positive(),
+  traceSampleRate: z.number().min(0).max(1).optional()
 })
 
 export const ComponentNodeSchema = z.object({

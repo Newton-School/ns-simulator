@@ -1,4 +1,4 @@
-import { createEvent, Request } from '../core/events'
+import { createEvent, Request, RequestSpan } from '../core/events'
 import {
   ComponentNode,
   DistributionConfig,
@@ -15,6 +15,7 @@ export type ArrivalResult =
 
 export interface CompletionResult {
   nextRequest: Request | null
+  completedSpan?: RequestSpan
 }
 
 export class GGcKNode {
@@ -115,14 +116,26 @@ export class GGcKNode {
     }
 
     const startTime = this.startTimes.get(request.id) ?? currentTime
-    this.metrics.totalServiceTime += currentTime - startTime
+    const arrivalTime = this.arrivalTimes.get(request.id) ?? startTime
+    const queueWait = startTime >= arrivalTime ? startTime - arrivalTime : 0n
+    const serviceTime = currentTime >= startTime ? currentTime - startTime : 0n
+
+    this.metrics.totalServiceTime += serviceTime
     this.metrics.totalCompleted++
+
+    const completedSpan: RequestSpan = {
+      nodeId: this.id,
+      arrivalTime,
+      queueWait,
+      serviceTime,
+      departureTime: currentTime
+    }
 
     this.arrivalTimes.delete(request.id)
     this.startTimes.delete(request.id)
 
     if (this.status === 'failed') {
-      return { nextRequest: null }
+      return { nextRequest: null, completedSpan }
     }
 
     let nextRequest: Request | null = null
@@ -135,7 +148,7 @@ export class GGcKNode {
     }
 
     this.updateStatus()
-    return { nextRequest }
+    return { nextRequest, completedSpan }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

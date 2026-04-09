@@ -30,6 +30,7 @@ export class SimulationEngine {
   private clock = 0n
   private lastSnapshotAt = -1n
   private eventsProcessed = 0
+  private forkCounter = 0
   private running = false
   private paused = false
   private readonly timeSeries: TimeSeriesSnapshot[] = []
@@ -99,7 +100,11 @@ export class SimulationEngine {
   }
 
   hasPendingEvents(): boolean {
-    return !this.eventQueue.isEmpty && this.clock < this.simulationDurationUs
+    if (this.clock >= this.simulationDurationUs) {
+      return false
+    }
+    const nextEvent = this.eventQueue.peek()
+    return nextEvent !== undefined && nextEvent.timestamp <= this.simulationDurationUs
   }
 
   getResults(): SimulationOutput {
@@ -124,12 +129,18 @@ export class SimulationEngine {
         break
       }
 
-      const event = this.eventQueue.extractMin()
-      if (!event) {
+      const nextEvent = this.eventQueue.peek()
+      if (!nextEvent) {
         break
       }
 
-      if (event.timestamp > this.simulationDurationUs) {
+      if (nextEvent.timestamp > this.simulationDurationUs) {
+        this.running = false
+        break
+      }
+
+      const event = this.eventQueue.extractMin()
+      if (!event) {
         break
       }
 
@@ -218,10 +229,24 @@ export class SimulationEngine {
       return
     }
 
-    for (const route of routes) {
+    const routedRequests = this.prepareRequestsForRoutes(request, routes.length)
+    for (let i = 0; i < routes.length; i++) {
+      const route = routes[i]
+      const routedRequest = routedRequests[i]
+      if (routedRequest.id !== request.id) {
+        this.requestById.set(routedRequest.id, routedRequest)
+        this.tracer.setRequestCreatedAt(routedRequest.id, routedRequest.createdAt)
+      }
+
       const arrivalTime = this.clock + this.sampleEdgeLatencyUs(route.edge)
       this.eventQueue.insert(
-        createEvent('request-arrival', route.targetNodeId, request.id, { request }, arrivalTime)
+        createEvent(
+          'request-arrival',
+          route.targetNodeId,
+          routedRequest.id,
+          { request: routedRequest },
+          arrivalTime
+        )
       )
     }
   }
@@ -232,6 +257,7 @@ export class SimulationEngine {
     if (!node || !request) {
       return
     }
+    this.appendNodeToPath(request, event.nodeId)
 
     const result = node.handleArrival(request, this.clock)
     if (result.status === 'rejected') {
@@ -254,7 +280,10 @@ export class SimulationEngine {
       return
     }
 
-    node.handleCompletion(request, this.clock)
+    const completion = node.handleCompletion(request, this.clock)
+    if (completion.completedSpan) {
+      request.spans.push(completion.completedSpan)
+    }
 
     const routes = this.routing.resolveTarget(event.nodeId, request)
     if (routes.length === 0) {
@@ -264,13 +293,21 @@ export class SimulationEngine {
       return
     }
 
-    for (const route of routes) {
+    const routedRequests = this.prepareRequestsForRoutes(request, routes.length)
+    for (let i = 0; i < routes.length; i++) {
+      const route = routes[i]
+      const routedRequest = routedRequests[i]
+      if (routedRequest.id !== request.id) {
+        this.requestById.set(routedRequest.id, routedRequest)
+        this.tracer.setRequestCreatedAt(routedRequest.id, routedRequest.createdAt)
+      }
+
       this.eventQueue.insert(
         createEvent(
           'request-forwarded',
           event.nodeId,
-          request.id,
-          { request, edge: route.edge, targetNodeId: route.targetNodeId },
+          routedRequest.id,
+          { request: routedRequest, edge: route.edge, targetNodeId: route.targetNodeId },
           this.clock
         )
       )
@@ -290,8 +327,9 @@ export class SimulationEngine {
     }
 
     if (this.distributions.random() < edge.packetLossRate) {
+      const timeoutAt = request.deadline > this.clock ? request.deadline : this.clock
       this.eventQueue.insert(
-        createEvent('request-timeout', targetNodeId, request.id, { request }, this.clock)
+        createEvent('request-timeout', targetNodeId, request.id, { request }, timeoutAt)
       )
       return
     }
@@ -303,7 +341,7 @@ export class SimulationEngine {
   }
 
   private handleRequestComplete(event: SimulationEvent): void {
-    const request = this.getRequest(event)
+    const request = this.getRequest(event, false)
     if (!request) {
       return
     }
@@ -327,30 +365,34 @@ export class SimulationEngine {
   }
 
   private handleRequestTimeout(event: SimulationEvent): void {
-    const request = this.getRequest(event)
-    if (request) {
-      for (const span of request.spans) {
-        this.tracer.recordSpan(request.id, span)
-      }
-      this.tracer.markStatus(request.id, 'timeout')
-      this.requestById.delete(request.id)
+    const request = this.getRequest(event, false)
+    if (!request) {
+      return
     }
 
-    this.metrics.recordTimeout(event.requestId, event.nodeId, request?.createdAt)
+    for (const span of request.spans) {
+      this.tracer.recordSpan(request.id, span)
+    }
+    this.tracer.markStatus(request.id, 'timeout')
+    this.requestById.delete(request.id)
+
+    this.metrics.recordTimeout(event.requestId, event.nodeId, request.createdAt)
   }
 
   private handleRequestRejected(event: SimulationEvent): void {
     const reason = (event.data.reason as string | undefined) ?? 'rejected'
-    const request = this.getRequest(event)
-    this.metrics.recordRejection(event.nodeId, reason, request?.createdAt)
-
-    if (request) {
-      for (const span of request.spans) {
-        this.tracer.recordSpan(request.id, span)
-      }
-      this.tracer.markStatus(request.id, 'rejected')
-      this.requestById.delete(request.id)
+    const request = this.getRequest(event, false)
+    if (!request) {
+      return
     }
+
+    this.metrics.recordRejection(event.nodeId, reason, request.createdAt)
+
+    for (const span of request.spans) {
+      this.tracer.recordSpan(request.id, span)
+    }
+    this.tracer.markStatus(request.id, 'rejected')
+    this.requestById.delete(request.id)
   }
 
   private sampleEdgeLatencyUs(edge: EdgeDefinition): bigint {
@@ -358,17 +400,54 @@ export class SimulationEngine {
     return msToMicro(latencyMs)
   }
 
-  private getRequest(event: SimulationEvent): Request | undefined {
+  private getRequest(event: SimulationEvent, hydrate = true): Request | undefined {
+    const tracked = this.requestById.get(event.requestId)
+    if (tracked) {
+      return tracked
+    }
+
+    if (!hydrate) {
+      return undefined
+    }
+
     const fromEvent = event.data.request as Request | undefined
     if (fromEvent) {
       this.requestById.set(fromEvent.id, fromEvent)
       return fromEvent
     }
-    return this.requestById.get(event.requestId)
+    return undefined
   }
 
   private shouldEmitSnapshot(timestamp: bigint): boolean {
     return this.lastSnapshotAt < 0n || timestamp - this.lastSnapshotAt >= this.snapshotIntervalUs
+  }
+
+  private prepareRequestsForRoutes(request: Request, routeCount: number): Request[] {
+    if (routeCount <= 1) {
+      return [request]
+    }
+
+    const routedRequests: Request[] = [request]
+    for (let i = 1; i < routeCount; i++) {
+      routedRequests.push(this.cloneRequestForBranch(request))
+    }
+
+    return routedRequests
+  }
+
+  private cloneRequestForBranch(request: Request): Request {
+    const branchId = `${request.id}::branch-${++this.forkCounter}`
+    return {
+      ...request,
+      id: branchId,
+      path: [...request.path],
+      spans: request.spans.map((span) => ({ ...span })),
+      metadata: { ...request.metadata }
+    }
+  }
+
+  private appendNodeToPath(request: Request, nodeId: string): void {
+    request.path.push(nodeId)
   }
 
   private takeSnapshot(): TimeSeriesSnapshot {
