@@ -1,15 +1,15 @@
-import { generateSimulationOutput, SimulationOutput, TimeSeriesSnapshot } from "./analysis/output"
-import { createEvent, Request, SimulationEvent } from "./core/events"
-import { microToMs, msToMicro, secToMicro } from "./core/time"
-import { ComponentNode, EdgeDefinition, EventScheduler, TopologyJSON } from "./core/types"
-import { MetricsCollector } from "./metrics"
-import { GGcKNode } from "./nodes/GGcKNode"
-import { RoutingTable } from "./routing"
-import { MinHeap } from "./scheduler/min-heap"
-import { Distributions } from "./stochastic/distribution"
-import { createRandom } from "./stochastic/random"
-import { RequestTracer } from "./tracer"
-import { WorkloadGenerator } from "./workload"
+import { generateSimulationOutput, SimulationOutput, TimeSeriesSnapshot } from './analysis/output'
+import { createEvent, Request, SimulationEvent } from './core/events'
+import { microToMs, msToMicro, secToMicro } from './core/time'
+import { ComponentNode, EdgeDefinition, EventScheduler, TopologyJSON } from './core/types'
+import { MetricsCollector } from './metrics'
+import { GGcKNode } from './nodes/GGcKNode'
+import { RoutingTable } from './routing'
+import { MinHeap } from './scheduler/min-heap'
+import { Distributions } from './stochastic/distribution'
+import { createRandom } from './stochastic/random'
+import { RequestTracer } from './tracer'
+import { WorkloadGenerator } from './workload'
 
 export class SimulationEngine {
   onProgress?: (percent: number, eventsProcessed: number) => void
@@ -146,7 +146,10 @@ export class SimulationEngine {
       processedInCall++
 
       if (this.eventsProcessed % 1000 === 0) {
-        const percent = Math.min(100, (microToMs(this.clock) / this.topology.global.simulationDuration) * 100)
+        const percent = Math.min(
+          100,
+          (microToMs(this.clock) / this.topology.global.simulationDuration) * 100
+        )
         this.onProgress?.(percent, this.eventsProcessed)
       }
     }
@@ -365,14 +368,12 @@ export class SimulationEngine {
   }
 
   private shouldEmitSnapshot(timestamp: bigint): boolean {
-    return (
-      this.lastSnapshotAt < 0n || timestamp - this.lastSnapshotAt >= this.snapshotIntervalUs
-    )
+    return this.lastSnapshotAt < 0n || timestamp - this.lastSnapshotAt >= this.snapshotIntervalUs
   }
 
   private takeSnapshot(): TimeSeriesSnapshot {
     this.lastSnapshotAt = this.clock
-    const nodes: TimeSeriesSnapshot['nodes'] = {}
+    const nodes: TimeSeriesSnapshot['node'] = {}
 
     for (const [nodeId, node] of this.nodes) {
       const state = node.getState()
@@ -387,7 +388,7 @@ export class SimulationEngine {
 
     return {
       timestamp: microToMs(this.clock),
-      nodes
+      node: nodes
     }
   }
 
@@ -407,7 +408,10 @@ export class SimulationEngine {
     return {
       ...node,
       queue: node.queue ?? { workers: 1, capacity: 100, discipline: 'fifo' },
-      processing: node.processing ?? { distribution: { type: 'constant', value: 1 }, timeout: 30_000 }
+      processing: node.processing ?? {
+        distribution: { type: 'constant', value: 1 },
+        timeout: 30_000
+      }
     }
   }
 }
