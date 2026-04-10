@@ -9,16 +9,34 @@ interface UseFlowDnDProps {
   instance: ReactFlowInstance | null
 }
 
+//Circular dedendency check function
+const createsCircularDependency = (
+  draggedNodeId: string,
+  targetParentId: string,
+  nodes: Node[]
+): boolean => {
+  let currentParentId: string | undefined = targetParentId
+
+  while (currentParentId) {
+    if (currentParentId === draggedNodeId) {
+      return true // Cycle detected!
+    }
+
+    const parentNode = nodes.find((n) => n.id === currentParentId)
+    currentParentId = parentNode?.parentNode
+  }
+
+  return false
+}
+
 export const useFlowDnD = ({ nodes, addNode, setNodes, instance }: UseFlowDnDProps) => {
   const { getIntersectingNodes } = useReactFlow()
 
-  // 1. Drag Over
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault()
     event.dataTransfer.dropEffect = 'move'
   }, [])
 
-  // 2. Drop (New Node Creation)
   const onDrop = useCallback(
     (event: React.DragEvent) => {
       event.preventDefault()
@@ -58,7 +76,6 @@ export const useFlowDnD = ({ nodes, addNode, setNodes, instance }: UseFlowDnDPro
     [instance, addNode, nodes]
   )
 
-  // 3. Drag Stop (Re-parenting / Nesting Logic)
   const onNodeDragStop: NodeDragHandler = useCallback(
     (_, node) => {
       // Find intersections using React Flow's helper, then filter for VPCs
@@ -75,11 +92,12 @@ export const useFlowDnD = ({ nodes, addNode, setNodes, instance }: UseFlowDnDPro
 
       const targetVpc = intersections[0]
 
-      // Scenario A: Attach to Parent
       if (targetVpc) {
-        // Prevent cycles
-        if (node.id === targetVpc.parentNode) return
-        // Prevent redundant updates
+        if (createsCircularDependency(node.id, targetVpc.id, nodes)) {
+          console.warn('Nesting aborted: Circular dependency detected.')
+          return
+        }
+
         if (node.parentNode === targetVpc.id) return
 
         const relativePosition = {
