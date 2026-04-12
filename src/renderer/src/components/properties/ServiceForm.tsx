@@ -1,5 +1,9 @@
 import { AnyNodeDataKey, AnyNodeDataValue, ServiceNodeData } from '@renderer/types/ui'
-import { FIELD_DEFINITIONS, FIELD_GROUPS_BY_KIND, type FieldKey } from '@renderer/config/fieldConfig'
+import {
+  FIELD_DEFINITIONS,
+  FIELD_GROUPS_BY_KIND,
+  type FieldKey
+} from '@renderer/config/fieldConfig'
 import { FormField } from './FormField'
 
 interface ServiceFormProps {

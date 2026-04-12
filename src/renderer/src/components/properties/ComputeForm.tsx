@@ -1,12 +1,11 @@
 import { Cpu, Zap, Layers, AlertTriangle } from 'lucide-react'
-import {
-  AnyNodeDataKey,
-  AnyNodeDataValue,
-  ComputeNodeData,
-  ComputeType
-} from '@renderer/types/ui'
+import { AnyNodeDataKey, AnyNodeDataValue, ComputeNodeData, ComputeType } from '@renderer/types/ui'
 import { COMPUTE_DEFAULTS } from '@renderer/config/nodeRegistry'
-import { FIELD_DEFINITIONS, FIELD_GROUPS_BY_KIND, type FieldKey } from '@renderer/config/fieldConfig'
+import {
+  FIELD_DEFINITIONS,
+  FIELD_GROUPS_BY_KIND,
+  type FieldKey
+} from '@renderer/config/fieldConfig'
 import { FormField } from './FormField'
 
 interface ComputeFormProps {

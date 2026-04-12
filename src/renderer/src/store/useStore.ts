@@ -12,7 +12,12 @@ import {
   applyNodeChanges,
   applyEdgeChanges
 } from 'reactflow'
-import type { NodeSimulationMetrics, AnyNodeData, AnyNodeDataKey, AnyNodeDataValue } from '@renderer/types/ui'
+import type {
+  NodeSimulationMetrics,
+  AnyNodeData,
+  AnyNodeDataKey,
+  AnyNodeDataValue
+} from '@renderer/types/ui'
 
 type RFState = {
   // --- Graph Data ---

@@ -84,7 +84,11 @@ export type NodeType = 'serviceNode' | 'computeNode' | 'databaseNode' | 'vpcNode
 export type AnyNodeData = ServiceNodeData | ComputeNodeData | VpcNodeData | SecurityNodeData
 
 type UnionKeyOf<T> = T extends unknown ? keyof T : never
-type UnionValueOf<T, K extends PropertyKey> = T extends unknown ? (K extends keyof T ? T[K] : never) : never
+type UnionValueOf<T, K extends PropertyKey> = T extends unknown
+  ? K extends keyof T
+    ? T[K]
+    : never
+  : never
 
 export type AnyNodeDataKey = UnionKeyOf<AnyNodeData>
 export type AnyNodeDataValue<K extends AnyNodeDataKey> = UnionValueOf<AnyNodeData, K>
