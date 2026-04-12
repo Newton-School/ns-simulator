@@ -1,11 +1,11 @@
-import { AnyNodeData } from '@renderer/types/ui'
+import { AnyNodeData, AnyNodeDataKey, AnyNodeDataValue } from '@renderer/types/ui'
 import { ComputeForm } from './ComputeForm'
 import { ServiceForm } from './ServiceForm'
 import { SecurityForm } from './SecurityForm'
 
 interface PropertiesFormProps {
   data: AnyNodeData
-  onUpdate: (key: string, value: any) => void
+  onUpdate: <K extends AnyNodeDataKey>(key: K, value: AnyNodeDataValue<K>) => void
 }
 
 export const PropertiesForm = ({ data, onUpdate }: PropertiesFormProps) => {

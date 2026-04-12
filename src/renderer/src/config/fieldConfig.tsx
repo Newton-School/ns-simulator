@@ -1,4 +1,32 @@
-export const FIELD_DEFINITIONS: Record<string, any> = {
+import type { AnyNodeDataKey } from '@renderer/types/ui'
+
+export type FieldKey = AnyNodeDataKey
+
+export type FieldDefinition =
+  | {
+      type: 'slider'
+      label: string
+      min: number
+      max: number
+      unit?: string
+    }
+  | {
+      type: 'select'
+      label: string
+      options: string[]
+    }
+  | {
+      type: 'input'
+      label: string
+      unit?: string
+      step?: number
+    }
+  | {
+      type: 'boolean'
+      label: string
+    }
+
+export const FIELD_DEFINITIONS: Partial<Record<FieldKey, FieldDefinition>> = {
   // --- General ---
   status: { type: 'select', label: 'Health Status', options: ['healthy', 'degraded', 'critical'] },
 
@@ -36,12 +64,12 @@ export const FIELD_GROUPS = {
   Queueing: ['workers', 'capacity', 'queueDiscipline', 'meanServiceMs', 'timeoutMs'],
   Configuration: ['vCPU', 'ram', 'region', 'status'],
   Execution: ['threadPool', 'coldStart']
-}
+} as const satisfies Record<string, readonly FieldKey[]>
 
 // Per-kind field groups — used by per-kind form components
 export const FIELD_GROUPS_BY_KIND: Record<
   'compute' | 'service' | 'security',
-  Record<string, string[]>
+  Record<string, FieldKey[]>
 > = {
   compute: {
     Queueing: ['workers', 'capacity', 'queueDiscipline', 'meanServiceMs', 'timeoutMs'],

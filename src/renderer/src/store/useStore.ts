@@ -12,7 +12,7 @@ import {
   applyNodeChanges,
   applyEdgeChanges
 } from 'reactflow'
-import type { NodeSimulationMetrics, AnyNodeData } from '@renderer/types/ui'
+import type { NodeSimulationMetrics, AnyNodeData, AnyNodeDataKey, AnyNodeDataValue } from '@renderer/types/ui'
 
 type RFState = {
   // --- Graph Data ---
@@ -29,7 +29,12 @@ type RFState = {
   onEdgesChange: OnEdgesChange
   onConnect: OnConnect
   addNode: (node: Node) => void
-  updateNodeData: (nodeId: string, patch: Partial<AnyNodeData> & Record<string, unknown>) => void
+  updateNodeData: (nodeId: string, patch: Partial<AnyNodeData>) => void
+  updateNodeField: <K extends AnyNodeDataKey>(
+    nodeId: string,
+    key: K,
+    value: AnyNodeDataValue<K>
+  ) => void
   updateEdgeData: (edgeId: string, label: string, data?: any) => void
   setSimulationMetrics: (metrics: Record<string, NodeSimulationMetrics>) => void
   clearSimulationMetrics: () => void
@@ -90,18 +95,25 @@ const useStore = create<RFState>((set, get) => ({
     set({ edges })
   },
 
-  updateNodeData: (nodeId: string, patch: Partial<AnyNodeData> & Record<string, unknown>) => {
+  updateNodeData: (nodeId: string, patch: Partial<AnyNodeData>) => {
     set({
       nodes: get().nodes.map((node) => {
         if (node.id === nodeId) {
           return {
             ...node,
-            data: { ...node.data, ...patch }
+            data: {
+              ...(node.data as Record<string, unknown>),
+              ...(patch as Record<string, unknown>)
+            }
           }
         }
         return node
       })
     })
+  },
+
+  updateNodeField: (nodeId, key, value) => {
+    get().updateNodeData(nodeId, { [key]: value } as Partial<AnyNodeData>)
   },
 
   updateEdgeData: (edgeId: string, label: string) => {

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { clsx } from 'clsx'
 import { Settings, Info } from 'lucide-react'
+import type { AnyNodeDataKey, AnyNodeDataValue } from '@renderer/types/ui'
 
 // --- Store & Config ---
 import useStore from '../../store/useStore'
@@ -18,7 +19,7 @@ const EmptyState = () => (
 
 export const PropertiesPanel = () => {
   const nodes = useStore((state) => state.nodes)
-  const updateNodeData = useStore((state) => state.updateNodeData)
+  const updateNodeField = useStore((state) => state.updateNodeField)
 
   const selectedNode = nodes.find((n) => n.selected)
   const [activeTab, setActiveTab] = useState('specs')
@@ -27,8 +28,8 @@ export const PropertiesPanel = () => {
 
   const { data, id } = selectedNode
 
-  const handleUpdate = (key: string, value: unknown) => {
-    updateNodeData(id, { [key]: value })
+  const handleUpdate = <K extends AnyNodeDataKey>(key: K, value: AnyNodeDataValue<K>) => {
+    updateNodeField(id, key, value)
   }
 
   return (

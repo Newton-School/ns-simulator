@@ -29,6 +29,14 @@ type NodePerformanceData = {
   isOverloaded?: boolean
 }
 
+type NodeRuntimeData = NodePerformanceData & {
+  registryId?: string
+  kind?: 'compute' | 'service' | 'security' | 'vpc'
+  computeType?: string
+  iconKey?: string
+  label?: string
+}
+
 // ─── Per-category performance baselines ──────────────────────────────────────
 
 /**
@@ -93,6 +101,13 @@ const DEFAULT_WORKLOAD: WorkloadProfile = {
 const DEFAULT_UTILIZATION_HINT = 65
 const MAX_DERIVED_WORKERS = 512
 const MAX_DERIVED_CAPACITY = 2_000_000
+const REGISTRY_ID_BY_LOOKUP_KEY = Object.values(NODE_REGISTRY).reduce<Record<string, string>>(
+  (acc, def) => {
+    acc[def.lookupKey] = def.id
+    return acc
+  },
+  {}
+)
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -195,6 +210,26 @@ function derivePerformanceConfig(
   }
 }
 
+function resolveRegistryId(rfNode: Node): string | null {
+  const data = (rfNode.data ?? {}) as NodeRuntimeData
+
+  if (
+    typeof data.registryId === 'string' &&
+    data.registryId.length > 0 &&
+    NODE_REGISTRY[data.registryId]
+  ) {
+    return data.registryId
+  }
+
+  const idDerivedRegistry = rfNode.id.replace(/_\d+$/, '')
+  if (NODE_REGISTRY[idDerivedRegistry]) return idDerivedRegistry
+
+  const lookupKey = data.kind === 'compute' ? data.computeType : data.iconKey
+  if (typeof lookupKey !== 'string' || lookupKey.length === 0) return null
+
+  return REGISTRY_ID_BY_LOOKUP_KEY[lookupKey] ?? null
+}
+
 // ─── Node serializer ──────────────────────────────────────────────────────────
 
 /**
@@ -207,22 +242,24 @@ function serializeNode(rfNode: Node): ComponentNode | null {
 
   if (nodeType === 'vpcNode') return null
 
+  const d = data as NodeRuntimeData
   const pos = { x: position?.x ?? 0, y: position?.y ?? 0 }
-  const registryId = id.replace(/_\d+$/, '')
+  const registryId = resolveRegistryId(rfNode)
+  if (!registryId) return null
+
   const def = NODE_REGISTRY[registryId]
   const simConfig = def?.simulationConfig
 
   if (!simConfig) return null
 
   const { componentType, category, isSourceOnly } = simConfig
-  const d = data as NodePerformanceData
 
   if (isSourceOnly) {
     return {
       id,
       type: componentType,
       category,
-      label: (data.label as string | undefined) ?? registryId,
+      label: d.label ?? def.label ?? registryId,
       position: pos,
       config: { sourceOnly: true }
     }
@@ -233,7 +270,7 @@ function serializeNode(rfNode: Node): ComponentNode | null {
     id,
     type: componentType,
     category,
-    label: (data.label as string | undefined) ?? registryId,
+    label: d.label ?? def.label ?? registryId,
     position: pos,
     queue: perf.queue,
     processing: perf.processing
@@ -314,7 +351,8 @@ export function useTopologySerializer() {
       const asyncNodeIds = new Set(
         nodes
           .filter((n) => {
-            const registryId = n.id.replace(/_\d+$/, '')
+            const registryId = resolveRegistryId(n)
+            if (!registryId) return false
             return NODE_REGISTRY[registryId]?.simulationConfig?.isAsync === true
           })
           .map((n) => n.id)

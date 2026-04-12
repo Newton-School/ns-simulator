@@ -1,12 +1,17 @@
 import { Cpu, Zap, Layers, AlertTriangle } from 'lucide-react'
-import { ComputeNodeData, ComputeType } from '@renderer/types/ui'
+import {
+  AnyNodeDataKey,
+  AnyNodeDataValue,
+  ComputeNodeData,
+  ComputeType
+} from '@renderer/types/ui'
 import { COMPUTE_DEFAULTS } from '@renderer/config/nodeRegistry'
-import { FIELD_DEFINITIONS, FIELD_GROUPS_BY_KIND } from '@renderer/config/fieldConfig'
+import { FIELD_DEFINITIONS, FIELD_GROUPS_BY_KIND, type FieldKey } from '@renderer/config/fieldConfig'
 import { FormField } from './FormField'
 
 interface ComputeFormProps {
   data: ComputeNodeData
-  onUpdate: (key: string, value: any) => void
+  onUpdate: <K extends AnyNodeDataKey>(key: K, value: AnyNodeDataValue<K>) => void
 }
 
 export const ComputeForm = ({ data, onUpdate }: ComputeFormProps) => {
@@ -19,17 +24,17 @@ export const ComputeForm = ({ data, onUpdate }: ComputeFormProps) => {
     }
   }
 
-  const renderField = (key: string) => {
+  const renderField = (key: FieldKey) => {
     const config = FIELD_DEFINITIONS[key]
-    const value = (data as any)[key]
-    if (!config || value === undefined) return null
+    const value = data[key as keyof ComputeNodeData]
+    if (!config) return null
     return (
       <FormField
         key={key}
         fieldKey={key}
         config={config}
         value={value}
-        onChange={(val) => onUpdate(key, val)}
+        onChange={(val) => onUpdate(key, val as AnyNodeDataValue<typeof key>)}
       />
     )
   }
@@ -127,9 +132,7 @@ export const ComputeForm = ({ data, onUpdate }: ComputeFormProps) => {
 
       {/* Generic grouped fields */}
       {Object.entries(FIELD_GROUPS_BY_KIND.compute).map(([groupName, fields]) => {
-        const hasVisible = fields.some(
-          (k) => (data as any)[k] !== undefined && FIELD_DEFINITIONS[k]
-        )
+        const hasVisible = fields.some((k) => Boolean(FIELD_DEFINITIONS[k]))
         if (!hasVisible) return null
         return (
           <div key={groupName} className="mb-6 last:mb-0">
