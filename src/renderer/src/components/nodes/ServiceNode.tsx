@@ -1,4 +1,4 @@
-import { memo } from 'react'
+import { memo, useCallback } from 'react'
 import { NodeProps } from 'reactflow'
 import { NodeHeader } from '@renderer/components/nodes/NodeHeader'
 import { NodeSettingsMenu } from '@renderer/components/nodes/NodeSettingsMenu'
@@ -8,10 +8,19 @@ import { ServiceNodeData } from '@renderer/types/ui'
 import { resolveNodeConfig } from '@renderer/config/nodeRegistry'
 import { useNodeMetrics } from '@renderer/hooks/useNodeMetrics'
 import BaseNode from '@renderer/components/nodes/BaseNode'
+import { useFlowStore } from '@renderer/components/canvas/hooks/useFlowStore'
 
 const ServiceNode = ({ id, data, selected }: NodeProps<ServiceNodeData>) => {
+  const { updateNodeData } = useFlowStore()
   // Icon and theme resolved from the shared registry — no local ICON_LOOKUP needed
   const { icon: IconComponent } = resolveNodeConfig(data.iconKey)
+
+  const handleLabelChange = useCallback(
+    (newLabel: string) => {
+      updateNodeData(id, { label: newLabel })
+    },
+    [id, updateNodeData]
+  )
 
   const { throughput, errorRate, queueDepth, utilization } = useNodeMetrics(id, {
     throughput: data.throughput,
@@ -29,6 +38,7 @@ const ServiceNode = ({ id, data, selected }: NodeProps<ServiceNodeData>) => {
             icon={IconComponent}
             status={data.status}
             color={data.color}
+            onLabelChange={handleLabelChange}
           >
             <NodeSettingsMenu
               nodeId={id}

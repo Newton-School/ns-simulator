@@ -1,4 +1,4 @@
-import { memo } from 'react'
+import { memo, useCallback } from 'react'
 import { NodeProps } from 'reactflow'
 import { NodeHeader } from '@renderer/components/nodes/NodeHeader'
 import { NodeSettingsMenu } from '@renderer/components/nodes/NodeSettingsMenu'
@@ -8,10 +8,19 @@ import { SecurityNodeData } from '@renderer/types/ui'
 import { resolveNodeConfig } from '@renderer/config/nodeRegistry'
 import { useNodeMetrics } from '@renderer/hooks/useNodeMetrics'
 import BaseNode from '@renderer/components/nodes/BaseNode'
+import { useFlowStore } from '@renderer/components/canvas/hooks/useFlowStore'
 
 const SecurityNode = ({ id, data, selected }: NodeProps<SecurityNodeData>) => {
+  const { updateNodeData } = useFlowStore()
   // Icon resolved from the shared registry — no local ICON_LOOKUP needed
   const { icon: IconComponent } = resolveNodeConfig(data.iconKey)
+
+  const handleLabelChange = useCallback(
+    (newLabel: string) => {
+      updateNodeData(id, { label: newLabel })
+    },
+    [id, updateNodeData]
+  )
 
   const { utilization } = useNodeMetrics(id, { utilization: data.load })
 
@@ -24,6 +33,7 @@ const SecurityNode = ({ id, data, selected }: NodeProps<SecurityNodeData>) => {
             icon={IconComponent}
             status={data.status}
             color={data.color}
+            onLabelChange={handleLabelChange}
           >
             <NodeSettingsMenu
               nodeId={id}

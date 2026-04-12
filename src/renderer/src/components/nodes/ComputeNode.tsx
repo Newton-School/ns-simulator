@@ -1,14 +1,24 @@
-import { memo, useMemo } from 'react'
+import { memo, useCallback, useMemo } from 'react'
 import { NodeProps } from 'reactflow'
 import { ComputeNodeData } from '@renderer/types/ui'
 import { resolveNodeConfig } from '@renderer/config/nodeRegistry'
 import { ProgressBar } from '@renderer/components/ui/ProgressBar'
 import { useNodeMetrics } from '@renderer/hooks/useNodeMetrics'
 import BaseNode from '@renderer/components/nodes/BaseNode'
+import { InlineEditableLabel } from '@renderer/components/properties/InlineEditable'
+import { useFlowStore } from '@renderer/components/canvas/hooks/useFlowStore'
 
 const ComputeNode = ({ id, data, selected }: NodeProps<ComputeNodeData>) => {
+  const { updateNodeData } = useFlowStore()
   const { icon: Icon, theme } = resolveNodeConfig(data.computeType)
   const isOverloaded = data.isOverloaded
+
+  const handleLabelChange = useCallback(
+    (newLabel: string) => {
+      updateNodeData(id, { label: newLabel })
+    },
+    [id, updateNodeData]
+  )
 
   const { utilization, queueDepth: runtimeQueueDepth } = useNodeMetrics(id, {
     utilization: data.utilization,
@@ -52,11 +62,14 @@ const ComputeNode = ({ id, data, selected }: NodeProps<ComputeNodeData>) => {
               <Icon size={16} />
             </div>
 
-            <div className="flex flex-col">
-              <span className="text-xs font-bold text-nss-text uppercase tracking-wide">
-                {data.label}
-              </span>
-              <span className="text-[10px] text-nss-muted font-mono">{data.computeType}</span>
+            <div className="flex flex-col overflow-hidden w-full">
+              <InlineEditableLabel
+                value={data.label || 'Compute'}
+                onSave={handleLabelChange}
+                textClassName="text-xs font-bold uppercase tracking-wide w-full"
+                inputClassName="text-xs font-bold uppercase tracking-wide w-full"
+              />
+              <span className="text-[10px] text-nss-muted font-mono px-1">{data.computeType}</span>
             </div>
           </div>
 
