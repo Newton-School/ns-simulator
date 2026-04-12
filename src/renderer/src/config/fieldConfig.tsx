@@ -5,13 +5,22 @@ export const FIELD_DEFINITIONS: Record<string, any> = {
   // --- Metrics ---
   throughput: { type: 'slider', label: 'Throughput', min: 0, max: 100000, unit: 'req/s' },
   errorRate: { type: 'input', label: 'Error Rate', unit: '%', step: 0.01 },
-  load: { type: 'slider', label: 'CPU Load', min: 0, max: 100, unit: '%' },
-  queueDepth: { type: 'input', label: 'Queue Depth', unit: 'ms' },
+  load: { type: 'slider', label: 'CPU Utilization', min: 0, max: 100, unit: '%' },
+  queueDepth: { type: 'input', label: 'Queue Depth', unit: 'req' },
+  workers: { type: 'input', label: 'Workers', unit: 'count' },
+  capacity: { type: 'input', label: 'Capacity', unit: 'req' },
+  queueDiscipline: {
+    type: 'select',
+    label: 'Queue Discipline',
+    options: ['fifo', 'lifo', 'priority', 'wfq']
+  },
+  meanServiceMs: { type: 'input', label: 'Mean Service Time', unit: 'ms' },
+  timeoutMs: { type: 'input', label: 'Timeout', unit: 'ms' },
 
-  droppedPackets: { type: 'input', label: 'Dropped Packets', unit: '%' },
-  blockRate: { type: 'input', label: 'Block Rate', unit: '%' },
+  blockRate: { type: 'input', label: 'Block Rate', unit: '%', step: 0.01 },
+  droppedPackets: { type: 'input', label: 'Dropped Packets', unit: '%', step: 0.01 },
 
-  // --- Specs  ---
+  // --- Specs ---
   vCPU: { type: 'input', label: 'vCPU Cores', unit: 'cores' },
   ram: { type: 'input', label: 'Memory', unit: 'GB' },
   region: { type: 'select', label: 'Region', options: ['us-east-1', 'us-west-2', 'eu-central-1'] },
@@ -21,9 +30,30 @@ export const FIELD_DEFINITIONS: Record<string, any> = {
   coldStart: { type: 'boolean', label: 'Cold Start Sim' }
 }
 
-// Group keys to display them in sections
+// Legacy flat groups — kept for backward compatibility with any remaining consumers
 export const FIELD_GROUPS = {
   Performance: ['throughput', 'errorRate', 'load', 'queueDepth'],
+  Queueing: ['workers', 'capacity', 'queueDiscipline', 'meanServiceMs', 'timeoutMs'],
   Configuration: ['vCPU', 'ram', 'region', 'status'],
   Execution: ['threadPool', 'coldStart']
+}
+
+// Per-kind field groups — used by per-kind form components
+export const FIELD_GROUPS_BY_KIND: Record<
+  'compute' | 'service' | 'security',
+  Record<string, string[]>
+> = {
+  compute: {
+    Queueing: ['workers', 'capacity', 'queueDiscipline', 'meanServiceMs', 'timeoutMs'],
+    Configuration: ['vCPU', 'ram', 'region']
+  },
+  service: {
+    Performance: ['throughput', 'errorRate', 'load', 'queueDepth'],
+    Queueing: ['workers', 'capacity', 'queueDiscipline', 'meanServiceMs', 'timeoutMs'],
+    Configuration: ['status', 'region']
+  },
+  security: {
+    Metrics: ['blockRate', 'droppedPackets', 'load'],
+    Configuration: ['status']
+  }
 }

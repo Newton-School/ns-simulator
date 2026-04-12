@@ -27,7 +27,7 @@ export const PropertiesPanel = () => {
 
   const { data, id } = selectedNode
 
-  const handleUpdate = (key: string, value: any) => {
+  const handleUpdate = (key: string, value: unknown) => {
     updateNodeData(id, { [key]: value })
   }
 
@@ -70,12 +70,12 @@ export const PropertiesPanel = () => {
       </div>
 
       {/* --- FOOTER --- */}
-      <div className="p-4 border-t border-nss-border bg-nss-surface shrink-0">
+      {/* <div className="p-4 border-t border-nss-border bg-nss-surface shrink-0">
         <div className="flex justify-between items-center text-[10px] text-nss-muted font-mono">
           <span>UUID: {id.split('-')[0]}...</span>
           <span>v1.2.0</span>
         </div>
-      </div>
+      </div> */}
     </div>
   )
 }

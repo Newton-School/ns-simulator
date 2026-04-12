@@ -1,19 +1,25 @@
 import { LucideIcon } from 'lucide-react'
 
 export interface ServiceNodeData {
+  kind: 'service'
   iconKey: string
   status?: 'healthy' | 'degraded' | 'critical'
   throughput?: number
   errorRate?: number
   load?: number
   queueDepth?: number
+  workers?: number
+  capacity?: number
+  queueDiscipline?: 'fifo' | 'lifo' | 'priority' | 'wfq'
+  meanServiceMs?: number
+  timeoutMs?: number
 
   label: string
   color?: ColorTheme | string
 }
 
-// Add this interface to your types file
 export interface SecurityNodeData {
+  kind: 'security'
   label: string
   subLabel?: string
   iconKey: string
@@ -23,24 +29,42 @@ export interface SecurityNodeData {
   droppedPackets?: number
   activeThreats?: number
   load?: number
+  workers?: number
+  capacity?: number
+  queueDiscipline?: 'fifo' | 'lifo' | 'priority' | 'wfq'
+  meanServiceMs?: number
+  timeoutMs?: number
 }
 
-// New Compute Node Data
 export type ComputeType = 'SERVER' | 'LAMBDA' | 'WORKER' | 'CRON' | 'AUTH' | 'SEARCH_SERVICE'
 
 export interface ComputeNodeData {
+  kind: 'compute'
   computeType: ComputeType
-  cpu_usage: number // 0-100
-  queue_depth: number // pending work count
-  is_overloaded: boolean // Simulation state
+  utilization: number // 0-100 (was cpu_usage)
+  queueDepth: number  // pending work count (was queue_depth)
+  isOverloaded: boolean // simulation state (was is_overloaded)
+  workers?: number
+  capacity?: number
+  queueDiscipline?: 'fifo' | 'lifo' | 'priority' | 'wfq'
+  meanServiceMs?: number
+  timeoutMs?: number
 
   // Optional overrides
   iconKey?: string
   label?: string
 }
 
+export interface NodeSimulationMetrics {
+  throughput?: number
+  queueDepth?: number
+  utilization?: number
+  errorRate?: number
+}
+
 // VPC Node Data
 export interface VpcNodeData {
+  kind: 'vpc'
   iconKey?: string
 }
 
