@@ -2,23 +2,38 @@ import { Label } from '../ui/Label'
 import { Input } from '../ui/Input'
 import { Select } from '../ui/Select'
 import { Slider } from '../ui/Slider'
+import type { FieldDefinition, FieldKey } from '@renderer/config/fieldConfig'
 
 interface FormFieldProps {
-  fieldKey: string
-  config: any
-  value: any
-  onChange: (value: any) => void
+  fieldKey: FieldKey
+  config: FieldDefinition
+  value: unknown
+  onChange: (value: unknown) => void
 }
 
 export const FormField = ({ config, value, onChange }: FormFieldProps) => {
-  if (value === undefined) return null
+  const normalizedValue = (() => {
+    if (value !== undefined) return value
+
+    switch (config.type) {
+      case 'slider':
+        return config.min
+      case 'select':
+        return config.options[0] ?? ''
+      case 'boolean':
+        return false
+      case 'input':
+      default:
+        return 0
+    }
+  })()
 
   const renderInput = () => {
     switch (config.type) {
       case 'slider':
         return (
           <Slider
-            value={value}
+            value={Number(normalizedValue)}
             min={config.min}
             max={config.max}
             unit={config.unit}
@@ -28,7 +43,7 @@ export const FormField = ({ config, value, onChange }: FormFieldProps) => {
 
       case 'select':
         return (
-          <Select value={value} onChange={(e) => onChange(e.target.value)}>
+          <Select value={String(normalizedValue)} onChange={(e) => onChange(e.target.value)}>
             {config.options?.map((opt: string) => (
               <option key={opt} value={opt}>
                 {opt}
@@ -37,17 +52,32 @@ export const FormField = ({ config, value, onChange }: FormFieldProps) => {
           </Select>
         )
 
+      case 'boolean':
+        return (
+          <input
+            type="checkbox"
+            checked={Boolean(normalizedValue)}
+            onChange={(e) => onChange(e.target.checked)}
+            className="w-3.5 h-3.5 accent-nss-primary"
+          />
+        )
+
       case 'input':
       default:
         return (
           <Input
-            type={typeof value === 'number' ? 'number' : 'text'}
+            type={typeof normalizedValue === 'number' ? 'number' : 'text'}
             step={config.step}
-            value={value}
+            value={normalizedValue as string | number}
             rightElement={config.unit}
             onChange={(e) => {
               const val = e.target.value
-              onChange(typeof value === 'number' ? parseFloat(val) : val)
+              if (typeof normalizedValue === 'number') {
+                const parsed = Number(val)
+                onChange(Number.isNaN(parsed) ? 0 : parsed)
+                return
+              }
+              onChange(val)
             }}
           />
         )

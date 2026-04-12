@@ -48,7 +48,7 @@ const FlowCanvasInternal = () => {
 
   useEffect(() => {
     const isInitialLoad = prevNodeCount.current === 0 && nodes.length > 0
-    
+
     const isBulkLoad = Math.abs(nodes.length - prevNodeCount.current) > 1
 
     if (reactFlowInstance && (isInitialLoad || isBulkLoad)) {
