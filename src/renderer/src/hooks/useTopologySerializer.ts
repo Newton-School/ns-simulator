@@ -27,6 +27,12 @@ type NodePerformanceData = {
   meanServiceMs?: number
   timeoutMs?: number
   isOverloaded?: boolean
+  vCPU?: number
+  ram?: number
+  status?: 'healthy' | 'degraded' | 'critical'
+  errorRate?: number
+  blockRate?: number
+  droppedPackets?: number
 }
 
 type NodeRuntimeData = NodePerformanceData & {
@@ -35,6 +41,18 @@ type NodeRuntimeData = NodePerformanceData & {
   computeType?: string
   iconKey?: string
   label?: string
+}
+
+type EdgeRuntimeData = {
+  protocol?: EdgeDefinition['protocol']
+  mode?: EdgeDefinition['mode']
+  latencyMu?: number
+  latencySigma?: number
+  pathType?: EdgeDefinition['latency']['pathType']
+  bandwidth?: number
+  maxConcurrentRequests?: number
+  packetLossRate?: number
+  errorRate?: number
 }
 
 // ─── Per-category performance baselines ──────────────────────────────────────
@@ -101,6 +119,15 @@ const DEFAULT_WORKLOAD: WorkloadProfile = {
 const DEFAULT_UTILIZATION_HINT = 65
 const MAX_DERIVED_WORKERS = 512
 const MAX_DERIVED_CAPACITY = 2_000_000
+const EDGE_DEFAULTS = {
+  latencyMu: 2.3,
+  latencySigma: 0.5,
+  pathType: 'same-dc' as const,
+  bandwidth: 1000,
+  maxConcurrentRequests: 100,
+  packetLossRate: 0,
+  errorRate: 0.001
+}
 const REGISTRY_ID_BY_LOOKUP_KEY = Object.values(NODE_REGISTRY).reduce<Record<string, string>>(
   (acc, def) => {
     acc[def.lookupKey] = def.id
@@ -143,11 +170,66 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value))
 }
 
+/**
+ * Accepts either probability [0,1] or percentage [0,100] input.
+ */
+function asProbability(value: unknown): number | null {
+  const num = asFiniteNumber(value)
+  if (num === null || num < 0) return null
+  if (num <= 1) return num
+  if (num <= 100) return num / 100
+  return null
+}
+
+function asPathType(value: unknown): EdgeDefinition['latency']['pathType'] | null {
+  if (
+    value === 'same-rack' ||
+    value === 'same-dc' ||
+    value === 'cross-zone' ||
+    value === 'cross-region' ||
+    value === 'internet'
+  ) {
+    return value
+  }
+  return null
+}
+
+function asProtocol(value: unknown): EdgeDefinition['protocol'] | null {
+  if (
+    value === 'https' ||
+    value === 'grpc' ||
+    value === 'tcp' ||
+    value === 'udp' ||
+    value === 'websocket' ||
+    value === 'amqp' ||
+    value === 'kafka'
+  ) {
+    return value
+  }
+  return null
+}
+
+function asEdgeMode(value: unknown): EdgeDefinition['mode'] | null {
+  if (
+    value === 'synchronous' ||
+    value === 'asynchronous' ||
+    value === 'streaming' ||
+    value === 'conditional'
+  ) {
+    return value
+  }
+  return null
+}
+
 function derivePerformanceConfig(
   data: NodePerformanceData,
   engineType?: ComponentType,
   category?: ComponentCategory
 ) {
+  const vCpuCores = asPositiveNumber(data.vCPU) ?? 4
+  const memoryGb = asPositiveNumber(data.ram) ?? 8
+  const status = data.status ?? 'healthy'
+
   const desiredThroughput = asPositiveNumber(data.throughput)
   const utilizationPct =
     asFiniteNumber(data.utilization) ?? asFiniteNumber(data.load) ?? DEFAULT_UTILIZATION_HINT
@@ -157,14 +239,21 @@ function derivePerformanceConfig(
   const workersFromThroughput = desiredThroughput ? Math.ceil(desiredThroughput / 10_000) : 1
   const workersFromQueueDepth = Math.max(1, Math.round(Math.sqrt(queueDepthHint + 1)))
   const workersFromUtilization = Math.max(1, Math.round(utilizationHint * 8))
+  const workersFromCpu = Math.max(1, Math.round(vCpuCores * 2))
 
-  const workers = Math.min(
+  let workers = Math.min(
     MAX_DERIVED_WORKERS,
     asPositiveInt(data.workers) ??
-      Math.max(workersFromThroughput, workersFromQueueDepth, workersFromUtilization)
+      Math.max(workersFromThroughput, workersFromQueueDepth, workersFromUtilization, workersFromCpu)
   )
+  if (status === 'degraded') workers = Math.max(1, Math.floor(workers * 0.8))
+  if (status === 'critical') workers = Math.max(1, Math.floor(workers * 0.5))
 
-  const derivedCapacity = Math.max(workers, workers + queueDepthHint)
+  const memoryCapacityBoost = clamp(memoryGb / 8, 0.5, 8)
+  const derivedCapacity = Math.max(
+    workers,
+    Math.round((workers + queueDepthHint) * memoryCapacityBoost)
+  )
   const capacity = Math.max(
     workers,
     Math.min(MAX_DERIVED_CAPACITY, asPositiveInt(data.capacity) ?? derivedCapacity)
@@ -189,6 +278,14 @@ function derivePerformanceConfig(
     meanServiceMs = 10 + utilizationHint * 90
   }
 
+  // Deterministic resource/status mapping:
+  // - more vCPU -> lower service time
+  // - degraded/critical status -> slower processing
+  const cpuServiceFactor = clamp(4 / vCpuCores, 0.2, 4)
+  meanServiceMs *= cpuServiceFactor
+  if (status === 'degraded') meanServiceMs *= 1.5
+  if (status === 'critical') meanServiceMs *= 3
+
   if (data.isOverloaded) {
     meanServiceMs *= 2
   }
@@ -201,12 +298,21 @@ function derivePerformanceConfig(
   const timeoutMs = asPositiveInt(data.timeoutMs) ?? Math.max(100, Math.round(meanServiceMs * 40))
   const queueDiscipline = asQueueDiscipline(data.queueDiscipline) ?? 'fifo'
 
+  const configuredErrorRate = asProbability(data.errorRate) ?? 0
+  const statusErrorRate = status === 'critical' ? 0.1 : status === 'degraded' ? 0.02 : 0
+  const nodeErrorRate = clamp(configuredErrorRate + statusErrorRate, 0, 0.95)
+
+  const blockRate = asProbability(data.blockRate) ?? 0
+  const droppedPackets = asProbability(data.droppedPackets) ?? 0
+
   return {
     queue: { workers, capacity, discipline: queueDiscipline },
     processing: {
       distribution: { type: 'exponential' as const, lambda: 1 / meanServiceMs },
       timeout: timeoutMs
-    }
+    },
+    nodeErrorRate: nodeErrorRate > 0 ? nodeErrorRate : undefined,
+    securityPolicy: blockRate > 0 || droppedPackets > 0 ? { blockRate, droppedPackets } : undefined
   }
 }
 
@@ -266,6 +372,14 @@ function serializeNode(rfNode: Node): ComponentNode | null {
   }
 
   const perf = derivePerformanceConfig(d, componentType, category)
+  const config: Record<string, unknown> = {}
+  if (perf.nodeErrorRate !== undefined) {
+    config.nodeErrorRate = perf.nodeErrorRate
+  }
+  if (perf.securityPolicy) {
+    config.securityPolicy = perf.securityPolicy
+  }
+
   return {
     id,
     type: componentType,
@@ -273,7 +387,8 @@ function serializeNode(rfNode: Node): ComponentNode | null {
     label: d.label ?? def.label ?? registryId,
     position: pos,
     queue: perf.queue,
-    processing: perf.processing
+    processing: perf.processing,
+    config: Object.keys(config).length > 0 ? config : undefined
   }
 }
 
@@ -285,16 +400,33 @@ function serializeEdge(
 ): EdgeDefinition | null {
   const { id, source, target } = rfEdge
   if (!nodeIds.has(source) || !nodeIds.has(target)) return null
+  const d = (rfEdge.data ?? {}) as EdgeRuntimeData
 
   // Infer edge mode: async when the target is a fire-and-forget sink
   // (messaging, observability). Declared in NODE_REGISTRY.simulationConfig.isAsync.
-  const mode: EdgeDefinition['mode'] = asyncNodeIds.has(target) ? 'asynchronous' : 'synchronous'
+  let mode: EdgeDefinition['mode'] = asyncNodeIds.has(target) ? 'asynchronous' : 'synchronous'
+  const explicitMode = asEdgeMode(d.mode)
+  if (explicitMode) mode = explicitMode
 
   // Infer protocol from target type
   const targetType = nodeTypeById.get(target)
   let protocol: EdgeDefinition['protocol'] = 'https'
   if (targetType === 'queue' || targetType === 'message-broker') protocol = 'amqp'
   else if (targetType === 'stream') protocol = 'kafka'
+  protocol = asProtocol(d.protocol) ?? protocol
+
+  const latencyMu = asPositiveNumber(d.latencyMu) ?? EDGE_DEFAULTS.latencyMu
+  const latencySigma = asPositiveNumber(d.latencySigma) ?? EDGE_DEFAULTS.latencySigma
+  const pathType = asPathType(d.pathType) ?? EDGE_DEFAULTS.pathType
+  const bandwidth = asPositiveNumber(d.bandwidth) ?? EDGE_DEFAULTS.bandwidth
+  const maxConcurrentRequests =
+    asPositiveInt(d.maxConcurrentRequests) ?? EDGE_DEFAULTS.maxConcurrentRequests
+  const packetLossRate = clamp(
+    asProbability(d.packetLossRate) ?? EDGE_DEFAULTS.packetLossRate,
+    0,
+    1
+  )
+  const errorRate = clamp(asProbability(d.errorRate) ?? EDGE_DEFAULTS.errorRate, 0, 1)
 
   return {
     id: id || `${source}->${target}`,
@@ -304,13 +436,13 @@ function serializeEdge(
     mode,
     protocol,
     latency: {
-      distribution: { type: 'log-normal', mu: 2.3, sigma: 0.5 }, // ~10ms median
-      pathType: 'same-dc'
+      distribution: { type: 'log-normal', mu: latencyMu, sigma: latencySigma },
+      pathType
     },
-    bandwidth: 1000,
-    maxConcurrentRequests: 100,
-    packetLossRate: 0,
-    errorRate: 0.001
+    bandwidth,
+    maxConcurrentRequests,
+    packetLossRate,
+    errorRate
   }
 }
 
@@ -366,16 +498,31 @@ export function useTopologySerializer() {
       }
 
       // Source node selection order:
-      // 1. Explicit workload override
-      // 2. First api-gateway or ingress-controller (proper entry points)
-      // 3. client-user (pass-through entry point, config.sourceOnly = true)
-      // 4. First node in canvas order
+      // 1. Explicit workload override (user-specified)
+      // 2. sourceOnly nodes — client-user and similar explicit entry points
+      //    (these are pass-throughs that represent the external caller)
+      // 3. First api-gateway or ingress-controller that is NOT sourceOnly
+      //    (proper infrastructure entry points)
+      // 4. First node in canvas order (fallback)
       const PREFERRED_SOURCE_TYPES = new Set<ComponentType>(['api-gateway', 'ingress-controller'])
-      const SOURCE_ONLY_TYPES = new Set<ComponentType>(['api-gateway']) // client-user maps to this
+
+      const explicitSourceNodeId =
+        typeof overrides?.workload?.sourceNodeId === 'string'
+          ? overrides.workload.sourceNodeId
+          : undefined
+      const explicitSourceNode = explicitSourceNodeId
+        ? engineNodes.find((n) => n.id === explicitSourceNodeId)
+        : undefined
+
+      if (explicitSourceNodeId && !explicitSourceNode) {
+        errors.push(`Selected source node '${explicitSourceNodeId}' no longer exists in canvas.`)
+      }
 
       const sourceNode =
+        explicitSourceNode ??
+        // Prefer explicit entry-point nodes (client-user, etc.) over infrastructure gateways
+        engineNodes.find((n) => n.config?.['sourceOnly'] === true) ??
         engineNodes.find((n) => PREFERRED_SOURCE_TYPES.has(n.type) && !n.config?.['sourceOnly']) ??
-        engineNodes.find((n) => SOURCE_ONLY_TYPES.has(n.type)) ??
         engineNodes[0]
 
       const sourceRfNode = nodes.find((n) => n.id === sourceNode.id)
@@ -386,11 +533,15 @@ export function useTopologySerializer() {
       const global: GlobalConfig = { ...DEFAULT_GLOBAL, ...(overrides?.global ?? {}) }
       const workloadOverrides = overrides?.workload ?? {}
       const overrideBaseRps = asPositiveNumber(workloadOverrides.baseRps)
+      const sanitizedWorkloadOverrides = { ...workloadOverrides }
+      if (explicitSourceNodeId && !explicitSourceNode) {
+        delete sanitizedWorkloadOverrides.sourceNodeId
+      }
 
       const workload: WorkloadProfile = {
         ...DEFAULT_WORKLOAD,
         sourceNodeId: sourceNode.id,
-        ...workloadOverrides,
+        ...sanitizedWorkloadOverrides,
         baseRps: overrideBaseRps ?? sourceThroughput ?? DEFAULT_WORKLOAD.baseRps
       }
 

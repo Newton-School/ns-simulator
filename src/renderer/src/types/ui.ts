@@ -70,6 +70,20 @@ export interface NodeSimulationMetrics {
   queueDepth?: number
   utilization?: number
   errorRate?: number
+  /** True when this node received traffic during the post-warmup window. */
+  active?: boolean
+}
+
+export interface EdgeSimulationData {
+  protocol?: 'https' | 'grpc' | 'tcp' | 'udp' | 'websocket' | 'amqp' | 'kafka'
+  mode?: 'synchronous' | 'asynchronous' | 'streaming' | 'conditional'
+  latencyMu?: number
+  latencySigma?: number
+  pathType?: 'same-rack' | 'same-dc' | 'cross-zone' | 'cross-region' | 'internet'
+  bandwidth?: number
+  maxConcurrentRequests?: number
+  packetLossRate?: number
+  errorRate?: number
 }
 
 // VPC Node Data

@@ -27,8 +27,14 @@ export interface PerNodeMetrics {
   totalArrived: number
   postWarmupArrived: number
   totalProcessed: number
+  /** Requests processed (span completed) whose span.arrivalTime is post-warmup. */
+  postWarmupProcessed: number
   totalRejected: number
+  /** Requests rejected whose event time is post-warmup. */
+  postWarmupRejected: number
   totalTimedOut: number
+  /** Requests timed out whose event time is post-warmup. */
+  postWarmupTimedOut: number
   avgQueueLength: number
   avgServiceTime: number
   avgQueueWait: number
@@ -39,11 +45,25 @@ export interface PerNodeMetrics {
   throughput: number
   errorRate: number
   availability: number
+  latencyP50: number
+  latencyP95: number
   latencyP99: number
+  /**
+   * Average items in system computed only over the post-warmup window.
+   * Used for Little's Law verification so that λ, W, and L share the same window.
+   */
+  postWarmupAvgInSystem: number
+  /**
+   * Average time in system (queue wait + service) computed only over the
+   * post-warmup window, using only spans whose arrivalTime is post-warmup.
+   */
+  postWarmupAvgTimeInSystem: number
 }
 
 export interface SimulationSummary {
   totalRequests: number
+  /** Requests injected by the workload generator after the warmup period. */
+  postWarmupTotalRequests: number
   successfulRequests: number
   failedRequests: number
   rejectedRequests: number
@@ -59,7 +79,9 @@ interface InternalNodeMetrics {
   postWarmupArrived: number
   totalProcessed: number
   totalRejected: number
+  postWarmupRejected: number
   totalTimedOut: number
+  postWarmupTimedOut: number
   queueSamples: number
   queueLengthSum: number
   queueWaitSumMs: number
@@ -70,6 +92,12 @@ interface InternalNodeMetrics {
   utilizationSamples: number
   utilizationSum: number
   latencySamplesMs: number[]
+  // Post-warmup-only accumulators (keyed on span.arrivalTime, not request.createdAt)
+  postWarmupProcessed: number
+  postWarmupQueueWaitSumMs: number
+  postWarmupServiceTimeSumMs: number
+  postWarmupInSystemSum: number
+  postWarmupInSystemSamples: number
 }
 
 export interface NodeMetadata {
@@ -86,6 +114,8 @@ export class MetricsCollector {
   private readonly nodeMetadata = new Map<string, NodeMetadata>()
 
   private totalRequests = 0
+  /** Requests whose createdAt >= warmup — used for the summary global count. */
+  private postWarmupTotalRequests = 0
   private successfulRequests = 0
   private postWarmupSuccessfulRequests = 0
   private failedRequests = 0
@@ -113,10 +143,14 @@ export class MetricsCollector {
       this.successfulRequests++
       if (request.createdAt >= this.warmupDurationUs) {
         this.postWarmupSuccessfulRequests++
+        this.postWarmupTotalRequests++
         this.successfulLatencies.push(request.totalLatency)
       }
     } else {
       this.failedRequests++
+      if (request.createdAt >= this.warmupDurationUs) {
+        this.postWarmupTotalRequests++
+      }
       if (request.status === 'rejected') {
         this.rejectedRequests++
       }
@@ -125,32 +159,53 @@ export class MetricsCollector {
       }
     }
 
-    const isPostWarmup = request.createdAt >= this.warmupDurationUs
     for (const span of request.spans) {
       const node = this.ensureNodeMetrics(span.nodeId)
+      // Per-node post-warmup gate uses span.arrivalTime — the moment this request
+      // actually reached this node in simulation time. Using request.createdAt
+      // instead would miscount: a request created just before warmup ends but
+      // processed entirely post-warmup would be excluded, inflating L relative to λW.
+      const isSpanPostWarmup = span.arrivalTime >= this.warmupDurationUs
+
       node.totalArrived++
-      if (isPostWarmup) {
+      if (isSpanPostWarmup) {
         node.postWarmupArrived++
       }
       node.totalProcessed++
       node.queueWaitSumMs += microToMs(span.queueWait)
       node.serviceTimeSumMs += microToMs(span.serviceTime)
       node.latencySamplesMs.push(microToMs(span.queueWait + span.serviceTime))
+
+      if (isSpanPostWarmup) {
+        node.postWarmupProcessed++
+        node.postWarmupQueueWaitSumMs += microToMs(span.queueWait)
+        node.postWarmupServiceTimeSumMs += microToMs(span.serviceTime)
+      }
     }
 
     // If spans are unavailable, path still gives visibility into arrivals.
     if (request.spans.length === 0 && request.path.length > 0) {
+      const isPostWarmupByCreation = request.createdAt >= this.warmupDurationUs
       for (const nodeId of request.path) {
         const node = this.ensureNodeMetrics(nodeId)
         node.totalArrived++
-        if (isPostWarmup) {
+        if (isPostWarmupByCreation) {
           node.postWarmupArrived++
         }
       }
     }
   }
 
-  recordRejection(nodeId: string, reason: string, createdAt?: bigint): void {
+  /**
+   * Record a request rejection at a node.
+   *
+   * @param nodeId   Node where the rejection occurred.
+   * @param reason   Human-readable rejection reason.
+   * @param eventTime  Current simulation clock time when the rejection occurred.
+   *                   Used to determine whether this event falls in the post-warmup
+   *                   window. Pass `this.clock` from the engine, not `request.createdAt`.
+   */
+  recordRejection(nodeId: string, reason: string, eventTime?: bigint): void {
     void reason
     this.totalRequests++
     this.failedRequests++
@@ -158,27 +213,40 @@ export class MetricsCollector {
 
     const node = this.ensureNodeMetrics(nodeId)
     node.totalArrived++
-    if (this.isPostWarmup(createdAt)) {
-      node.postWarmupArrived++
-    }
     node.totalRejected++
+    if (this.isPostWarmup(eventTime)) {
+      node.postWarmupArrived++
+      node.postWarmupRejected++
+    }
   }
 
-  recordTimeout(_requestId: string, nodeId: string, createdAt?: bigint): void {
+  /**
+   * Record a request timeout at a node.
+   *
+   * @param eventTime  Current simulation clock time when the timeout fired.
+   *                   Pass `this.clock` from the engine, not `request.createdAt`.
+   */
+  recordTimeout(_requestId: string, nodeId: string, eventTime?: bigint): void {
     this.totalRequests++
     this.failedRequests++
     this.timedOutRequests++
 
     const node = this.ensureNodeMetrics(nodeId)
     node.totalArrived++
-    if (this.isPostWarmup(createdAt)) {
-      node.postWarmupArrived++
-    }
     node.totalTimedOut++
+    if (this.isPostWarmup(eventTime)) {
+      node.postWarmupArrived++
+      node.postWarmupTimedOut++
+    }
   }
 
+  /**
+   * Records a per-node snapshot at `timestamp`.
+   * Snapshots taken after the warmup window also accumulate into the
+   * post-warmup L integrator so that Little's Law can compare L, λ, and W
+   * over a consistent time window.
+   */
   recordNodeSnapshot(nodeId: string, state: NodeState, timestamp: bigint): void {
-    void timestamp
     const node = this.ensureNodeMetrics(nodeId)
 
     node.queueLengthSum += state.queueLength
@@ -191,6 +259,12 @@ export class MetricsCollector {
     const clampedUtilization = Math.min(1, Math.max(0, utilization))
     node.utilizationSum += clampedUtilization
     node.utilizationSamples++
+
+    // Only accumulate the post-warmup L integrator after warmup ends
+    if (timestamp >= this.warmupDurationUs) {
+      node.postWarmupInSystemSum += state.totalInSystem
+      node.postWarmupInSystemSamples++
+    }
   }
 
   generateSummary(duration: number): SimulationSummary {
@@ -201,6 +275,7 @@ export class MetricsCollector {
 
     return {
       totalRequests: this.totalRequests,
+      postWarmupTotalRequests: this.postWarmupTotalRequests,
       successfulRequests: this.successfulRequests,
       failedRequests: this.failedRequests,
       rejectedRequests: this.rejectedRequests,
@@ -227,15 +302,37 @@ export class MetricsCollector {
       const totalTimedOut = metrics?.totalTimedOut ?? 0
       const failed = totalRejected + totalTimedOut
       const errorRate = totalArrived > 0 ? failed / totalArrived : 0
-      const latencyP99 = this.percentile(metrics?.latencySamplesMs ?? [], 0.99)
+      const sortedLatencies = metrics?.latencySamplesMs
+        ? [...metrics.latencySamplesMs].sort((a, b) => a - b)
+        : []
+      const latencyP50 = this.percentileSorted(sortedLatencies, 0.5)
+      const latencyP95 = this.percentileSorted(sortedLatencies, 0.95)
+      const latencyP99 = this.percentileSorted(sortedLatencies, 0.99)
+
+      // Post-warmup W: sojourn time averaged over spans whose arrivalTime is post-warmup
+      const pwProcessed = metrics?.postWarmupProcessed ?? 0
+      const postWarmupAvgTimeInSystem =
+        pwProcessed > 0
+          ? ((metrics?.postWarmupQueueWaitSumMs ?? 0) +
+              (metrics?.postWarmupServiceTimeSumMs ?? 0)) /
+            pwProcessed
+          : 0
+
+      // Post-warmup L: time-average items in system over post-warmup snapshots
+      const pwInSystemSamples = metrics?.postWarmupInSystemSamples ?? 0
+      const postWarmupAvgInSystem =
+        pwInSystemSamples > 0 ? (metrics?.postWarmupInSystemSum ?? 0) / pwInSystemSamples : 0
 
       result.set(nodeId, {
         nodeLabel: metadata?.label,
         totalArrived,
         postWarmupArrived: metrics?.postWarmupArrived ?? 0,
         totalProcessed,
+        postWarmupProcessed: pwProcessed,
         totalRejected,
+        postWarmupRejected: metrics?.postWarmupRejected ?? 0,
         totalTimedOut,
+        postWarmupTimedOut: metrics?.postWarmupTimedOut ?? 0,
         avgQueueLength:
           metrics && metrics.queueSamples > 0 ? metrics.queueLengthSum / metrics.queueSamples : 0,
         avgServiceTime:
@@ -259,10 +356,14 @@ export class MetricsCollector {
           metrics && metrics.utilizationSamples > 0
             ? metrics.utilizationSum / metrics.utilizationSamples
             : 0,
-        throughput: durationSec > 0 ? totalProcessed / durationSec : 0,
+        throughput: durationSec > 0 ? pwProcessed / durationSec : 0,
         errorRate,
         availability: 1 - errorRate,
-        latencyP99
+        latencyP50,
+        latencyP95,
+        latencyP99,
+        postWarmupAvgInSystem,
+        postWarmupAvgTimeInSystem
       })
     }
 
@@ -288,25 +389,19 @@ export class MetricsCollector {
     const mean = sorted.reduce((acc, value) => acc + value, 0) / sorted.length
 
     return {
-      p50: this.percentile(sorted, 0.5),
-      p90: this.percentile(sorted, 0.9),
-      p95: this.percentile(sorted, 0.95),
-      p99: this.percentile(sorted, 0.99),
+      p50: this.percentileSorted(sorted, 0.5),
+      p90: this.percentileSorted(sorted, 0.9),
+      p95: this.percentileSorted(sorted, 0.95),
+      p99: this.percentileSorted(sorted, 0.99),
       min,
       max,
       mean
     }
   }
 
-  private percentile(sortedAsc: number[], p: number): number {
-    if (sortedAsc.length === 0) {
-      return 0
-    }
-
-    if (!this.isSortedAscending(sortedAsc)) {
-      sortedAsc = [...sortedAsc].sort((a, b) => a - b)
-    }
-
+  /** Compute percentile from a pre-sorted ascending array. */
+  private percentileSorted(sortedAsc: number[], p: number): number {
+    if (sortedAsc.length === 0) return 0
     const idx = Math.floor(p * (sortedAsc.length - 1))
     return sortedAsc[Math.min(sortedAsc.length - 1, Math.max(0, idx))]
   }
@@ -320,8 +415,11 @@ export class MetricsCollector {
     return true
   }
 
-  private isPostWarmup(createdAt?: bigint): boolean {
-    return createdAt !== undefined && createdAt >= this.warmupDurationUs
+  // kept for backward compat with test helpers that call it indirectly
+  private _isSortedAscending = this.isSortedAscending.bind(this)
+
+  private isPostWarmup(eventTime?: bigint): boolean {
+    return eventTime !== undefined && eventTime >= this.warmupDurationUs
   }
 
   private ensureNodeMetrics(nodeId: string): InternalNodeMetrics {
@@ -335,7 +433,9 @@ export class MetricsCollector {
       postWarmupArrived: 0,
       totalProcessed: 0,
       totalRejected: 0,
+      postWarmupRejected: 0,
       totalTimedOut: 0,
+      postWarmupTimedOut: 0,
       queueSamples: 0,
       queueLengthSum: 0,
       queueWaitSumMs: 0,
@@ -345,7 +445,12 @@ export class MetricsCollector {
       peakQueueLength: 0,
       utilizationSamples: 0,
       utilizationSum: 0,
-      latencySamplesMs: []
+      latencySamplesMs: [],
+      postWarmupProcessed: 0,
+      postWarmupQueueWaitSumMs: 0,
+      postWarmupServiceTimeSumMs: 0,
+      postWarmupInSystemSum: 0,
+      postWarmupInSystemSamples: 0
     }
 
     this.perNode.set(nodeId, created)

@@ -8,6 +8,7 @@ import useStore from '@renderer/store/useStore'
 import { useFlowPersistence } from '@renderer/hooks/useFlowPersistence'
 import { useSimulation } from '@renderer/hooks/useSimulation'
 import { useTopologySerializer } from '@renderer/hooks/useTopologySerializer'
+import { validateTopology } from '../../../../engine/validation/validator'
 
 // Organisms
 import { LibrarySidebar } from '../library/LibrarySidebar'
@@ -26,11 +27,13 @@ export const WorkspaceLayout = () => {
   const [isLeftOpen, setIsLeftOpen] = useState(true)
   const [isRightOpen, setIsRightOpen] = useState(true)
   const [showResults, setShowResults] = useState(false)
+  const [runErrors, setRunErrors] = useState<string[]>([])
 
   const { handleSave, handleOpen } = useFlowPersistence()
 
   const fileName = useStore((s) => s.fileName)
   const isUnsaved = useStore((s) => s.isUnsaved)
+  const nodes = useStore((s) => s.nodes)
   const setSimulationMetrics = useStore((s) => s.setSimulationMetrics)
   const clearSimulationMetrics = useStore((s) => s.clearSimulationMetrics)
 
@@ -45,10 +48,12 @@ export const WorkspaceLayout = () => {
       Object.entries(sim.results.perNode).map(([nodeId, metrics]) => [
         nodeId,
         {
-          throughput: metrics.throughput,
-          queueDepth: metrics.avgQueueLength,
-          utilization: metrics.utilization * 100,
-          errorRate: metrics.errorRate * 100
+          throughput: Math.round(metrics.throughput * 10) / 10,
+          queueDepth: Math.round(metrics.avgQueueLength * 10) / 10,
+          // Round to 1 decimal to prevent raw float leaking to UI (e.g. 5.8333…%)
+          utilization: Math.round(metrics.utilization * 1000) / 10,
+          errorRate: Math.round(metrics.errorRate * 10000) / 100,
+          active: metrics.postWarmupArrived > 0
         }
       ])
     )
@@ -62,24 +67,51 @@ export const WorkspaceLayout = () => {
     }
   }, [sim.status, clearSimulationMetrics])
 
-  function handleRun(settings: ScenarioSettings) {
+  function startSimulation(settings?: ScenarioSettings) {
     const { topology, errors } = serialize({
-      global: settings.global,
-      workload: settings.workload
+      global: settings?.global,
+      workload: settings?.workload
     })
 
     if (!topology || errors.length > 0) {
+      setRunErrors(errors.length > 0 ? errors : ['Unable to serialize topology.'])
       console.error('[ScenarioBar] Serialization errors:', errors)
       return
     }
 
+    const validation = validateTopology(topology)
+    if (!validation.valid) {
+      const validationErrors = validation.errors?.map(
+        (error) => `${error.path ? `${error.path}: ` : ''}${error.message}`
+      ) ?? ['Topology validation failed.']
+      setRunErrors(validationErrors)
+      return
+    }
+
+    setRunErrors(validation.warnings ?? [])
     setShowResults(true)
     clearSimulationMetrics()
     sim.run(topology)
   }
 
+  function handleRun(settings: ScenarioSettings) {
+    startSimulation(settings)
+  }
+
   const isRunning = sim.status === 'running'
   const isPaused = sim.status === 'paused'
+  const sourceNodes = nodes
+    .filter((node) => node.type !== 'vpcNode')
+    .map((node) => {
+      const label =
+        typeof (node.data as { label?: unknown })?.label === 'string'
+          ? ((node.data as { label?: string }).label as string)
+          : undefined
+      return {
+        id: node.id,
+        label: label && label.trim().length > 0 ? `${label} (${node.id})` : node.id
+      }
+    })
 
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden bg-nss-bg text-nss-text">
@@ -94,11 +126,7 @@ export const WorkspaceLayout = () => {
         fileName={fileName}
         isUnsaved={isUnsaved}
         onSimulate={() => {
-          const { topology, errors } = serialize()
-          if (!topology || errors.length > 0) return
-          setShowResults(true)
-          clearSimulationMetrics()
-          sim.run(topology)
+          startSimulation()
         }}
       />
 
@@ -111,10 +139,23 @@ export const WorkspaceLayout = () => {
           sim.stop()
           clearSimulationMetrics()
           setShowResults(false)
+          setRunErrors([])
         }}
         isRunning={isRunning}
         isPaused={isPaused}
+        sourceNodes={sourceNodes}
       />
+
+      {runErrors.length > 0 && (
+        <div className="mx-4 mt-2 p-3 bg-nss-warning/10 border border-nss-warning/30 rounded text-xs text-nss-warning">
+          <div className="font-semibold uppercase tracking-wide mb-1">Run checks</div>
+          <ul className="list-disc pl-4 space-y-1">
+            {runErrors.map((error, index) => (
+              <li key={`${error}-${index}`}>{error}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Main Content Area */}
       <div className="flex-1 overflow-hidden relative h-full">

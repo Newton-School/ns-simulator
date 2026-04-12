@@ -1,6 +1,7 @@
 import type { AnyNodeDataKey } from '@renderer/types/ui'
 
 export type FieldKey = AnyNodeDataKey
+export type AccuracyClass = 'invariant' | 'default-override' | 'user-parameter' | 'not-simulated'
 
 export type FieldDefinition =
   | {
@@ -58,11 +59,38 @@ export const FIELD_DEFINITIONS: Partial<Record<FieldKey, FieldDefinition>> = {
   coldStart: { type: 'boolean', label: 'Cold Start Sim' }
 }
 
+/**
+ * Accuracy contract:
+ * - invariant: simulator mechanics/safety constants (not a user field)
+ * - default-override: seeded defaults, but user may override
+ * - user-parameter: user-controlled and expected to influence simulation output
+ * - not-simulated: currently not connected to engine behavior
+ */
+export const FIELD_ACCURACY: Partial<Record<FieldKey, AccuracyClass>> = {
+  status: 'user-parameter',
+  throughput: 'user-parameter',
+  errorRate: 'user-parameter',
+  load: 'user-parameter',
+  queueDepth: 'user-parameter',
+  workers: 'user-parameter',
+  capacity: 'user-parameter',
+  queueDiscipline: 'user-parameter',
+  meanServiceMs: 'user-parameter',
+  timeoutMs: 'user-parameter',
+  blockRate: 'user-parameter',
+  droppedPackets: 'user-parameter',
+  vCPU: 'user-parameter',
+  ram: 'user-parameter',
+  region: 'not-simulated',
+  threadPool: 'not-simulated',
+  coldStart: 'not-simulated'
+}
+
 // Legacy flat groups — kept for backward compatibility with any remaining consumers
 export const FIELD_GROUPS = {
   Performance: ['throughput', 'errorRate', 'load', 'queueDepth'],
   Queueing: ['workers', 'capacity', 'queueDiscipline', 'meanServiceMs', 'timeoutMs'],
-  Configuration: ['vCPU', 'ram', 'region', 'status'],
+  Configuration: ['vCPU', 'ram', 'status'],
   Execution: ['threadPool', 'coldStart']
 } as const satisfies Record<string, readonly FieldKey[]>
 
@@ -73,12 +101,12 @@ export const FIELD_GROUPS_BY_KIND: Record<
 > = {
   compute: {
     Queueing: ['workers', 'capacity', 'queueDiscipline', 'meanServiceMs', 'timeoutMs'],
-    Configuration: ['vCPU', 'ram', 'region']
+    Configuration: ['vCPU', 'ram']
   },
   service: {
     Performance: ['throughput', 'errorRate', 'load', 'queueDepth'],
     Queueing: ['workers', 'capacity', 'queueDiscipline', 'meanServiceMs', 'timeoutMs'],
-    Configuration: ['status', 'region']
+    Configuration: ['status']
   },
   security: {
     Metrics: ['blockRate', 'droppedPackets', 'load'],

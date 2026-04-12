@@ -153,4 +153,94 @@ describe('MetricsCollector', () => {
     expect(perNode?.totalArrived).toBe(1)
     expect(perNode?.postWarmupArrived).toBe(1)
   })
+
+  it('postWarmupAvgInSystem only integrates snapshots after warmup', () => {
+    // warmupDuration = 100ms = 100_000µs
+    const metrics = new MetricsCollector({ warmupDuration: 100 })
+
+    // Pre-warmup snapshot (t = 50ms): totalInSystem = 10 — should NOT count
+    metrics.recordNodeSnapshot(
+      'node-a',
+      makeSnapshot({ totalInSystem: 10 }),
+      50_000n // 50ms in µs
+    )
+    // Post-warmup snapshot (t = 150ms): totalInSystem = 2 — should count
+    metrics.recordNodeSnapshot(
+      'node-a',
+      makeSnapshot({ totalInSystem: 2 }),
+      150_000n // 150ms in µs
+    )
+    // Post-warmup snapshot (t = 200ms): totalInSystem = 4 — should count
+    metrics.recordNodeSnapshot(
+      'node-a',
+      makeSnapshot({ totalInSystem: 4 }),
+      200_000n // 200ms in µs
+    )
+
+    const perNode = metrics.getPerNodeMetrics(1_000).get('node-a')
+    expect(perNode).toBeDefined()
+    // all-time avgInSystem = (10 + 2 + 4) / 3 = 5.333…
+    expect(perNode?.avgInSystem).toBeCloseTo(16 / 3, 5)
+    // post-warmup avgInSystem = (2 + 4) / 2 = 3
+    expect(perNode?.postWarmupAvgInSystem).toBeCloseTo(3, 5)
+  })
+
+  it('postWarmupAvgTimeInSystem uses only post-warmup request spans', () => {
+    // warmupDuration = 100ms = 100_000µs
+    const metrics = new MetricsCollector({ warmupDuration: 100 })
+
+    // Pre-warmup request: queueWait=10ms, serviceTime=20ms → total=30ms — should NOT count in PW W
+    metrics.recordRequest(
+      makeRequest({
+        id: 'pre-warmup',
+        status: 'success',
+        createdAt: 50_000n,
+        totalLatency: 30,
+        spans: [makeSpan('node-a', 50_000n, 10_000n, 20_000n)]
+      })
+    )
+    // Post-warmup request: queueWait=2ms, serviceTime=3ms → total=5ms — should count
+    metrics.recordRequest(
+      makeRequest({
+        id: 'post-warmup',
+        status: 'success',
+        createdAt: 150_000n,
+        totalLatency: 5,
+        spans: [makeSpan('node-a', 150_000n, 2_000n, 3_000n)]
+      })
+    )
+
+    const perNode = metrics.getPerNodeMetrics(1_000).get('node-a')
+    expect(perNode).toBeDefined()
+    // all-time avgTimeInSystem = (30 + 5) / 2 = 17.5ms
+    expect(perNode?.avgTimeInSystem).toBeCloseTo(17.5, 5)
+    // post-warmup avgTimeInSystem = 5ms (only the post-warmup request)
+    expect(perNode?.postWarmupAvgTimeInSystem).toBeCloseTo(5, 5)
+  })
+
+  it('provides latencyP50 and latencyP95 per node', () => {
+    const metrics = new MetricsCollector({ warmupDuration: 0 })
+
+    for (let i = 1; i <= 10; i++) {
+      metrics.recordRequest(
+        makeRequest({
+          id: `r${i}`,
+          status: 'success',
+          createdAt: BigInt(i) * 10_000n,
+          totalLatency: i * 10,
+          spans: [makeSpan('node-a', BigInt(i) * 10_000n, 0n, BigInt(i) * 10_000n)]
+        })
+      )
+    }
+
+    const perNode = metrics.getPerNodeMetrics(1_000).get('node-a')
+    expect(perNode).toBeDefined()
+    // sorted latencies: 10, 20, 30, 40, 50, 60, 70, 80, 90, 100
+    // p50 → index floor(0.5*9) = 4 → 50ms
+    expect(perNode?.latencyP50).toBe(50)
+    // p95 → index floor(0.95*9) = 8 → 90ms
+    expect(perNode?.latencyP95).toBe(90)
+    // p99 → index floor(0.99*9) = 8 → 90ms
+    expect(perNode?.latencyP99).toBe(90)
+  })
 })

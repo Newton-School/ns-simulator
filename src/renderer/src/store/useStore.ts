@@ -16,7 +16,8 @@ import type {
   NodeSimulationMetrics,
   AnyNodeData,
   AnyNodeDataKey,
-  AnyNodeDataValue
+  AnyNodeDataValue,
+  EdgeSimulationData
 } from '@renderer/types/ui'
 
 type RFState = {
@@ -40,7 +41,10 @@ type RFState = {
     key: K,
     value: AnyNodeDataValue<K>
   ) => void
-  updateEdgeData: (edgeId: string, label: string, data?: any) => void
+  updateEdgeData: (
+    edgeId: string,
+    patch: { label?: string; data?: Partial<EdgeSimulationData> }
+  ) => void
   setSimulationMetrics: (metrics: Record<string, NodeSimulationMetrics>) => void
   clearSimulationMetrics: () => void
   setNodes: (nodes: Node[]) => void
@@ -139,13 +143,20 @@ const useStore = create<RFState>((set, get) => ({
     get().updateNodeData(nodeId, { [key]: value } as Partial<AnyNodeData>)
   },
 
-  updateEdgeData: (edgeId: string, label: string) => {
+  updateEdgeData: (edgeId, patch) => {
     set({
       edges: get().edges.map((edge) => {
         if (edge.id === edgeId) {
+          const nextData = patch.data
+            ? {
+                ...((edge.data as Record<string, unknown> | undefined) ?? {}),
+                ...patch.data
+              }
+            : edge.data
           return {
             ...edge,
-            label
+            ...(patch.label !== undefined ? { label: patch.label } : {}),
+            ...(nextData !== undefined ? { data: nextData } : {})
           }
         }
         return edge
