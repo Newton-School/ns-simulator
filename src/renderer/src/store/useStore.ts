@@ -87,7 +87,25 @@ const useStore = create<RFState>((set, get) => ({
       newId = `${newId}_${Math.floor(Math.random() * 10000)}`
     }
 
-    const safeNode = { ...node, id: newId }
+    const isVpcContainer = node.type === 'vpcNode'
+
+    let calculatedZIndex = node.zIndex
+
+    if (isVpcContainer) {
+      if (node.parentNode) {
+        const parentObj = currentNodes.find((n) => n.id === node.parentNode)
+
+        const parentZIndex = parentObj?.zIndex !== undefined ? parentObj.zIndex : -10
+        calculatedZIndex = parentZIndex + 1
+      } else {
+        calculatedZIndex = -10
+      }
+    }
+    const safeNode = {
+      ...node,
+      id: newId,
+      ...(isVpcContainer && { zIndex: calculatedZIndex })
+    }
 
     set({ nodes: [...currentNodes, safeNode] })
   },
