@@ -4,7 +4,6 @@ import { Sidebar, Save, FolderOpen } from 'lucide-react'
 // Atoms & Molecules
 import { Divider } from '../ui/Divider'
 import { IconButton } from '../ui/IconButton'
-import { CtaButton } from '../ui/CtaButton'
 import { ToggleButton } from '../ui/ToggleButton'
 import { Branding } from './Branding'
 import { FileStatus } from './FileStatus'
@@ -21,6 +20,9 @@ interface HeaderProps {
   // File Actions
   onSave: () => void
   onOpen: () => void
+
+  // Simulation
+  onSimulate: () => void
 
   // Data
   fileName: string | null
@@ -66,8 +68,6 @@ export const Header = memo(
           </div>
 
           <Divider />
-
-          <CtaButton onClick={() => console.log('Sim Started')} />
         </div>
 
         {/* RIGHT SECTION: Properties Toggle & Theme */}

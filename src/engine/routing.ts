@@ -58,8 +58,13 @@ export class RoutingTable {
       }
     }
 
+    const ROUND_ROBIN_TYPES = new Set<string>([
+      'load-balancer',
+      'ingress-controller',
+      'reverse-proxy'
+    ])
     this.roundRobinSourceIds = new Set(
-      nodes.filter((n) => n.type === 'load-balancer').map((n) => n.id)
+      nodes.filter((n) => ROUND_ROBIN_TYPES.has(n.type)).map((n) => n.id)
     )
   }
 
