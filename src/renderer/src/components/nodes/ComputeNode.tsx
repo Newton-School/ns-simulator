@@ -20,7 +20,12 @@ const ComputeNode = ({ id, data, selected }: NodeProps<ComputeNodeData>) => {
     [id, updateNodeData]
   )
 
-  const { utilization, queueDepth: runtimeQueueDepth, hasRuntime, active } = useNodeMetrics(id, {
+  const {
+    utilization,
+    queueDepth: runtimeQueueDepth,
+    hasRuntime,
+    active
+  } = useNodeMetrics(id, {
     utilization: data.utilization,
     queueDepth: data.queueDepth
   })

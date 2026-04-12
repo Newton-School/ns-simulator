@@ -109,7 +109,10 @@ function SummaryPanel({ output }: { output: SimulationOutput }) {
       </div>
 
       <div className="grid grid-cols-2 gap-2 text-sm">
-        <StatCard label="Requests (post-warmup)" value={summary.postWarmupTotalRequests.toLocaleString()} />
+        <StatCard
+          label="Requests (post-warmup)"
+          value={summary.postWarmupTotalRequests.toLocaleString()}
+        />
         <StatCard label="Throughput" value={`${fmtRps(summary.throughput)} rps`} />
         <StatCard label="Error Rate" value={fmtPct(summary.errorRate)} highlight={errorHighlight} />
         <StatCard label="Timed Out" value={summary.timedOutRequests.toLocaleString()} />
@@ -117,8 +120,11 @@ function SummaryPanel({ output }: { output: SimulationOutput }) {
 
       <div className="flex items-baseline justify-between pt-1">
         <h3 className={SECTION_TITLE}>End-to-end Latency</h3>
-        <span className="text-[10px] text-nss-muted" title="Percentiles don't compose — E2E p99 ≠ sum of per-hop p99s. Use per-node mean (W) for additive decomposition.">
-          ⓘ percentiles don't sum across hops
+        <span
+          className="text-[10px] text-nss-muted"
+          title="Percentiles don't compose — E2E p99 ≠ sum of per-hop p99s. Use per-node mean (W) for additive decomposition."
+        >
+          ⓘ percentiles do not sum across hops
         </span>
       </div>
       <div className="grid grid-cols-5 gap-1 text-xs text-center">
@@ -212,7 +218,10 @@ function SimulationHealth({ output }: { output: SimulationOutput }) {
   // Error breakdown: nodes with post-warmup rejects or timeouts
   const errorNodes = Object.entries(output.perNode)
     .filter(([, m]) => m.postWarmupRejected > 0 || m.postWarmupTimedOut > 0)
-    .sort(([, a], [, b]) => (b.postWarmupRejected + b.postWarmupTimedOut) - (a.postWarmupRejected + a.postWarmupTimedOut))
+    .sort(
+      ([, a], [, b]) =>
+        b.postWarmupRejected + b.postWarmupTimedOut - (a.postWarmupRejected + a.postWarmupTimedOut)
+    )
   const errorLevel: HealthLevel =
     output.summary.errorRate === 0
       ? 'healthy'
@@ -289,10 +298,14 @@ function SimulationHealth({ output }: { output: SimulationOutput }) {
             {errorNodes.map(([nodeId, m]) => (
               <div key={nodeId} className="grid grid-cols-4 gap-1 text-[10px] tabular-nums">
                 <span className="text-nss-text truncate">{m.nodeLabel ?? nodeId}</span>
-                <span className={`text-right ${m.postWarmupRejected > 0 ? 'text-nss-warning' : 'text-nss-muted'}`}>
+                <span
+                  className={`text-right ${m.postWarmupRejected > 0 ? 'text-nss-warning' : 'text-nss-muted'}`}
+                >
                   {m.postWarmupRejected.toLocaleString()}
                 </span>
-                <span className={`text-right ${m.postWarmupTimedOut > 0 ? 'text-nss-danger' : 'text-nss-muted'}`}>
+                <span
+                  className={`text-right ${m.postWarmupTimedOut > 0 ? 'text-nss-danger' : 'text-nss-muted'}`}
+                >
                   {m.postWarmupTimedOut.toLocaleString()}
                 </span>
                 <span className="text-right text-nss-text">
@@ -323,9 +336,9 @@ function SimulationHealth({ output }: { output: SimulationOutput }) {
                 key={i}
                 className="text-xs tabular-nums text-nss-warning bg-nss-warning/10 border border-nss-warning/20 rounded px-2 py-1"
               >
-                {nodeLabel}: L={fmtL(r.observedL)} expected={fmtL(r.expectedL)}{' '}
-                error={`${(r.error * 100).toFixed(1)}%`} | λ={fmtLambda(r.lambda)} rps,
-                W={fmtW(r.wSeconds)}
+                {nodeLabel}: L={fmtL(r.observedL)} expected={fmtL(r.expectedL)} error=
+                {`${(r.error * 100).toFixed(1)}%`} | λ={fmtLambda(r.lambda)} rps, W=
+                {fmtW(r.wSeconds)}
               </div>
             )
           })
@@ -384,11 +397,11 @@ function SimulationHealth({ output }: { output: SimulationOutput }) {
 // ─── Per-Node Table ───────────────────────────────────────────────────────────
 
 function PerNodeTable({ output }: { output: SimulationOutput }) {
+  const [showInactive, setShowInactive] = useState(false)
   const entries = Object.entries(output.perNode)
   if (entries.length === 0) return null
 
   const llByNode = new Map(output.littlesLawCheck.map((r) => [r.nodeId, r]))
-  const [showInactive, setShowInactive] = useState(false)
 
   const activeEntries = entries.filter(([, m]) => m.postWarmupArrived > 0)
   const inactiveEntries = entries.filter(([, m]) => m.postWarmupArrived === 0)
@@ -401,10 +414,18 @@ function PerNodeTable({ output }: { output: SimulationOutput }) {
           <thead>
             <tr className="text-nss-muted border-b border-nss-border">
               <th className="text-left pb-1 pr-2">Node</th>
-              <th className="text-right pb-1 pr-2" title="Post-warmup arrivals">Arrived</th>
-              <th className="text-right pb-1 pr-2" title="Post-warmup processed">Done</th>
-              <th className="text-right pb-1 pr-2" title="Post-warmup rejected">Reject</th>
-              <th className="text-right pb-1 pr-2" title="Post-warmup timed out">T.O.</th>
+              <th className="text-right pb-1 pr-2" title="Post-warmup arrivals">
+                Arrived
+              </th>
+              <th className="text-right pb-1 pr-2" title="Post-warmup processed">
+                Done
+              </th>
+              <th className="text-right pb-1 pr-2" title="Post-warmup rejected">
+                Reject
+              </th>
+              <th className="text-right pb-1 pr-2" title="Post-warmup timed out">
+                T.O.
+              </th>
               <th className="text-right pb-1 pr-2" title="Avg queue depth">
                 Avg Q
               </th>
@@ -466,15 +487,11 @@ function PerNodeTable({ output }: { output: SimulationOutput }) {
                   <td className="text-right pr-2 text-nss-muted">
                     {ll ? fmtLambda(ll.lambda) : '—'}
                   </td>
-                  <td className="text-right pr-2 text-nss-muted">
-                    {ll ? fmtW(ll.wSeconds) : '—'}
-                  </td>
+                  <td className="text-right pr-2 text-nss-muted">{ll ? fmtW(ll.wSeconds) : '—'}</td>
                   <td
                     className={`text-right ${llViolation ? 'text-nss-warning font-medium' : 'text-nss-muted'}`}
                     title={
-                      llViolation
-                        ? `Little's Law: expected ${fmtL(ll!.expectedL)}`
-                        : undefined
+                      llViolation ? `Little's Law: expected ${fmtL(ll!.expectedL)}` : undefined
                     }
                   >
                     {ll ? fmtL(ll.observedL) : '—'}
@@ -502,10 +519,7 @@ function PerNodeTable({ output }: { output: SimulationOutput }) {
                 {inactiveEntries.map(([nodeId, m]) => (
                   <tr key={nodeId} className="border-b border-nss-border">
                     <td className="py-0.5 pr-2 text-nss-muted">{m.nodeLabel ?? nodeId}</td>
-                    <td
-                      className="text-right text-nss-muted text-[10px] italic"
-                      colSpan={12}
-                    >
+                    <td className="text-right text-nss-muted text-[10px] italic" colSpan={12}>
                       not in source path
                     </td>
                   </tr>
