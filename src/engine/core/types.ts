@@ -408,6 +408,7 @@ export interface GlobalConfig {
   warmupDuration: number // ms — metrics collected only after warmup
   timeResolution: 'microsecond' | 'millisecond'
   defaultTimeout: number // ms — fallback if a node doesn't specify one
+  traceSampleRate?: number // fraction [0, 1] — defaults to 0.01
 }
 
 export interface TopologyJSON {

@@ -6,7 +6,7 @@ interface LibraryItemProps {
 }
 
 export const LibraryItem = ({ item }: LibraryItemProps) => {
-  const { icon: Icon, label, subLabel, color, type, data } = item
+  const { icon: Icon, label, subLabel, color, type, data, id } = item
   const { bg, text } = color
 
   const onDragStart = (event: React.DragEvent) => {
@@ -16,7 +16,8 @@ export const LibraryItem = ({ item }: LibraryItemProps) => {
       JSON.stringify({
         label,
         color,
-        ...data
+        ...data,
+        registryId: id
       })
     )
 

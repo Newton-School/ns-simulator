@@ -29,6 +29,8 @@ const COMPONENT_TYPES = [
   'vm-instance',
   'edge-compute',
   'gpu-node',
+  'auth-service',
+  'search-service',
   'load-balancer',
   'global-traffic-manager',
   'nat-gateway',
@@ -37,9 +39,12 @@ const COMPONENT_TYPES = [
   'cdn',
   'api-gateway',
   'service-mesh',
+  'ingress-controller',
   'reverse-proxy',
   'high-perf-nic',
   'network-policy',
+  'routing-rule',
+  'routing-policy',
   'relational-db',
   'nosql-db',
   'object-storage',
@@ -201,7 +206,8 @@ export const GlobalConfigSchema = z.object({
   seed: z.string(),
   warmupDuration: z.number().nonnegative(),
   timeResolution: z.enum(['microsecond', 'millisecond']),
-  defaultTimeout: z.number().positive()
+  defaultTimeout: z.number().positive(),
+  traceSampleRate: z.number().min(0).max(1).optional()
 })
 
 export const ComponentNodeSchema = z.object({
