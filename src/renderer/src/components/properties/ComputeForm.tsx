@@ -127,7 +127,9 @@ export const ComputeForm = ({ data, onUpdate }: ComputeFormProps) => {
 
       {/* Generic grouped fields */}
       {Object.entries(FIELD_GROUPS_BY_KIND.compute).map(([groupName, fields]) => {
-        const hasVisible = fields.some((k) => (data as any)[k] !== undefined && FIELD_DEFINITIONS[k])
+        const hasVisible = fields.some(
+          (k) => (data as any)[k] !== undefined && FIELD_DEFINITIONS[k]
+        )
         if (!hasVisible) return null
         return (
           <div key={groupName} className="mb-6 last:mb-0">

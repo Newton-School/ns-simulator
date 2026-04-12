@@ -16,9 +16,7 @@ const ComputeNode = ({ id, data, selected }: NodeProps<ComputeNodeData>) => {
   })
 
   const resolvedQueueDepth =
-    runtimeQueueDepth !== undefined
-      ? Math.max(0, Math.round(runtimeQueueDepth))
-      : data.queueDepth
+    runtimeQueueDepth !== undefined ? Math.max(0, Math.round(runtimeQueueDepth)) : data.queueDepth
 
   const safeColor = theme.bg || 'bg-nss-primary'
   const badgeClass =
@@ -30,7 +28,8 @@ const ComputeNode = ({ id, data, selected }: NodeProps<ComputeNodeData>) => {
   // Pass containerClassName to BaseNode to override its default ring styling.
   const containerClassName = useMemo(() => {
     const base = 'group relative min-w-[180px] bg-nss-surface rounded-lg border-2'
-    if (isOverloaded) return `${base} border-nss-danger shadow-[0_0_15px_rgba(239,68,68,0.6)] animate-pulse`
+    if (isOverloaded)
+      return `${base} border-nss-danger shadow-[0_0_15px_rgba(239,68,68,0.6)] animate-pulse`
     if (selected) return `${base} border-nss-primary shadow-lg`
     return `${base} border-nss-border hover:border-nss-muted`
   }, [isOverloaded, selected])

@@ -336,9 +336,7 @@ export function useTopologySerializer() {
       const SOURCE_ONLY_TYPES = new Set<ComponentType>(['api-gateway']) // client-user maps to this
 
       const sourceNode =
-        engineNodes.find(
-          (n) => PREFERRED_SOURCE_TYPES.has(n.type) && !n.config?.['sourceOnly']
-        ) ??
+        engineNodes.find((n) => PREFERRED_SOURCE_TYPES.has(n.type) && !n.config?.['sourceOnly']) ??
         engineNodes.find((n) => SOURCE_ONLY_TYPES.has(n.type)) ??
         engineNodes[0]
 

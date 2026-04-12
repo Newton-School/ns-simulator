@@ -42,7 +42,7 @@ export interface ComputeNodeData {
   kind: 'compute'
   computeType: ComputeType
   utilization: number // 0-100 (was cpu_usage)
-  queueDepth: number  // pending work count (was queue_depth)
+  queueDepth: number // pending work count (was queue_depth)
   isOverloaded: boolean // simulation state (was is_overloaded)
   workers?: number
   capacity?: number
