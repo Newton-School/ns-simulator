@@ -7,7 +7,7 @@ import eslintPluginReactRefresh from 'eslint-plugin-react-refresh'
 
 export default defineConfig(
   {
-    ignores: ['**/node_modules', '**/dist', '**/out', '**/ns-simulator-docs/**']
+    ignores: ['**/node_modules', '**/dist', '**/out', '**/ns-simulator-docs/**', '**/.claude/**']
   },
   tseslint.configs.recommended,
   eslintPluginReact.configs.flat.recommended,
