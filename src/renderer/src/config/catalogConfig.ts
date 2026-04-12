@@ -17,7 +17,7 @@ const fromRegistry = (id: string) => {
     subLabel: def.subLabel,
     icon: def.icon,
     color: theme,
-    data: def.defaultData
+    data: { ...def.defaultData, registryId: def.id }
   }
 }
 

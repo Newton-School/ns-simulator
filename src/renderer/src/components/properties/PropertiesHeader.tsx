@@ -6,10 +6,10 @@ interface PropertiesHeaderProps {
 }
 
 export const PropertiesHeader = ({ data }: PropertiesHeaderProps) => {
-  const lookupKey = data.computeType || data.iconKey
+  const lookupKey = data.kind === 'compute' ? data.computeType : data.iconKey
   const { icon: Icon, theme, label, subLabel } = resolveNodeConfig(lookupKey)
 
-  const isOverloaded = data.is_overloaded
+  const isOverloaded = data.isOverloaded
   const safeColor = theme.bg || 'bg-nss-primary'
 
   return (

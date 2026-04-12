@@ -50,4 +50,19 @@ describe('validateTopology workload fields', () => {
       rampDuration: 10000
     })
   })
+
+  it('accepts and preserves global traceSampleRate', () => {
+    const topology = {
+      ...mockArchitecture,
+      global: {
+        ...mockArchitecture.global,
+        traceSampleRate: 0.25
+      }
+    }
+
+    const result = validateTopology(topology)
+
+    expect(result.valid).toBe(true)
+    expect(result.data?.global.traceSampleRate).toBe(0.25)
+  })
 })

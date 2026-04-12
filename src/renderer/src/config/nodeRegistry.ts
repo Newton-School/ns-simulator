@@ -44,6 +44,16 @@ import {
   ToggleLeft
 } from 'lucide-react'
 import { getTheme } from './themeConfig'
+import type { ComponentType, ComponentCategory } from '../../../engine/core/types'
+import type { AnyNodeData } from '@renderer/types/ui'
+
+export interface SimulationConfig {
+  componentType: ComponentType
+  category: ComponentCategory
+  isSourceOnly?: boolean
+  isAsync?: boolean
+  routingStrategy?: 'round-robin' | 'random' | 'least-conn' | 'passthrough'
+}
 
 export interface NodeDef {
   id: string
@@ -52,11 +62,12 @@ export interface NodeDef {
   subLabel: string
   icon: LucideIcon
   lookupKey: string // Used to find Theme (computeType or iconKey)
-  defaultData: Record<string, any>
+  defaultData: AnyNodeData
+  simulationConfig?: SimulationConfig
 }
 
 export const NODE_REGISTRY: Record<string, NodeDef> = {
-  // Compute Nodes
+  // ── Compute Nodes ────────────────────────────────────────────────────────────
   'backend-server': {
     id: 'backend-server',
     type: 'computeNode',
@@ -65,12 +76,13 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     icon: Server,
     lookupKey: 'SERVER',
     defaultData: {
-      id: 'backend-server',
+      kind: 'compute',
       computeType: 'SERVER',
-      cpu_usage: 45,
-      queue_depth: 12,
-      is_overloaded: false
-    }
+      utilization: 45,
+      queueDepth: 12,
+      isOverloaded: false
+    },
+    simulationConfig: { componentType: 'microservice', category: 'compute' }
   },
   'lambda-function': {
     id: 'lambda-function',
@@ -80,12 +92,13 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     icon: Zap,
     lookupKey: 'LAMBDA',
     defaultData: {
-      id: 'lambda-function',
+      kind: 'compute',
       computeType: 'LAMBDA',
-      cpu_usage: 10,
-      queue_depth: 0,
-      is_overloaded: false
-    }
+      utilization: 10,
+      queueDepth: 0,
+      isOverloaded: false
+    },
+    simulationConfig: { componentType: 'serverless-function', category: 'compute' }
   },
   'async-worker': {
     id: 'async-worker',
@@ -95,12 +108,13 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     icon: Cpu,
     lookupKey: 'WORKER',
     defaultData: {
-      id: 'async-worker',
+      kind: 'compute',
       computeType: 'WORKER',
-      cpu_usage: 88,
-      queue_depth: 145,
-      is_overloaded: true
-    }
+      utilization: 88,
+      queueDepth: 145,
+      isOverloaded: true
+    },
+    simulationConfig: { componentType: 'batch-worker', category: 'compute', isAsync: true }
   },
   'cron-job': {
     id: 'cron-job',
@@ -110,12 +124,13 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     icon: Clock,
     lookupKey: 'CRON',
     defaultData: {
-      id: 'cron-job',
+      kind: 'compute',
       computeType: 'CRON',
-      cpu_usage: 0,
-      queue_depth: 0,
-      is_overloaded: false
-    }
+      utilization: 0,
+      queueDepth: 0,
+      isOverloaded: false
+    },
+    simulationConfig: { componentType: 'batch-worker', category: 'compute', isAsync: true }
   },
   'auth-service': {
     id: 'auth-service',
@@ -124,7 +139,14 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     subLabel: 'Authentication / Tokens',
     icon: Fingerprint,
     lookupKey: 'AUTH',
-    defaultData: { computeType: 'AUTH', cpu_usage: 25, queue_depth: 5, is_overloaded: false }
+    defaultData: {
+      kind: 'compute',
+      computeType: 'AUTH',
+      utilization: 25,
+      queueDepth: 5,
+      isOverloaded: false
+    },
+    simulationConfig: { componentType: 'auth-service', category: 'compute' }
   },
   'search-service': {
     id: 'search-service',
@@ -134,15 +156,16 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     icon: Search,
     lookupKey: 'SEARCH_SERVICE',
     defaultData: {
-      id: 'search-service',
+      kind: 'compute',
       computeType: 'SEARCH_SERVICE',
-      cpu_usage: 55,
-      queue_depth: 20,
-      is_overloaded: false
-    }
+      utilization: 55,
+      queueDepth: 20,
+      isOverloaded: false
+    },
+    simulationConfig: { componentType: 'search-service', category: 'compute' }
   },
 
-  // Service Nodes
+  // ── Service Nodes ─────────────────────────────────────────────────────────────
   'primary-db': {
     id: 'primary-db',
     type: 'serviceNode',
@@ -151,12 +174,14 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     icon: Database,
     lookupKey: 'database',
     defaultData: {
-      id: 'primary-db',
+      kind: 'service',
       iconKey: 'database',
+      label: 'Primary DB',
       status: 'healthy',
       throughput: 2400,
       load: 60
-    }
+    },
+    simulationConfig: { componentType: 'relational-db', category: 'storage-and-data' }
   },
   'redis-cache': {
     id: 'redis-cache',
@@ -166,12 +191,14 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     icon: Server,
     lookupKey: 'server',
     defaultData: {
-      id: 'redis-cache',
+      kind: 'service',
       iconKey: 'server',
+      label: 'Redis Cache',
       status: 'healthy',
       throughput: 5000,
       load: 15
-    }
+    },
+    simulationConfig: { componentType: 'in-memory-cache', category: 'storage-and-data' }
   },
   'load-balancer': {
     id: 'load-balancer',
@@ -181,11 +208,17 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     icon: Network,
     lookupKey: 'network',
     defaultData: {
-      id: 'load-balancer',
+      kind: 'service',
       iconKey: 'network',
+      label: 'Load Balancer',
       status: 'healthy',
       throughput: 10000,
       load: 10
+    },
+    simulationConfig: {
+      componentType: 'load-balancer',
+      category: 'network-and-edge',
+      routingStrategy: 'round-robin'
     }
   },
   'ingress-controller': {
@@ -196,11 +229,17 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     icon: Waypoints,
     lookupKey: 'ingress',
     defaultData: {
-      id: 'ingress-controller',
+      kind: 'service',
       iconKey: 'ingress',
+      label: 'Ingress',
       status: 'healthy',
       throughput: 15000,
       load: 15
+    },
+    simulationConfig: {
+      componentType: 'ingress-controller',
+      category: 'network-and-edge',
+      routingStrategy: 'round-robin'
     }
   },
   'reverse-proxy': {
@@ -211,11 +250,17 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     icon: ArrowRightLeft,
     lookupKey: 'proxy',
     defaultData: {
-      id: 'reverse-proxy',
+      kind: 'service',
       iconKey: 'proxy',
+      label: 'Reverse Proxy',
       status: 'healthy',
       throughput: 10000,
       load: 10
+    },
+    simulationConfig: {
+      componentType: 'reverse-proxy',
+      category: 'network-and-edge',
+      routingStrategy: 'round-robin'
     }
   },
   'nat-gateway': {
@@ -225,7 +270,15 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     subLabel: 'Outbound Internet',
     icon: Router,
     lookupKey: 'nat',
-    defaultData: { id: 'nat-gateway', iconKey: 'nat', status: 'healthy', throughput: 1000, load: 5 }
+    defaultData: {
+      kind: 'service',
+      iconKey: 'nat',
+      label: 'NAT Gateway',
+      status: 'healthy',
+      throughput: 1000,
+      load: 5
+    },
+    simulationConfig: { componentType: 'nat-gateway', category: 'network-and-edge' }
   },
   'vpn-gateway': {
     id: 'vpn-gateway',
@@ -235,12 +288,14 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     icon: LockKeyhole,
     lookupKey: 'vpn',
     defaultData: {
-      id: 'vpn-gateway',
+      kind: 'service',
       iconKey: 'vpn',
+      label: 'VPN Gateway',
       status: 'degraded',
       throughput: 500,
       load: 10
-    }
+    },
+    simulationConfig: { componentType: 'vpn-gateway', category: 'network-and-edge' }
   },
   'routing-rule': {
     id: 'routing-rule',
@@ -249,7 +304,15 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     subLabel: 'Path / Header Matching',
     icon: GitBranch,
     lookupKey: 'routing',
-    defaultData: { iconKey: 'routing-rule', status: 'healthy', throughput: 20000, load: 5 }
+    defaultData: {
+      kind: 'service',
+      iconKey: 'routing-rule',
+      label: 'Routing Rule',
+      status: 'healthy',
+      throughput: 20000,
+      load: 5
+    },
+    simulationConfig: { componentType: 'routing-rule', category: 'network-and-edge' }
   },
   'routing-policy': {
     id: 'routing-policy',
@@ -258,10 +321,18 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     subLabel: 'Traffic Distribution',
     icon: Waypoints,
     lookupKey: 'routing',
-    defaultData: { iconKey: 'routing-policy', status: 'healthy', throughput: 20000, load: 5 }
+    defaultData: {
+      kind: 'service',
+      iconKey: 'routing-policy',
+      label: 'Routing Policy',
+      status: 'healthy',
+      throughput: 20000,
+      load: 5
+    },
+    simulationConfig: { componentType: 'routing-policy', category: 'network-and-edge' }
   },
 
-  // Security Nodes
+  // ── Security Nodes ───────────────────────────────────────────────────────────
   waf: {
     id: 'waf',
     type: 'securityNode',
@@ -269,7 +340,15 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     subLabel: 'Web App Firewall',
     icon: Shield,
     lookupKey: 'waf',
-    defaultData: { id: 'waf', iconKey: 'waf', status: 'healthy', blockRate: 1.2, load: 10 }
+    defaultData: {
+      kind: 'security',
+      iconKey: 'waf',
+      label: 'WAF',
+      status: 'healthy',
+      blockRate: 1.2,
+      load: 10
+    },
+    simulationConfig: { componentType: 'waf', category: 'security-and-identity' }
   },
   'firewall-rule': {
     id: 'firewall-rule',
@@ -278,7 +357,14 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     subLabel: 'L4/L7 Filtering',
     icon: ShieldAlert,
     lookupKey: 'firewall',
-    defaultData: { id: 'firewall-rule', iconKey: 'firewall', status: 'healthy', droppedPackets: 0 }
+    defaultData: {
+      kind: 'security',
+      iconKey: 'firewall',
+      label: 'Firewall Rule',
+      status: 'healthy',
+      droppedPackets: 0
+    },
+    simulationConfig: { componentType: 'firewall', category: 'security-and-identity' }
   },
   'security-group': {
     id: 'security-group',
@@ -287,10 +373,18 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     subLabel: 'Network Boundary',
     icon: ShieldCheck,
     lookupKey: 'security-group',
-    defaultData: { iconKey: 'security-group', status: 'healthy', droppedPackets: 0, blockRate: 0 }
+    defaultData: {
+      kind: 'security',
+      iconKey: 'security-group',
+      label: 'Security Group',
+      status: 'healthy',
+      droppedPackets: 0,
+      blockRate: 0
+    },
+    simulationConfig: { componentType: 'firewall', category: 'security-and-identity' }
   },
 
-  // Infrastructure
+  // ── Infrastructure (VPC) ─────────────────────────────────────────────────────
   'vpc-region': {
     id: 'vpc-region',
     type: 'vpcNode',
@@ -298,7 +392,7 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     subLabel: 'Isolated Network',
     icon: Cloud,
     lookupKey: 'cloud',
-    defaultData: { id: 'vpc-region', iconKey: 'cloud' }
+    defaultData: { kind: 'vpc', iconKey: 'cloud' }
   },
   'availability-zone': {
     id: 'availability-zone',
@@ -307,7 +401,7 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     subLabel: 'Fault Domain',
     icon: Box,
     lookupKey: 'az',
-    defaultData: { id: 'availability-zone', iconKey: 'az' }
+    defaultData: { kind: 'vpc', iconKey: 'az' }
   },
   subnet: {
     id: 'subnet',
@@ -316,7 +410,7 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     subLabel: 'Network Partition',
     icon: LayoutGrid,
     lookupKey: 'subnet',
-    defaultData: { id: 'subnet', iconKey: 'subnet' }
+    defaultData: { kind: 'vpc', iconKey: 'subnet' }
   },
   'dns-server': {
     id: 'dns-server',
@@ -325,7 +419,15 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     subLabel: 'Internal DNS / Authoritative',
     icon: ServerCog,
     lookupKey: 'server-cog',
-    defaultData: { iconKey: 'server-cog', status: 'healthy', throughput: 5000, load: 10 }
+    defaultData: {
+      kind: 'service',
+      iconKey: 'server-cog',
+      label: 'DNS Server',
+      status: 'healthy',
+      throughput: 5000,
+      load: 10
+    },
+    simulationConfig: { componentType: 'internal-dns', category: 'dns-and-certs' }
   },
   'discovery-service': {
     id: 'discovery-service',
@@ -334,10 +436,18 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     subLabel: 'Service Registry',
     icon: BookOpen,
     lookupKey: 'book-open',
-    defaultData: { iconKey: 'book-open', status: 'healthy', throughput: 3000, load: 15 }
+    defaultData: {
+      kind: 'service',
+      iconKey: 'book-open',
+      label: 'Discovery Service',
+      status: 'healthy',
+      throughput: 3000,
+      load: 15
+    },
+    simulationConfig: { componentType: 'service-registry', category: 'orchestration-and-infra' }
   },
 
-  // Clients & Edge
+  // ── Clients & Edge ───────────────────────────────────────────────────────────
   'client-user': {
     id: 'client-user',
     type: 'serviceNode',
@@ -346,11 +456,17 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     icon: Monitor,
     lookupKey: 'monitor',
     defaultData: {
-      id: 'client-user',
+      kind: 'service',
       iconKey: 'monitor',
+      label: 'Client',
       status: 'healthy',
       throughput: 0,
       load: 0
+    },
+    simulationConfig: {
+      componentType: 'api-gateway',
+      category: 'network-and-edge',
+      isSourceOnly: true
     }
   },
   dns: {
@@ -360,7 +476,15 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     subLabel: 'Name Resolution',
     icon: Navigation,
     lookupKey: 'dns',
-    defaultData: { id: 'dns', iconKey: 'dns', status: 'healthy', throughput: 0, load: 0 }
+    defaultData: {
+      kind: 'service',
+      iconKey: 'dns',
+      label: 'DNS',
+      status: 'healthy',
+      throughput: 0,
+      load: 0
+    },
+    simulationConfig: { componentType: 'internal-dns', category: 'dns-and-certs' }
   },
   cdn: {
     id: 'cdn',
@@ -369,7 +493,15 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     subLabel: 'Edge Caching',
     icon: Wifi,
     lookupKey: 'cdn',
-    defaultData: { id: 'cdn', iconKey: 'cdn', status: 'healthy', throughput: 50000, load: 5 }
+    defaultData: {
+      kind: 'service',
+      iconKey: 'cdn',
+      label: 'CDN',
+      status: 'healthy',
+      throughput: 50000,
+      load: 5
+    },
+    simulationConfig: { componentType: 'cdn', category: 'network-and-edge' }
   },
   'api-gateway': {
     id: 'api-gateway',
@@ -379,15 +511,17 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     icon: Globe,
     lookupKey: 'globe',
     defaultData: {
-      id: 'api-gateway',
+      kind: 'service',
       iconKey: 'globe',
+      label: 'API Gateway',
       status: 'healthy',
       throughput: 8000,
       load: 20
-    }
+    },
+    simulationConfig: { componentType: 'api-gateway', category: 'network-and-edge' }
   },
 
-  // Messaging
+  // ── Messaging ────────────────────────────────────────────────────────────────
   'message-queue': {
     id: 'message-queue',
     type: 'serviceNode',
@@ -396,13 +530,15 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     icon: Inbox,
     lookupKey: 'queue',
     defaultData: {
-      id: 'message-queue',
+      kind: 'service',
       iconKey: 'queue',
+      label: 'Message Queue',
       status: 'healthy',
       throughput: 3000,
       queueDepth: 0,
       load: 10
-    }
+    },
+    simulationConfig: { componentType: 'queue', category: 'messaging-and-streaming', isAsync: true }
   },
   'message-broker': {
     id: 'message-broker',
@@ -412,15 +548,21 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     icon: Radio,
     lookupKey: 'broker',
     defaultData: {
-      id: 'message-broker',
+      kind: 'service',
       iconKey: 'broker',
+      label: 'Event Broker',
       status: 'healthy',
       throughput: 100000,
       load: 10
+    },
+    simulationConfig: {
+      componentType: 'message-broker',
+      category: 'messaging-and-streaming',
+      isAsync: true
     }
   },
 
-  // Data Stores
+  // ── Data Stores ───────────────────────────────────────────────────────────────
   'nosql-db': {
     id: 'nosql-db',
     type: 'serviceNode',
@@ -428,7 +570,15 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     subLabel: 'DynamoDB / MongoDB',
     icon: Layers,
     lookupKey: 'nosql',
-    defaultData: { id: 'nosql-db', iconKey: 'nosql', status: 'healthy', throughput: 5000, load: 30 }
+    defaultData: {
+      kind: 'service',
+      iconKey: 'nosql',
+      label: 'NoSQL DB',
+      status: 'healthy',
+      throughput: 5000,
+      load: 30
+    },
+    simulationConfig: { componentType: 'nosql-db', category: 'storage-and-data' }
   },
   'read-replica': {
     id: 'read-replica',
@@ -438,12 +588,14 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     icon: GitBranch,
     lookupKey: 'replica',
     defaultData: {
-      id: 'read-replica',
+      kind: 'service',
       iconKey: 'replica',
+      label: 'Read Replica',
       status: 'healthy',
       throughput: 2000,
       load: 40
-    }
+    },
+    simulationConfig: { componentType: 'relational-db', category: 'storage-and-data' }
   },
   'object-storage': {
     id: 'object-storage',
@@ -453,12 +605,14 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     icon: HardDrive,
     lookupKey: 'storage',
     defaultData: {
-      id: 'object-storage',
+      kind: 'service',
       iconKey: 'storage',
+      label: 'Object Storage',
       status: 'healthy',
       throughput: 500,
       load: 10
-    }
+    },
+    simulationConfig: { componentType: 'object-storage', category: 'storage-and-data' }
   },
   'search-index': {
     id: 'search-index',
@@ -468,15 +622,17 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     icon: Search,
     lookupKey: 'search',
     defaultData: {
-      id: 'search-index',
+      kind: 'service',
       iconKey: 'search',
+      label: 'Search Index',
       status: 'healthy',
       throughput: 1500,
       load: 25
-    }
+    },
+    simulationConfig: { componentType: 'search-index', category: 'storage-and-data' }
   },
 
-  // App Support
+  // ── App Support ──────────────────────────────────────────────────────────────
   'push-notification-service': {
     id: 'push-notification-service',
     type: 'serviceNode',
@@ -484,7 +640,19 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     subLabel: 'Push / Email / SMS',
     icon: Bell,
     lookupKey: 'notification',
-    defaultData: { iconKey: 'notification', status: 'healthy', throughput: 3000, load: 15 }
+    defaultData: {
+      kind: 'service',
+      iconKey: 'notification',
+      label: 'Notification Service',
+      status: 'healthy',
+      throughput: 3000,
+      load: 15
+    },
+    simulationConfig: {
+      componentType: 'push-notification-service',
+      category: 'real-time-and-media',
+      isAsync: true
+    }
   },
   'streaming-analytics': {
     id: 'streaming-analytics',
@@ -493,10 +661,22 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     subLabel: 'Streaming Analytics',
     icon: LineChart,
     lookupKey: 'analytics',
-    defaultData: { iconKey: 'analytics', status: 'healthy', throughput: 10000, load: 40 }
+    defaultData: {
+      kind: 'service',
+      iconKey: 'analytics',
+      label: 'Analytics Service',
+      status: 'healthy',
+      throughput: 10000,
+      load: 40
+    },
+    simulationConfig: {
+      componentType: 'streaming-analytics',
+      category: 'data-infra-and-analytics',
+      isAsync: true
+    }
   },
 
-  // External
+  // ── External ─────────────────────────────────────────────────────────────────
   'external-service': {
     id: 'external-service',
     type: 'serviceNode',
@@ -504,10 +684,21 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     subLabel: '3rd Party API',
     icon: ExternalLink,
     lookupKey: 'external',
-    defaultData: { iconKey: 'external', status: 'healthy', throughput: 500, load: 5 }
+    defaultData: {
+      kind: 'service',
+      iconKey: 'external',
+      label: 'External Service',
+      status: 'healthy',
+      throughput: 500,
+      load: 5
+    },
+    simulationConfig: {
+      componentType: 'third-party-api-connector',
+      category: 'external-and-integration'
+    }
   },
 
-  // Control Plane
+  // ── Control Plane ─────────────────────────────────────────────────────────────
   'config-store': {
     id: 'config-store',
     type: 'serviceNode',
@@ -515,7 +706,15 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     subLabel: 'Configuration',
     icon: Sliders,
     lookupKey: 'config',
-    defaultData: { iconKey: 'config', status: 'healthy', throughput: 1000, load: 10 }
+    defaultData: {
+      kind: 'service',
+      iconKey: 'config',
+      label: 'Config Store',
+      status: 'healthy',
+      throughput: 1000,
+      load: 10
+    },
+    simulationConfig: { componentType: 'config-store', category: 'orchestration-and-infra' }
   },
   'secrets-manager': {
     id: 'secrets-manager',
@@ -524,7 +723,15 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     subLabel: 'Secrets & Keys',
     icon: Key,
     lookupKey: 'secrets',
-    defaultData: { iconKey: 'secrets', status: 'healthy', throughput: 500, load: 5 }
+    defaultData: {
+      kind: 'service',
+      iconKey: 'secrets',
+      label: 'Secrets Manager',
+      status: 'healthy',
+      throughput: 500,
+      load: 5
+    },
+    simulationConfig: { componentType: 'secrets-manager', category: 'orchestration-and-infra' }
   },
   'feature-flag-service': {
     id: 'feature-flag-service',
@@ -533,10 +740,18 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     subLabel: 'Feature Flags',
     icon: ToggleLeft,
     lookupKey: 'flags',
-    defaultData: { iconKey: 'flags', status: 'healthy', throughput: 2000, load: 15 }
+    defaultData: {
+      kind: 'service',
+      iconKey: 'flags',
+      label: 'Feature Flag Service',
+      status: 'healthy',
+      throughput: 2000,
+      load: 15
+    },
+    simulationConfig: { componentType: 'feature-flag-service', category: 'devops-and-delivery' }
   },
 
-  // Observability
+  // ── Observability ─────────────────────────────────────────────────────────────
   'metrics-collector-agent': {
     id: 'metrics-collector-agent',
     type: 'serviceNode',
@@ -544,7 +759,15 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     subLabel: 'Agent / Telegraf',
     icon: Activity,
     lookupKey: 'metrics-collector',
-    defaultData: { iconKey: 'metrics-collector', status: 'healthy', throughput: 1000, load: 5 }
+    defaultData: {
+      kind: 'service',
+      iconKey: 'metrics-collector',
+      label: 'Metrics Collector',
+      status: 'healthy',
+      throughput: 1000,
+      load: 5
+    },
+    simulationConfig: { componentType: 'metrics-store', category: 'observability', isAsync: true }
   },
   'log-collector-agent': {
     id: 'log-collector-agent',
@@ -553,7 +776,19 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     subLabel: 'Fluentd / Promtail',
     icon: FileText,
     lookupKey: 'log-collector',
-    defaultData: { iconKey: 'log-collector', status: 'healthy', throughput: 5000, load: 10 }
+    defaultData: {
+      kind: 'service',
+      iconKey: 'log-collector',
+      label: 'Log Collector',
+      status: 'healthy',
+      throughput: 5000,
+      load: 10
+    },
+    simulationConfig: {
+      componentType: 'centralized-logging',
+      category: 'observability',
+      isAsync: true
+    }
   },
   'log-aggregation-service': {
     id: 'log-aggregation-service',
@@ -562,7 +797,19 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     subLabel: 'Elasticsearch / Loki',
     icon: Library,
     lookupKey: 'log-aggregator',
-    defaultData: { iconKey: 'log-aggregator', status: 'healthy', throughput: 15000, load: 20 }
+    defaultData: {
+      kind: 'service',
+      iconKey: 'log-aggregator',
+      label: 'Centralized Logging',
+      status: 'healthy',
+      throughput: 15000,
+      load: 20
+    },
+    simulationConfig: {
+      componentType: 'centralized-logging',
+      category: 'observability',
+      isAsync: true
+    }
   },
   'distributed-tracing-collector': {
     id: 'distributed-tracing-collector',
@@ -571,7 +818,19 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     subLabel: 'Jaeger / Tempo',
     icon: Radar,
     lookupKey: 'tracing',
-    defaultData: { iconKey: 'tracing', status: 'healthy', throughput: 10000, load: 15 }
+    defaultData: {
+      kind: 'service',
+      iconKey: 'tracing',
+      label: 'Distributed Tracing',
+      status: 'healthy',
+      throughput: 10000,
+      load: 15
+    },
+    simulationConfig: {
+      componentType: 'distributed-tracing',
+      category: 'observability',
+      isAsync: true
+    }
   },
   'alerting-engine': {
     id: 'alerting-engine',
@@ -580,7 +839,15 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     subLabel: 'Alertmanager / PagerDuty',
     icon: BellRing,
     lookupKey: 'alerting',
-    defaultData: { iconKey: 'alerting', status: 'healthy', throughput: 500, load: 5 }
+    defaultData: {
+      kind: 'service',
+      iconKey: 'alerting',
+      label: 'Alerting Hook',
+      status: 'healthy',
+      throughput: 500,
+      load: 5
+    },
+    simulationConfig: { componentType: 'alerting-hook', category: 'observability', isAsync: true }
   },
   'health-check-monitor': {
     id: 'health-check-monitor',
@@ -589,7 +856,15 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     subLabel: 'Synthetic Monitoring',
     icon: HeartPulse,
     lookupKey: 'health-check',
-    defaultData: { iconKey: 'health-check', status: 'healthy', throughput: 100, load: 5 }
+    defaultData: {
+      kind: 'service',
+      iconKey: 'health-check',
+      label: 'Health Check Manager',
+      status: 'healthy',
+      throughput: 100,
+      load: 5
+    },
+    simulationConfig: { componentType: 'health-check-manager', category: 'observability' }
   }
 }
 
