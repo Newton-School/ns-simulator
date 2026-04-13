@@ -416,7 +416,7 @@ export class MetricsCollector {
   }
 
   // kept for backward compat with test helpers that call it indirectly
-  private _isSortedAscending = this.isSortedAscending.bind(this)
+  public readonly _isSortedAscending = this.isSortedAscending.bind(this)
 
   private isPostWarmup(eventTime?: bigint): boolean {
     return eventTime !== undefined && eventTime >= this.warmupDurationUs
