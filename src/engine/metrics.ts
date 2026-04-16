@@ -70,7 +70,7 @@ export interface SimulationSummary {
   timedOutRequests: number
   duration: number // ms
   throughput: number // successful req / sec after warmup
-  errorRate: number // failed / total
+  errorRate: number // post-warmup failed / post-warmup total
   latency: LatencyPercentiles
 }
 
@@ -210,6 +210,9 @@ export class MetricsCollector {
     this.totalRequests++
     this.failedRequests++
     this.rejectedRequests++
+    if (this.isPostWarmup(eventTime)) {
+      this.postWarmupTotalRequests++
+    }
 
     const node = this.ensureNodeMetrics(nodeId)
     node.totalArrived++
@@ -230,6 +233,9 @@ export class MetricsCollector {
     this.totalRequests++
     this.failedRequests++
     this.timedOutRequests++
+    if (this.isPostWarmup(eventTime)) {
+      this.postWarmupTotalRequests++
+    }
 
     const node = this.ensureNodeMetrics(nodeId)
     node.totalArrived++
@@ -271,7 +277,12 @@ export class MetricsCollector {
     const effectiveDurationMs = Math.max(0, duration - this.warmupDurationMs)
     const throughput =
       effectiveDurationMs > 0 ? this.postWarmupSuccessfulRequests / (effectiveDurationMs / 1000) : 0
-    const errorRate = this.totalRequests > 0 ? this.failedRequests / this.totalRequests : 0
+    const postWarmupFailedRequests = Math.max(
+      0,
+      this.postWarmupTotalRequests - this.postWarmupSuccessfulRequests
+    )
+    const errorRate =
+      this.postWarmupTotalRequests > 0 ? postWarmupFailedRequests / this.postWarmupTotalRequests : 0
 
     return {
       totalRequests: this.totalRequests,
@@ -300,8 +311,11 @@ export class MetricsCollector {
       const totalProcessed = metrics?.totalProcessed ?? 0
       const totalRejected = metrics?.totalRejected ?? 0
       const totalTimedOut = metrics?.totalTimedOut ?? 0
-      const failed = totalRejected + totalTimedOut
-      const errorRate = totalArrived > 0 ? failed / totalArrived : 0
+      const postWarmupArrived = metrics?.postWarmupArrived ?? 0
+      const postWarmupRejected = metrics?.postWarmupRejected ?? 0
+      const postWarmupTimedOut = metrics?.postWarmupTimedOut ?? 0
+      const postWarmupFailed = postWarmupRejected + postWarmupTimedOut
+      const errorRate = postWarmupArrived > 0 ? postWarmupFailed / postWarmupArrived : 0
       const sortedLatencies = metrics?.latencySamplesMs
         ? [...metrics.latencySamplesMs].sort((a, b) => a - b)
         : []
@@ -326,13 +340,13 @@ export class MetricsCollector {
       result.set(nodeId, {
         nodeLabel: metadata?.label,
         totalArrived,
-        postWarmupArrived: metrics?.postWarmupArrived ?? 0,
+        postWarmupArrived,
         totalProcessed,
         postWarmupProcessed: pwProcessed,
         totalRejected,
-        postWarmupRejected: metrics?.postWarmupRejected ?? 0,
+        postWarmupRejected,
         totalTimedOut,
-        postWarmupTimedOut: metrics?.postWarmupTimedOut ?? 0,
+        postWarmupTimedOut,
         avgQueueLength:
           metrics && metrics.queueSamples > 0 ? metrics.queueLengthSum / metrics.queueSamples : 0,
         avgServiceTime:
@@ -405,18 +419,6 @@ export class MetricsCollector {
     const idx = Math.floor(p * (sortedAsc.length - 1))
     return sortedAsc[Math.min(sortedAsc.length - 1, Math.max(0, idx))]
   }
-
-  private isSortedAscending(values: number[]): boolean {
-    for (let i = 1; i < values.length; i++) {
-      if (values[i] < values[i - 1]) {
-        return false
-      }
-    }
-    return true
-  }
-
-  // kept for backward compat with test helpers that call it indirectly
-  public readonly _isSortedAscending = this.isSortedAscending.bind(this)
 
   private isPostWarmup(eventTime?: bigint): boolean {
     return eventTime !== undefined && eventTime >= this.warmupDurationUs

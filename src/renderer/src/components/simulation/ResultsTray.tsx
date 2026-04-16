@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import type { SimulationOutput } from '../../../../engine/analysis/output'
 import type { SimulationStatus } from '../../hooks/useSimulation'
 
@@ -174,6 +174,7 @@ function CollapsibleCheck({
   children: React.ReactNode
 }) {
   const [open, setOpen] = useState(false)
+  const contentId = useId()
   const iconCls =
     level === 'breaches'
       ? 'text-nss-danger'
@@ -185,7 +186,10 @@ function CollapsibleCheck({
   return (
     <div className="border border-nss-border rounded-md overflow-hidden">
       <button
+        type="button"
         onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        aria-controls={contentId}
         className="w-full flex items-center justify-between px-3 py-2 bg-nss-surface hover:bg-nss-bg text-left transition-colors"
       >
         <span className="flex items-center gap-2 text-xs font-medium text-nss-text">
@@ -194,7 +198,11 @@ function CollapsibleCheck({
         </span>
         <span className="text-nss-muted text-[10px]">{open ? '▲' : '▼'}</span>
       </button>
-      {open && <div className="px-3 py-2 bg-nss-panel space-y-1">{children}</div>}
+      {open && (
+        <div id={contentId} className="px-3 py-2 bg-nss-panel space-y-1">
+          {children}
+        </div>
+      )}
     </div>
   )
 }

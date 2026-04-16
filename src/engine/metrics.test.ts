@@ -129,11 +129,15 @@ describe('MetricsCollector', () => {
       avgTimeInSystem: 3.5,
       avgInSystem: 2,
       utilization: 0.7,
-      throughput: 2 / 0.9,
+      throughput: 1 / 0.9,
       errorRate: 0.5,
       availability: 0.5,
       latencyP99: 2
     })
+
+    const summary = metrics.generateSummary(1_000)
+    expect(summary.postWarmupTotalRequests).toBe(2)
+    expect(summary.errorRate).toBe(0.5)
   })
 
   it('counts post-warmup arrivals when only path data is available', () => {

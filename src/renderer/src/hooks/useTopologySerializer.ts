@@ -171,14 +171,12 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 /**
- * Accepts either probability [0,1] or percentage [0,100] input.
+ * Accepts percentage input in the range [0,100] and normalizes it to [0,1].
  */
 function asProbability(value: unknown): number | null {
   const num = asFiniteNumber(value)
-  if (num === null || num < 0) return null
-  if (num <= 1) return num
-  if (num <= 100) return num / 100
-  return null
+  if (num === null || num < 0 || num > 100) return null
+  return num / 100
 }
 
 function asPathType(value: unknown): EdgeDefinition['latency']['pathType'] | null {
