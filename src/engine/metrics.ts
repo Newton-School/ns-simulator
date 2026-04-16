@@ -105,6 +105,11 @@ export interface NodeMetadata {
   slo?: SLOConfig
 }
 
+interface FailureMetricsContext {
+  requestCreatedAt?: bigint
+  nodeArrivalTime?: bigint
+}
+
 export class MetricsCollector {
   private readonly warmupDurationMs: number
   private readonly warmupDurationUs: bigint
@@ -201,23 +206,25 @@ export class MetricsCollector {
    *
    * @param nodeId   Node where the rejection occurred.
    * @param reason   Human-readable rejection reason.
-   * @param eventTime  Current simulation clock time when the rejection occurred.
-   *                   Used to determine whether this event falls in the post-warmup
-   *                   window. Pass `this.clock` from the engine, not `request.createdAt`.
+   * @param context.requestCreatedAt  Request creation time. Used for global summary gating.
+   * @param context.nodeArrivalTime   Time the request reached this node. Used for per-node
+   *                                  post-warmup arrival/rejection gating.
    */
-  recordRejection(nodeId: string, reason: string, eventTime?: bigint): void {
+  recordRejection(nodeId: string, reason: string, context: FailureMetricsContext = {}): void {
     void reason
+    const arrivalTime = context.nodeArrivalTime ?? context.requestCreatedAt
+
     this.totalRequests++
     this.failedRequests++
     this.rejectedRequests++
-    if (this.isPostWarmup(eventTime)) {
+    if (this.isPostWarmup(context.requestCreatedAt)) {
       this.postWarmupTotalRequests++
     }
 
     const node = this.ensureNodeMetrics(nodeId)
     node.totalArrived++
     node.totalRejected++
-    if (this.isPostWarmup(eventTime)) {
+    if (this.isPostWarmup(arrivalTime)) {
       node.postWarmupArrived++
       node.postWarmupRejected++
     }
@@ -226,21 +233,24 @@ export class MetricsCollector {
   /**
    * Record a request timeout at a node.
    *
-   * @param eventTime  Current simulation clock time when the timeout fired.
-   *                   Pass `this.clock` from the engine, not `request.createdAt`.
+   * @param context.requestCreatedAt  Request creation time. Used for global summary gating.
+   * @param context.nodeArrivalTime   Time the request reached this node. Used for per-node
+   *                                  post-warmup arrival/timeout gating.
    */
-  recordTimeout(_requestId: string, nodeId: string, eventTime?: bigint): void {
+  recordTimeout(_requestId: string, nodeId: string, context: FailureMetricsContext = {}): void {
+    const arrivalTime = context.nodeArrivalTime ?? context.requestCreatedAt
+
     this.totalRequests++
     this.failedRequests++
     this.timedOutRequests++
-    if (this.isPostWarmup(eventTime)) {
+    if (this.isPostWarmup(context.requestCreatedAt)) {
       this.postWarmupTotalRequests++
     }
 
     const node = this.ensureNodeMetrics(nodeId)
     node.totalArrived++
     node.totalTimedOut++
-    if (this.isPostWarmup(eventTime)) {
+    if (this.isPostWarmup(arrivalTime)) {
       node.postWarmupArrived++
       node.postWarmupTimedOut++
     }

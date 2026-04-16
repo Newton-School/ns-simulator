@@ -113,10 +113,18 @@ describe('generateSimulationOutput', () => {
       )
     }
     for (let i = 0; i < 5; i++) {
-      metrics.recordRejection('node-x', 'capacity', BigInt(i) * 1_000n)
+      const ts = BigInt(i) * 1_000n
+      metrics.recordRejection('node-x', 'capacity', {
+        requestCreatedAt: ts,
+        nodeArrivalTime: ts
+      })
     }
     for (let i = 0; i < 5; i++) {
-      metrics.recordTimeout(`t-${i}`, 'node-x', BigInt(i) * 1_000n)
+      const ts = BigInt(i) * 1_000n
+      metrics.recordTimeout(`t-${i}`, 'node-x', {
+        requestCreatedAt: ts,
+        nodeArrivalTime: ts
+      })
     }
     // 10 more arrivals that were never completed (in-flight)
     for (let i = 0; i < 10; i++) {

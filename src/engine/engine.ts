@@ -287,7 +287,7 @@ export class SimulationEngine {
           'request-rejected',
           event.nodeId,
           request.id,
-          { request, reason: result.reason },
+          { request, reason: result.reason, nodeArrivalTime: this.clock },
           this.clock
         )
       )
@@ -312,7 +312,11 @@ export class SimulationEngine {
           'request-rejected',
           event.nodeId,
           request.id,
-          { request, reason: 'node_error_rate' },
+          {
+            request,
+            reason: 'node_error_rate',
+            nodeArrivalTime: completion.completedSpan?.arrivalTime ?? this.clock
+          },
           this.clock
         )
       )
@@ -363,7 +367,13 @@ export class SimulationEngine {
     if (this.distributions.random() < edge.packetLossRate) {
       const timeoutAt = request.deadline > this.clock ? request.deadline : this.clock
       this.eventQueue.insert(
-        createEvent('request-timeout', targetNodeId, request.id, { request }, timeoutAt)
+        createEvent(
+          'request-timeout',
+          targetNodeId,
+          request.id,
+          { request, nodeArrivalTime: this.clock },
+          timeoutAt
+        )
       )
       return
     }
@@ -410,7 +420,12 @@ export class SimulationEngine {
     this.tracer.markStatus(request.id, 'timeout')
     this.requestById.delete(request.id)
 
-    this.metrics.recordTimeout(event.requestId, event.nodeId, this.clock)
+    const nodeArrivalTime =
+      typeof event.data.nodeArrivalTime === 'bigint' ? event.data.nodeArrivalTime : undefined
+    this.metrics.recordTimeout(event.requestId, event.nodeId, {
+      requestCreatedAt: request.createdAt,
+      nodeArrivalTime
+    })
   }
 
   private handleRequestRejected(event: SimulationEvent): void {
@@ -420,7 +435,12 @@ export class SimulationEngine {
       return
     }
 
-    this.metrics.recordRejection(event.nodeId, reason, this.clock)
+    const nodeArrivalTime =
+      typeof event.data.nodeArrivalTime === 'bigint' ? event.data.nodeArrivalTime : undefined
+    this.metrics.recordRejection(event.nodeId, reason, {
+      requestCreatedAt: request.createdAt,
+      nodeArrivalTime
+    })
 
     for (const span of request.spans) {
       this.tracer.recordSpan(request.id, span)
@@ -565,7 +585,13 @@ export class SimulationEngine {
     if (policy.droppedPackets > 0 && this.distributions.random() < policy.droppedPackets) {
       const timeoutAt = request.deadline > this.clock ? request.deadline : this.clock
       this.eventQueue.insert(
-        createEvent('request-timeout', nodeId, request.id, { request }, timeoutAt)
+        createEvent(
+          'request-timeout',
+          nodeId,
+          request.id,
+          { request, nodeArrivalTime: this.clock },
+          timeoutAt
+        )
       )
       return true
     }
@@ -576,7 +602,7 @@ export class SimulationEngine {
           'request-rejected',
           nodeId,
           request.id,
-          { request, reason: 'security_blocked' },
+          { request, reason: 'security_blocked', nodeArrivalTime: this.clock },
           this.clock
         )
       )

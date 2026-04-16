@@ -102,8 +102,14 @@ describe('MetricsCollector', () => {
       })
     )
 
-    metrics.recordRejection('node-a', 'capacity', 150_000n)
-    metrics.recordTimeout('req-timeout', 'node-a', 50_000n)
+    metrics.recordRejection('node-a', 'capacity', {
+      requestCreatedAt: 150_000n,
+      nodeArrivalTime: 150_000n
+    })
+    metrics.recordTimeout('req-timeout', 'node-a', {
+      requestCreatedAt: 50_000n,
+      nodeArrivalTime: 50_000n
+    })
     metrics.recordNodeSnapshot(
       'node-a',
       makeSnapshot({ queueLength: 2, totalInSystem: 3, utilization: 0.4 }),
@@ -138,6 +144,30 @@ describe('MetricsCollector', () => {
     const summary = metrics.generateSummary(1_000)
     expect(summary.postWarmupTotalRequests).toBe(2)
     expect(summary.errorRate).toBe(0.5)
+  })
+
+  it('uses requestCreatedAt for summary gating and nodeArrivalTime for per-node post-warmup gating', () => {
+    const metrics = new MetricsCollector({ warmupDuration: 100 })
+
+    metrics.recordRejection('node-a', 'node_error_rate', {
+      requestCreatedAt: 50_000n,
+      nodeArrivalTime: 90_000n
+    })
+    metrics.recordTimeout('req-timeout', 'node-a', {
+      requestCreatedAt: 50_000n,
+      nodeArrivalTime: 90_000n
+    })
+
+    const perNode = metrics.getPerNodeMetrics(1_000).get('node-a')
+    expect(perNode).toBeDefined()
+    expect(perNode?.totalArrived).toBe(2)
+    expect(perNode?.postWarmupArrived).toBe(0)
+    expect(perNode?.postWarmupRejected).toBe(0)
+    expect(perNode?.postWarmupTimedOut).toBe(0)
+
+    const summary = metrics.generateSummary(1_000)
+    expect(summary.totalRequests).toBe(2)
+    expect(summary.postWarmupTotalRequests).toBe(0)
   })
 
   it('counts post-warmup arrivals when only path data is available', () => {
