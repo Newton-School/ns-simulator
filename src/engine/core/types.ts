@@ -1,5 +1,18 @@
 import type { SimulationEvent } from './events'
 
+/**
+ * Accuracy contract classification for simulator parameters.
+ * - invariant: internal mechanics/safety constants, not scenario knobs
+ * - default-override: has a default but can be overridden by scenario input
+ * - user-parameter: visible input expected to influence simulation output
+ * - not-simulated: accepted by schema but intentionally ignored by runtime
+ */
+export type ParameterAccuracyClass =
+  | 'invariant'
+  | 'default-override'
+  | 'user-parameter'
+  | 'not-simulated'
+
 export type ComponentCategory =
   | 'compute'
   | 'network-and-edge'

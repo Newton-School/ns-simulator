@@ -11,6 +11,11 @@ import { createRandom } from './stochastic/random'
 import { RequestTracer } from './tracer'
 import { WorkloadGenerator } from './workload'
 
+interface SecurityPolicyConfig {
+  blockRate: number
+  droppedPackets: number
+}
+
 export class SimulationEngine {
   onProgress?: (percent: number, eventsProcessed: number) => void
   onSnapshot?: (snapshot: TimeSeriesSnapshot) => void
@@ -21,6 +26,8 @@ export class SimulationEngine {
   private readonly metrics: MetricsCollector
   private readonly tracer: RequestTracer
   private readonly nodes = new Map<string, GGcKNode>()
+  private readonly nodeErrorRateById = new Map<string, number>()
+  private readonly securityPolicyByNodeId = new Map<string, SecurityPolicyConfig>()
   private readonly workload?: WorkloadGenerator
 
   private readonly requestById = new Map<string, Request>()
@@ -57,6 +64,16 @@ export class SimulationEngine {
     for (const node of topology.nodes) {
       const normalized = this.withNodeDefaults(node)
       this.nodes.set(node.id, new GGcKNode(normalized, this.distributions, scheduler))
+
+      const nodeErrorRate = this.readNodeErrorRate(normalized)
+      if (nodeErrorRate !== null && nodeErrorRate > 0) {
+        this.nodeErrorRateById.set(node.id, nodeErrorRate)
+      }
+
+      const securityPolicy = this.readSecurityPolicy(normalized)
+      if (securityPolicy) {
+        this.securityPolicyByNodeId.set(node.id, securityPolicy)
+      }
     }
 
     if (topology.workload) {
@@ -259,6 +276,10 @@ export class SimulationEngine {
     }
     this.appendNodeToPath(request, event.nodeId)
 
+    if (this.applySecurityPolicy(event.nodeId, request)) {
+      return
+    }
+
     const result = node.handleArrival(request, this.clock)
     if (result.status === 'rejected') {
       this.eventQueue.insert(
@@ -266,7 +287,7 @@ export class SimulationEngine {
           'request-rejected',
           event.nodeId,
           request.id,
-          { request, reason: result.reason },
+          { request, reason: result.reason, nodeArrivalTime: this.clock },
           this.clock
         )
       )
@@ -283,6 +304,23 @@ export class SimulationEngine {
     const completion = node.handleCompletion(request, this.clock)
     if (completion.completedSpan) {
       request.spans.push(completion.completedSpan)
+    }
+
+    if (this.shouldFailAtNode(event.nodeId)) {
+      this.eventQueue.insert(
+        createEvent(
+          'request-rejected',
+          event.nodeId,
+          request.id,
+          {
+            request,
+            reason: 'node_error_rate',
+            nodeArrivalTime: completion.completedSpan?.arrivalTime ?? this.clock
+          },
+          this.clock
+        )
+      )
+      return
     }
 
     const routes = this.routing.resolveTarget(event.nodeId, request)
@@ -329,7 +367,13 @@ export class SimulationEngine {
     if (this.distributions.random() < edge.packetLossRate) {
       const timeoutAt = request.deadline > this.clock ? request.deadline : this.clock
       this.eventQueue.insert(
-        createEvent('request-timeout', targetNodeId, request.id, { request }, timeoutAt)
+        createEvent(
+          'request-timeout',
+          targetNodeId,
+          request.id,
+          { request, nodeArrivalTime: this.clock },
+          timeoutAt
+        )
       )
       return
     }
@@ -376,7 +420,12 @@ export class SimulationEngine {
     this.tracer.markStatus(request.id, 'timeout')
     this.requestById.delete(request.id)
 
-    this.metrics.recordTimeout(event.requestId, event.nodeId, request.createdAt)
+    const nodeArrivalTime =
+      typeof event.data.nodeArrivalTime === 'bigint' ? event.data.nodeArrivalTime : undefined
+    this.metrics.recordTimeout(event.requestId, event.nodeId, {
+      requestCreatedAt: request.createdAt,
+      nodeArrivalTime
+    })
   }
 
   private handleRequestRejected(event: SimulationEvent): void {
@@ -386,7 +435,12 @@ export class SimulationEngine {
       return
     }
 
-    this.metrics.recordRejection(event.nodeId, reason, request.createdAt)
+    const nodeArrivalTime =
+      typeof event.data.nodeArrivalTime === 'bigint' ? event.data.nodeArrivalTime : undefined
+    this.metrics.recordRejection(event.nodeId, reason, {
+      requestCreatedAt: request.createdAt,
+      nodeArrivalTime
+    })
 
     for (const span of request.spans) {
       this.tracer.recordSpan(request.id, span)
@@ -492,5 +546,75 @@ export class SimulationEngine {
         timeout: 30_000
       }
     }
+  }
+
+  private readNodeErrorRate(node: ComponentNode): number | null {
+    const raw = node.config?.['nodeErrorRate']
+    if (typeof raw !== 'number' || !Number.isFinite(raw)) return null
+    return Math.max(0, Math.min(1, raw))
+  }
+
+  private readSecurityPolicy(node: ComponentNode): SecurityPolicyConfig | null {
+    const raw = node.config?.['securityPolicy']
+    if (!raw || typeof raw !== 'object') return null
+    const blockRate = (raw as Record<string, unknown>)['blockRate']
+    const droppedPackets = (raw as Record<string, unknown>)['droppedPackets']
+    const normalizedBlockRate =
+      typeof blockRate === 'number' && Number.isFinite(blockRate)
+        ? Math.max(0, Math.min(1, blockRate))
+        : 0
+    const normalizedDroppedPackets =
+      typeof droppedPackets === 'number' && Number.isFinite(droppedPackets)
+        ? Math.max(0, Math.min(1, droppedPackets))
+        : 0
+
+    if (normalizedBlockRate <= 0 && normalizedDroppedPackets <= 0) {
+      return null
+    }
+
+    return {
+      blockRate: normalizedBlockRate,
+      droppedPackets: normalizedDroppedPackets
+    }
+  }
+
+  private applySecurityPolicy(nodeId: string, request: Request): boolean {
+    const policy = this.securityPolicyByNodeId.get(nodeId)
+    if (!policy) return false
+
+    if (policy.droppedPackets > 0 && this.distributions.random() < policy.droppedPackets) {
+      const timeoutAt = request.deadline > this.clock ? request.deadline : this.clock
+      this.eventQueue.insert(
+        createEvent(
+          'request-timeout',
+          nodeId,
+          request.id,
+          { request, nodeArrivalTime: this.clock },
+          timeoutAt
+        )
+      )
+      return true
+    }
+
+    if (policy.blockRate > 0 && this.distributions.random() < policy.blockRate) {
+      this.eventQueue.insert(
+        createEvent(
+          'request-rejected',
+          nodeId,
+          request.id,
+          { request, reason: 'security_blocked', nodeArrivalTime: this.clock },
+          this.clock
+        )
+      )
+      return true
+    }
+
+    return false
+  }
+
+  private shouldFailAtNode(nodeId: string): boolean {
+    const nodeErrorRate = this.nodeErrorRateById.get(nodeId)
+    if (!nodeErrorRate || nodeErrorRate <= 0) return false
+    return this.distributions.random() < nodeErrorRate
   }
 }

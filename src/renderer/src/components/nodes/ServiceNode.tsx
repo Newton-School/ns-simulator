@@ -12,7 +12,6 @@ import { useFlowStore } from '@renderer/components/canvas/hooks/useFlowStore'
 
 const ServiceNode = ({ id, data, selected }: NodeProps<ServiceNodeData>) => {
   const { updateNodeData } = useFlowStore()
-  // Icon and theme resolved from the shared registry — no local ICON_LOOKUP needed
   const { icon: IconComponent } = resolveNodeConfig(data.iconKey)
 
   const handleLabelChange = useCallback(
@@ -22,17 +21,24 @@ const ServiceNode = ({ id, data, selected }: NodeProps<ServiceNodeData>) => {
     [id, updateNodeData]
   )
 
-  const { throughput, errorRate, queueDepth, utilization } = useNodeMetrics(id, {
-    throughput: data.throughput,
-    errorRate: data.errorRate,
-    queueDepth: data.queueDepth,
-    utilization: data.load
-  })
+  const { throughput, errorRate, queueDepth, utilization, hasRuntime, active } = useNodeMetrics(
+    id,
+    {
+      throughput: data.throughput,
+      errorRate: data.errorRate,
+      queueDepth: data.queueDepth,
+      utilization: data.load
+    }
+  )
+
+  // After a simulation run, nodes that received zero post-warmup traffic are
+  // visually muted so users can see at a glance which nodes were bypassed.
+  const isInactive = hasRuntime && active === false
 
   return (
     <BaseNode id={id} selected={selected} selectionVariant="primary">
       {({ isMenuOpen, onMenuClose, onMenuToggle }) => (
-        <>
+        <div className={isInactive ? 'opacity-40 grayscale' : undefined}>
           <NodeHeader
             label={data.label || 'Service'}
             icon={IconComponent}
@@ -49,28 +55,36 @@ const ServiceNode = ({ id, data, selected }: NodeProps<ServiceNodeData>) => {
           </NodeHeader>
 
           <div className="p-4">
-            <div className="grid grid-cols-2 gap-4 mb-3">
-              <MetricItem
-                label="Throughput"
-                value={throughput !== undefined ? throughput.toFixed(1) : undefined}
-                unit="req/s"
-              />
-              <MetricItem
-                label="Error Rate"
-                value={errorRate !== undefined ? errorRate.toFixed(2) : undefined}
-                unit="%"
-                textColor="text-nss-danger"
-              />
-              <MetricItem
-                label="Queue Depth"
-                value={queueDepth !== undefined ? queueDepth.toFixed(1) : undefined}
-                unit="req"
-                textColor="text-nss-warning"
-              />
-            </div>
-            <ProgressBar label="CPU Utilization" value={utilization} />
+            {isInactive ? (
+              <p className="text-[10px] text-nss-muted italic text-center py-2">
+                Not in source path
+              </p>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-4 mb-3">
+                  <MetricItem
+                    label="Throughput"
+                    value={throughput !== undefined ? String(throughput) : undefined}
+                    unit="req/s"
+                  />
+                  <MetricItem
+                    label="Error Rate"
+                    value={errorRate !== undefined ? String(errorRate) : undefined}
+                    unit="%"
+                    textColor="text-nss-danger"
+                  />
+                  <MetricItem
+                    label="Queue Depth"
+                    value={queueDepth !== undefined ? String(queueDepth) : undefined}
+                    unit="req"
+                    textColor="text-nss-warning"
+                  />
+                </div>
+                <ProgressBar label="Utilization" value={utilization} />
+              </>
+            )}
           </div>
-        </>
+        </div>
       )}
     </BaseNode>
   )

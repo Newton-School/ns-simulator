@@ -1,3 +1,4 @@
+import { useId, useState } from 'react'
 import type { SimulationOutput } from '../../../../engine/analysis/output'
 import type { SimulationStatus } from '../../hooks/useSimulation'
 
@@ -22,13 +23,29 @@ function fmtMs(ms: number): string {
 }
 
 function fmtPct(ratio: number): string {
-  return `${(ratio * 100).toFixed(2)}%`
+  return `${(ratio * 100).toFixed(1)}%`
+}
+
+function fmtRps(rps: number): string {
+  return rps === 0 ? '—' : `${rps.toFixed(1)}`
+}
+
+function fmtLambda(lambda: number): string {
+  return lambda === 0 ? '—' : `${lambda.toFixed(2)}`
+}
+
+function fmtL(l: number): string {
+  return l === 0 ? '—' : l.toFixed(3)
+}
+
+function fmtW(wSeconds: number): string {
+  return wSeconds === 0 ? '—' : fmtMs(wSeconds * 1000)
 }
 
 const SECTION_TITLE = 'text-[11px] font-semibold text-nss-muted uppercase tracking-wider'
 const SURFACE_CARD = 'bg-nss-surface border border-nss-border rounded-md'
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+// ─── Progress Bar ─────────────────────────────────────────────────────────────
 
 function ProgressBar({ progress }: { progress: number }) {
   return (
@@ -41,37 +58,7 @@ function ProgressBar({ progress }: { progress: number }) {
   )
 }
 
-function SummaryPanel({ output }: { output: SimulationOutput }) {
-  const { summary } = output
-  const l = summary.latency
-
-  return (
-    <div className="space-y-3">
-      <h3 className={SECTION_TITLE}>Summary</h3>
-
-      <div className="grid grid-cols-2 gap-2 text-sm">
-        <StatCard label="Total Requests" value={summary.totalRequests.toLocaleString()} />
-        <StatCard label="Throughput" value={`${summary.throughput.toFixed(1)} rps`} />
-        <StatCard
-          label="Error Rate"
-          value={fmtPct(summary.errorRate)}
-          highlight={summary.errorRate > 0.01 ? 'warn' : summary.errorRate > 0.05 ? 'crit' : 'ok'}
-        />
-        <StatCard label="Timed Out" value={summary.timedOutRequests.toLocaleString()} />
-      </div>
-
-      <h3 className={`${SECTION_TITLE} pt-1`}>End-to-end Latency</h3>
-      <div className="grid grid-cols-5 gap-1 text-xs text-center">
-        {(['p50', 'p90', 'p95', 'p99', 'max'] as const).map((k) => (
-          <div key={k} className={`${SURFACE_CARD} p-1.5`}>
-            <div className="text-nss-muted">{k}</div>
-            <div className="font-medium tabular-nums text-nss-text">{fmtMs(l[k])}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
+// ─── Stat Card ────────────────────────────────────────────────────────────────
 
 function StatCard({
   label,
@@ -97,9 +84,335 @@ function StatCard({
   )
 }
 
+// ─── Summary Panel ────────────────────────────────────────────────────────────
+
+function SummaryPanel({ output }: { output: SimulationOutput }) {
+  const { summary } = output
+  const l = summary.latency
+
+  const windowStart = output.warmupDuration / 1000
+  const windowEnd = output.simulationDuration / 1000
+  const windowLen = windowEnd - windowStart
+
+  // Correct threshold order: >5% is critical, >1% is warning
+  const errorHighlight: 'ok' | 'warn' | 'crit' =
+    summary.errorRate > 0.05 ? 'crit' : summary.errorRate > 0.01 ? 'warn' : 'ok'
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-baseline justify-between">
+        <h3 className={SECTION_TITLE}>Summary</h3>
+        <span className="text-[10px] text-nss-muted tabular-nums">
+          Window: t={windowStart.toFixed(0)}s → t={windowEnd.toFixed(0)}s&nbsp;(
+          {windowLen.toFixed(0)}s,&nbsp;{summary.postWarmupTotalRequests.toLocaleString()} samples)
+        </span>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 text-sm">
+        <StatCard
+          label="Requests (post-warmup)"
+          value={summary.postWarmupTotalRequests.toLocaleString()}
+        />
+        <StatCard label="Throughput" value={`${fmtRps(summary.throughput)} rps`} />
+        <StatCard label="Error Rate" value={fmtPct(summary.errorRate)} highlight={errorHighlight} />
+        <StatCard label="Timed Out" value={summary.timedOutRequests.toLocaleString()} />
+      </div>
+
+      <div className="flex items-baseline justify-between pt-1">
+        <h3 className={SECTION_TITLE}>End-to-end Latency</h3>
+        <span
+          className="text-[10px] text-nss-muted"
+          title="Percentiles don't compose — E2E p99 ≠ sum of per-hop p99s. Use per-node mean (W) for additive decomposition."
+        >
+          ⓘ percentiles do not sum across hops
+        </span>
+      </div>
+      <div className="grid grid-cols-5 gap-1 text-xs text-center">
+        {(['p50', 'p90', 'p95', 'p99', 'max'] as const).map((k) => (
+          <div key={k} className={`${SURFACE_CARD} p-1.5`}>
+            <div className="text-nss-muted">{k}</div>
+            <div className="font-medium tabular-nums text-nss-text">{fmtMs(l[k])}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ─── Simulation Health ────────────────────────────────────────────────────────
+
+type HealthLevel = 'healthy' | 'warnings' | 'breaches'
+
+function worstLevel(levels: HealthLevel[]): HealthLevel {
+  if (levels.includes('breaches')) return 'breaches'
+  if (levels.includes('warnings')) return 'warnings'
+  return 'healthy'
+}
+
+function HealthBadge({ level }: { level: HealthLevel }) {
+  const conf: Record<HealthLevel, { label: string; cls: string }> = {
+    healthy: { label: 'Healthy', cls: 'text-nss-success bg-nss-success/10 border-nss-success/20' },
+    warnings: {
+      label: 'Warnings',
+      cls: 'text-nss-warning bg-nss-warning/10 border-nss-warning/20'
+    },
+    breaches: { label: 'Breaches', cls: 'text-nss-danger bg-nss-danger/10 border-nss-danger/20' }
+  }
+  const { label, cls } = conf[level]
+  return (
+    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${cls}`}>{label}</span>
+  )
+}
+
+function CollapsibleCheck({
+  title,
+  level,
+  children
+}: {
+  title: string
+  level: HealthLevel
+  children: React.ReactNode
+}) {
+  const [open, setOpen] = useState(false)
+  const contentId = useId()
+  const iconCls =
+    level === 'breaches'
+      ? 'text-nss-danger'
+      : level === 'warnings'
+        ? 'text-nss-warning'
+        : 'text-nss-success'
+  const icon = level === 'healthy' ? '✓' : level === 'warnings' ? '⚠' : '✕'
+
+  return (
+    <div className="border border-nss-border rounded-md overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        aria-controls={contentId}
+        className="w-full flex items-center justify-between px-3 py-2 bg-nss-surface hover:bg-nss-bg text-left transition-colors"
+      >
+        <span className="flex items-center gap-2 text-xs font-medium text-nss-text">
+          <span className={iconCls}>{icon}</span>
+          {title}
+        </span>
+        <span className="text-nss-muted text-[10px]">{open ? '▲' : '▼'}</span>
+      </button>
+      {open && (
+        <div id={contentId} className="px-3 py-2 bg-nss-panel space-y-1">
+          {children}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function SimulationHealth({ output }: { output: SimulationOutput }) {
+  const sloLevel: HealthLevel =
+    output.sloBreaches.length === 0
+      ? 'healthy'
+      : output.sloBreaches.some((b) => b.severity === 'critical')
+        ? 'breaches'
+        : 'warnings'
+
+  const llViolations = output.littlesLawCheck.filter((r) => !r.withinTolerance)
+  const llLevel: HealthLevel = llViolations.length === 0 ? 'healthy' : 'warnings'
+
+  const imbalanced = output.conservationCheck.filter((c) => !c.balanced)
+  const conservationLevel: HealthLevel = imbalanced.length === 0 ? 'healthy' : 'warnings'
+
+  const warmupLevel: HealthLevel = output.warmupAdequacy.adequate ? 'healthy' : 'warnings'
+
+  // Error breakdown: nodes with post-warmup rejects or timeouts
+  const errorNodes = Object.entries(output.perNode)
+    .filter(([, m]) => m.postWarmupRejected > 0 || m.postWarmupTimedOut > 0)
+    .sort(
+      ([, a], [, b]) =>
+        b.postWarmupRejected + b.postWarmupTimedOut - (a.postWarmupRejected + a.postWarmupTimedOut)
+    )
+  const errorLevel: HealthLevel =
+    output.summary.errorRate === 0
+      ? 'healthy'
+      : output.summary.errorRate > 0.05
+        ? 'breaches'
+        : 'warnings'
+
+  const overall = worstLevel([sloLevel, llLevel, conservationLevel, warmupLevel, errorLevel])
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <h3 className={SECTION_TITLE}>Simulation Health</h3>
+        <HealthBadge level={overall} />
+      </div>
+
+      {/* SLO */}
+      <CollapsibleCheck
+        title={
+          sloLevel === 'healthy'
+            ? 'SLO — No breaches'
+            : `SLO — ${output.sloBreaches.length} breach${output.sloBreaches.length !== 1 ? 'es' : ''}`
+        }
+        level={sloLevel}
+      >
+        {sloLevel === 'healthy' ? (
+          <p className="text-xs text-nss-muted">All configured SLO targets met.</p>
+        ) : (
+          output.sloBreaches.map((b, i) => {
+            const metricStr =
+              b.metric === 'latencyP99'
+                ? `p99: target ${fmtMs(b.target)} / actual ${fmtMs(b.actual)}`
+                : `availability: target ${fmtPct(b.target)} / actual ${fmtPct(b.actual)}`
+            return (
+              <div
+                key={i}
+                className={`text-xs rounded px-2 py-1 flex items-start gap-2 ${
+                  b.severity === 'critical'
+                    ? 'bg-nss-danger/10 border border-nss-danger/20 text-nss-danger'
+                    : 'bg-nss-warning/10 border border-nss-warning/20 text-nss-warning'
+                }`}
+              >
+                <span className="shrink-0 font-semibold">
+                  {b.severity === 'critical' ? 'CRIT' : 'WARN'}
+                </span>
+                <span>
+                  {b.nodeLabel} — {metricStr}
+                </span>
+              </div>
+            )
+          })
+        )}
+      </CollapsibleCheck>
+
+      {/* Error Rate */}
+      <CollapsibleCheck
+        title={
+          errorLevel === 'healthy'
+            ? 'Error Rate — None'
+            : `Error Rate — ${fmtPct(output.summary.errorRate)} (${(output.summary.rejectedRequests + output.summary.timedOutRequests).toLocaleString()} errors)`
+        }
+        level={errorLevel}
+      >
+        {errorLevel === 'healthy' ? (
+          <p className="text-xs text-nss-muted">No rejected or timed-out requests.</p>
+        ) : (
+          <div className="space-y-1">
+            <div className="grid grid-cols-4 gap-1 text-[10px] text-nss-muted font-medium pb-0.5 border-b border-nss-border">
+              <span>Node</span>
+              <span className="text-right">Rejected</span>
+              <span className="text-right">Timed Out</span>
+              <span className="text-right">Total</span>
+            </div>
+            {errorNodes.map(([nodeId, m]) => (
+              <div key={nodeId} className="grid grid-cols-4 gap-1 text-[10px] tabular-nums">
+                <span className="text-nss-text truncate">{m.nodeLabel ?? nodeId}</span>
+                <span
+                  className={`text-right ${m.postWarmupRejected > 0 ? 'text-nss-warning' : 'text-nss-muted'}`}
+                >
+                  {m.postWarmupRejected.toLocaleString()}
+                </span>
+                <span
+                  className={`text-right ${m.postWarmupTimedOut > 0 ? 'text-nss-danger' : 'text-nss-muted'}`}
+                >
+                  {m.postWarmupTimedOut.toLocaleString()}
+                </span>
+                <span className="text-right text-nss-text">
+                  {(m.postWarmupRejected + m.postWarmupTimedOut).toLocaleString()}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </CollapsibleCheck>
+
+      {/* Little's Law */}
+      <CollapsibleCheck
+        title={
+          llLevel === 'healthy'
+            ? "Little's Law — Within tolerance"
+            : `Little's Law — ${llViolations.length} violation${llViolations.length !== 1 ? 's' : ''} (error > 10%)`
+        }
+        level={llLevel}
+      >
+        {llLevel === 'healthy' ? (
+          <p className="text-xs text-nss-muted">L = λW verified for all nodes (error ≤ 10%).</p>
+        ) : (
+          llViolations.map((r, i) => {
+            const nodeLabel = output.perNode[r.nodeId]?.nodeLabel ?? r.nodeId
+            return (
+              <div
+                key={i}
+                className="text-xs tabular-nums text-nss-warning bg-nss-warning/10 border border-nss-warning/20 rounded px-2 py-1"
+              >
+                {nodeLabel}: L={fmtL(r.observedL)} expected={fmtL(r.expectedL)} error=
+                {`${(r.error * 100).toFixed(1)}%`} | λ={fmtLambda(r.lambda)} rps, W=
+                {fmtW(r.wSeconds)}
+              </div>
+            )
+          })
+        )}
+      </CollapsibleCheck>
+
+      {/* Conservation */}
+      <CollapsibleCheck
+        title={
+          conservationLevel === 'healthy'
+            ? 'Conservation — Balanced'
+            : `Conservation — ${imbalanced.length} node${imbalanced.length !== 1 ? 's' : ''} with in-flight requests`
+        }
+        level={conservationLevel}
+      >
+        {conservationLevel === 'healthy' ? (
+          <p className="text-xs text-nss-muted">
+            All nodes: arrived ≈ processed + rejected + timed-out.
+          </p>
+        ) : (
+          imbalanced.map((c, i) => (
+            <div
+              key={i}
+              className="text-xs text-nss-warning bg-nss-warning/10 border border-nss-warning/20 rounded px-2 py-1"
+            >
+              {c.nodeLabel ?? c.nodeId}: {c.inFlight} in-flight at cutoff (
+              {((c.inFlight / Math.max(c.postWarmupArrived, 1)) * 100).toFixed(1)}% of arrivals)
+            </div>
+          ))
+        )}
+      </CollapsibleCheck>
+
+      {/* Warmup */}
+      <CollapsibleCheck
+        title={warmupLevel === 'healthy' ? 'Warmup — Adequate' : 'Warmup — May be too short'}
+        level={warmupLevel}
+      >
+        <p
+          className={`text-xs ${warmupLevel === 'healthy' ? 'text-nss-muted' : 'text-nss-warning'}`}
+        >
+          {output.warmupAdequacy.reason}
+        </p>
+        {!output.warmupAdequacy.adequate && (
+          <p className="text-xs text-nss-muted mt-1">
+            Recommended warmup:{' '}
+            <span className="font-medium text-nss-text">
+              {output.warmupAdequacy.recommendedWarmupMs.toLocaleString()}ms
+            </span>
+          </p>
+        )}
+      </CollapsibleCheck>
+    </div>
+  )
+}
+
+// ─── Per-Node Table ───────────────────────────────────────────────────────────
+
 function PerNodeTable({ output }: { output: SimulationOutput }) {
+  const [showInactive, setShowInactive] = useState(false)
   const entries = Object.entries(output.perNode)
   if (entries.length === 0) return null
+
+  const llByNode = new Map(output.littlesLawCheck.map((r) => [r.nodeId, r]))
+
+  const activeEntries = entries.filter(([, m]) => m.postWarmupArrived > 0)
+  const inactiveEntries = entries.filter(([, m]) => m.postWarmupArrived === 0)
 
   return (
     <div className="space-y-2">
@@ -108,16 +421,46 @@ function PerNodeTable({ output }: { output: SimulationOutput }) {
         <table className="w-full text-xs tabular-nums">
           <thead>
             <tr className="text-nss-muted border-b border-nss-border">
-              <th className="text-left pb-1 pr-3">Node</th>
-              <th className="text-right pb-1 pr-2">Arrived</th>
-              <th className="text-right pb-1 pr-2">Done</th>
-              <th className="text-right pb-1 pr-2">Reject</th>
+              <th className="text-left pb-1 pr-2">Node</th>
+              <th className="text-right pb-1 pr-2" title="Post-warmup arrivals">
+                Arrived
+              </th>
+              <th className="text-right pb-1 pr-2" title="Post-warmup processed">
+                Done
+              </th>
+              <th className="text-right pb-1 pr-2" title="Post-warmup rejected">
+                Reject
+              </th>
+              <th className="text-right pb-1 pr-2" title="Post-warmup timed out">
+                T.O.
+              </th>
+              <th className="text-right pb-1 pr-2" title="Avg queue depth">
+                Avg Q
+              </th>
               <th className="text-right pb-1 pr-2">Util</th>
-              <th className="text-right pb-1">p99</th>
+              <th className="text-right pb-1 pr-2" title="Per-hop p50">
+                p50
+              </th>
+              <th className="text-right pb-1 pr-2" title="Per-hop p95">
+                p95
+              </th>
+              <th className="text-right pb-1 pr-2" title="Per-hop p99">
+                p99
+              </th>
+              <th className="text-right pb-1 pr-2" title="Arrival rate (post-warmup)">
+                λ
+              </th>
+              <th className="text-right pb-1 pr-2" title="Mean sojourn (post-warmup)">
+                W
+              </th>
+              <th className="text-right pb-1" title="Avg items in system (post-warmup)">
+                L
+              </th>
             </tr>
           </thead>
           <tbody>
-            {entries.map(([nodeId, m]) => {
+            {activeEntries.map(([nodeId, m]) => {
+              const ll = llByNode.get(nodeId)
               const utilPct = (m.utilization * 100).toFixed(1)
               const utilColour =
                 m.utilization > 0.9
@@ -125,95 +468,91 @@ function PerNodeTable({ output }: { output: SimulationOutput }) {
                   : m.utilization > 0.7
                     ? 'text-nss-warning'
                     : 'text-nss-success'
+              const llViolation = ll && !ll.withinTolerance
+
               return (
                 <tr key={nodeId} className="border-b border-nss-border hover:bg-nss-surface/70">
-                  <td className="py-1 pr-3 text-nss-text truncate max-w-[120px]">
+                  <td className="py-1 pr-2 text-nss-text truncate max-w-[100px]">
                     {m.nodeLabel ?? nodeId}
                   </td>
                   <td className="text-right pr-2 text-nss-text">
-                    {m.totalArrived.toLocaleString()}
+                    {m.postWarmupArrived.toLocaleString()}
                   </td>
                   <td className="text-right pr-2 text-nss-text">
-                    {m.totalProcessed.toLocaleString()}
+                    {m.postWarmupProcessed.toLocaleString()}
                   </td>
                   <td className="text-right pr-2 text-nss-muted">
-                    {m.totalRejected.toLocaleString()}
+                    {m.postWarmupRejected.toLocaleString()}
                   </td>
+                  <td className="text-right pr-2 text-nss-muted">
+                    {m.postWarmupTimedOut.toLocaleString()}
+                  </td>
+                  <td className="text-right pr-2 text-nss-muted">{m.avgQueueLength.toFixed(1)}</td>
                   <td className={`text-right pr-2 ${utilColour}`}>{utilPct}%</td>
-                  <td className="text-right text-nss-text">{fmtMs(m.latencyP99)}</td>
+                  <td className="text-right pr-2 text-nss-text">{fmtMs(m.latencyP50)}</td>
+                  <td className="text-right pr-2 text-nss-text">{fmtMs(m.latencyP95)}</td>
+                  <td className="text-right pr-2 text-nss-text">{fmtMs(m.latencyP99)}</td>
+                  <td className="text-right pr-2 text-nss-muted">
+                    {ll ? fmtLambda(ll.lambda) : '—'}
+                  </td>
+                  <td className="text-right pr-2 text-nss-muted">{ll ? fmtW(ll.wSeconds) : '—'}</td>
+                  <td
+                    className={`text-right ${llViolation ? 'text-nss-warning font-medium' : 'text-nss-muted'}`}
+                    title={
+                      llViolation ? `Little's Law: expected ${fmtL(ll!.expectedL)}` : undefined
+                    }
+                  >
+                    {ll ? fmtL(ll.observedL) : '—'}
+                    {llViolation && <span className="ml-0.5">⚠</span>}
+                  </td>
                 </tr>
               )
             })}
           </tbody>
         </table>
       </div>
-    </div>
-  )
-}
 
-function SLOBreaches({ output }: { output: SimulationOutput }) {
-  if (output.sloBreaches.length === 0) {
-    return (
-      <p className="text-xs text-nss-success flex items-center gap-1">
-        <span>✓</span> No SLO breaches
-      </p>
-    )
-  }
-
-  return (
-    <div className="space-y-2">
-      <h3 className={SECTION_TITLE}>SLO Breaches</h3>
-      <div className="space-y-1">
-        {output.sloBreaches.map((b, i) => {
-          const isCrit = b.severity === 'critical'
-          const metricStr =
-            b.metric === 'latencyP99'
-              ? `p99: target ${fmtMs(b.target)} / actual ${fmtMs(b.actual)}`
-              : `availability: target ${fmtPct(b.target)} / actual ${fmtPct(b.actual)}`
-          return (
-            <div
-              key={i}
-              className={`text-xs rounded px-2 py-1 flex items-start gap-2 ${
-                isCrit
-                  ? 'bg-nss-danger/10 border border-nss-danger/20 text-nss-danger'
-                  : 'bg-nss-warning/10 border border-nss-warning/20 text-nss-warning'
-              }`}
-            >
-              <span className="shrink-0 font-semibold">{isCrit ? 'CRIT' : 'WARN'}</span>
-              <span>
-                {b.nodeLabel} — {metricStr}
-              </span>
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
-function LittlesLaw({ output }: { output: SimulationOutput }) {
-  const violations = output.littlesLawCheck.filter((r) => !r.withinTolerance)
-  if (violations.length === 0) return null
-
-  return (
-    <div className="space-y-2">
-      <h3 className={SECTION_TITLE}>
-        Little&apos;s Law Violations{' '}
-        <span className="text-nss-muted/80 normal-case">(error &gt; 10%)</span>
-      </h3>
-      <div className="space-y-1">
-        {violations.map((r, i) => (
-          <div
-            key={i}
-            className="text-xs tabular-nums text-nss-warning bg-nss-warning/10 border border-nss-warning/20 rounded px-2 py-1"
+      {inactiveEntries.length > 0 && (
+        <div>
+          <button
+            onClick={() => setShowInactive((s) => !s)}
+            className="text-[10px] text-nss-muted hover:text-nss-text transition-colors"
           >
-            {r.nodeId}: L={r.observedL.toFixed(2)} expected={r.expectedL.toFixed(2)} error=
-            {(r.error * 100).toFixed(1)}%
-          </div>
-        ))}
-      </div>
+            {showInactive ? '▲' : '▼'} Inactive nodes ({inactiveEntries.length}) — not in source
+            path
+          </button>
+          {showInactive && (
+            <table className="w-full text-xs tabular-nums mt-1 opacity-50">
+              <tbody>
+                {inactiveEntries.map(([nodeId, m]) => (
+                  <tr key={nodeId} className="border-b border-nss-border">
+                    <td className="py-0.5 pr-2 text-nss-muted">{m.nodeLabel ?? nodeId}</td>
+                    <td className="text-right text-nss-muted text-[10px] italic" colSpan={12}>
+                      not in source path
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
     </div>
   )
+}
+
+// ─── Status Badge ─────────────────────────────────────────────────────────────
+
+function StatusBadge({ status }: { status: SimulationStatus }) {
+  const conf: Record<SimulationStatus, { label: string; cls: string }> = {
+    idle: { label: 'Idle', cls: 'text-nss-muted' },
+    running: { label: 'Running', cls: 'text-nss-primary animate-pulse' },
+    paused: { label: 'Paused', cls: 'text-nss-warning' },
+    complete: { label: 'Complete', cls: 'text-nss-success' },
+    error: { label: 'Error', cls: 'text-nss-danger' }
+  }
+  const { label, cls } = conf[status]
+  return <span className={`text-xs font-medium ${cls}`}>{label}</span>
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -230,11 +569,10 @@ export function ResultsTray({
 
   return (
     <div className="flex flex-col h-full bg-nss-panel border-t border-nss-border text-nss-text font-sans overflow-hidden">
-      {/* Header */}
+      {/* Header — status badge only; raw event count demoted to footer */}
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-nss-border shrink-0">
         <span className="text-sm font-semibold text-nss-text">Simulation</span>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-nss-muted">{eventsProcessed.toLocaleString()} events</span>
           <StatusBadge status={status} />
           {onClose && (
             <button
@@ -248,7 +586,7 @@ export function ResultsTray({
         </div>
       </div>
 
-      {/* Progress bar (visible while running or paused) */}
+      {/* Progress bar */}
       {(status === 'running' || status === 'paused') && (
         <div className="px-4 py-2 shrink-0">
           <ProgressBar progress={progress} />
@@ -267,26 +605,17 @@ export function ResultsTray({
       {results && (
         <div className="flex-1 overflow-y-auto px-4 py-3 space-y-5">
           <SummaryPanel output={results} />
-          <SLOBreaches output={results} />
+          <SimulationHealth output={results} />
           <PerNodeTable output={results} />
-          <LittlesLaw output={results} />
-          <div className="text-xs text-nss-muted pb-2">
-            Seed: {results.seed} · Reproducible: {results.reproducible ? 'yes' : 'no'}
+
+          {/* Footer — debug info */}
+          <div className="text-[10px] text-nss-muted pb-2 flex flex-wrap gap-x-3 gap-y-1">
+            <span>Seed: {results.seed}</span>
+            <span>Reproducible: {results.reproducible ? 'yes' : 'no'}</span>
+            <span>{eventsProcessed.toLocaleString()} events processed</span>
           </div>
         </div>
       )}
     </div>
   )
-}
-
-function StatusBadge({ status }: { status: SimulationStatus }) {
-  const conf: Record<SimulationStatus, { label: string; cls: string }> = {
-    idle: { label: 'Idle', cls: 'text-nss-muted' },
-    running: { label: 'Running', cls: 'text-nss-primary animate-pulse' },
-    paused: { label: 'Paused', cls: 'text-nss-warning' },
-    complete: { label: 'Complete', cls: 'text-nss-success' },
-    error: { label: 'Error', cls: 'text-nss-danger' }
-  }
-  const { label, cls } = conf[status]
-  return <span className={`text-xs font-medium ${cls}`}>{label}</span>
 }
