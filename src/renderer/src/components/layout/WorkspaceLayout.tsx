@@ -25,7 +25,7 @@ import type { ScenarioSettings } from '../simulation/ScenarioBar'
 export const WorkspaceLayout = () => {
   // Sidebar State
   const [isLeftOpen, setIsLeftOpen] = useState(true)
-  const [isRightOpen, setIsRightOpen] = useState(true)
+  const [isRightOpen, setIsRightOpen] = useState(false)
   const [showResults, setShowResults] = useState(false)
   const [runErrors, setRunErrors] = useState<string[]>([])
 
@@ -36,6 +36,14 @@ export const WorkspaceLayout = () => {
   const nodes = useStore((s) => s.nodes)
   const setSimulationMetrics = useStore((s) => s.setSimulationMetrics)
   const clearSimulationMetrics = useStore((s) => s.clearSimulationMetrics)
+
+  const selectedNodeId = nodes.find((n) => n.selected)?.id
+
+  useEffect(() => {
+    if (selectedNodeId) {
+      setIsRightOpen(true)
+    }
+  }, [selectedNodeId])
 
   // Simulation
   const sim = useSimulation()
