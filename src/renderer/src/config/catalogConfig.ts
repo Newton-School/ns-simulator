@@ -116,5 +116,10 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
       'alerting-engine',
       'health-check-monitor'
     ])
+  },
+  {
+    id: 'partitioning-sharding',
+    title: 'Data Partitioning',
+    items: getItems(['hashing', 'sharding', 'partition-node', 'shard-node'])
   }
 ]

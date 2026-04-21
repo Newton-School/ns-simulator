@@ -90,6 +90,12 @@ export const THEME_CONFIG: Record<string, ColorTheme> = {
   alerting: { bg: 'bg-red-500', border: 'border-red-600', text: 'text-red-600' },
   'health-check': { bg: 'bg-emerald-400', border: 'border-emerald-500', text: 'text-emerald-500' },
 
+  // Partitioning & Sharding
+  hashing: { bg: 'bg-fuchsia-500', border: 'border-fuchsia-600', text: 'text-fuchsia-600' },
+  sharding: { bg: 'bg-indigo-500', border: 'border-indigo-600', text: 'text-indigo-600' },
+  partition: { bg: 'bg-cyan-500', border: 'border-cyan-600', text: 'text-cyan-600' },
+  shard: { bg: 'bg-emerald-500', border: 'border-emerald-600', text: 'text-emerald-600' },
+
   // Fallbacks
   default: { bg: 'bg-slate-500', border: 'border-slate-600', text: 'text-slate-600' }
 }

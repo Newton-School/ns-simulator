@@ -41,7 +41,11 @@ import {
   LineChart,
   Sliders,
   Key,
-  ToggleLeft
+  ToggleLeft,
+  Hash,
+  Boxes,
+  SplitSquareHorizontal,
+  SquareStack
 } from 'lucide-react'
 import { getTheme } from './themeConfig'
 
@@ -487,6 +491,44 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     icon: HeartPulse,
     lookupKey: 'health-check',
     defaultData: { iconKey: 'health-check', status: 'healthy', throughput: 100, load: 5 }
+  },
+
+  // Partitioning & Sharding
+  hashing: {
+    id: 'hashing',
+    type: 'serviceNode',
+    label: 'Hashing',
+    subLabel: 'Hash Router',
+    icon: Hash,
+    lookupKey: 'hashing',
+    defaultData: { iconKey: 'hashing', status: 'healthy', throughput: 10000, load: 15 }
+  },
+  sharding: {
+    id: 'sharding',
+    type: 'serviceNode',
+    label: 'Sharding',
+    subLabel: 'Distribution logic',
+    icon: Boxes,
+    lookupKey: 'sharding',
+    defaultData: { iconKey: 'sharding', status: 'healthy', throughput: 15000, load: 20 }
+  },
+  'partition-node': {
+    id: 'partition-node',
+    type: 'serviceNode',
+    label: 'Partition',
+    subLabel: 'Logical Slice',
+    icon: SplitSquareHorizontal,
+    lookupKey: 'partition',
+    defaultData: { iconKey: 'partition', status: 'healthy', throughput: 5000, load: 10 }
+  },
+  'shard-node': {
+    id: 'shard-node',
+    type: 'serviceNode',
+    label: 'Shard',
+    subLabel: 'Physical Slice',
+    icon: SquareStack,
+    lookupKey: 'shard',
+    defaultData: { iconKey: 'shard', status: 'healthy', throughput: 5000, load: 30 }
   }
 }
 

@@ -30,7 +30,11 @@ import {
   ServerCog,
   BookOpen,
   Bell,
-  LineChart
+  LineChart,
+  Hash,
+  Boxes,
+  SplitSquareHorizontal,
+  SquareStack
 } from 'lucide-react'
 
 import UniversalHandle from '@renderer/components/ui/UniversalHandle'
@@ -82,7 +86,11 @@ const ICON_LOOKUP: Record<string, LucideIcon> = {
   'log-aggregator': Library,
   tracing: Radar,
   alerting: BellRing,
-  'health-check': HeartPulse
+  'health-check': HeartPulse,
+  hashing: Hash,
+  sharding: Boxes,
+  partition: SplitSquareHorizontal,
+  shard: SquareStack
 }
 
 const ServiceNode = ({ id, data, selected }: NodeProps<ServiceNodeData>) => {
