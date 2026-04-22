@@ -26,8 +26,8 @@ function fmtPct(ratio: number): string {
   return `${(ratio * 100).toFixed(1)}%`
 }
 
-function fmtRps(rps: number): string {
-  return rps === 0 ? '—' : `${rps.toFixed(1)}`
+function fmtRps(rps: number | null): string {
+  return rps === null ? '—' : `${rps.toFixed(1)} rps`
 }
 
 function fmtLambda(lambda: number): string {
@@ -89,6 +89,7 @@ function StatCard({
 function SummaryPanel({ output }: { output: SimulationOutput }) {
   const { summary } = output
   const l = summary.latency
+  const throughputDisplay = summary.postWarmupTotalRequests > 0 ? fmtRps(summary.throughput) : '—'
 
   const windowStart = output.warmupDuration / 1000
   const windowEnd = output.simulationDuration / 1000
@@ -113,7 +114,7 @@ function SummaryPanel({ output }: { output: SimulationOutput }) {
           label="Requests (post-warmup)"
           value={summary.postWarmupTotalRequests.toLocaleString()}
         />
-        <StatCard label="Throughput" value={`${fmtRps(summary.throughput)} rps`} />
+        <StatCard label="Throughput" value={throughputDisplay} />
         <StatCard label="Error Rate" value={fmtPct(summary.errorRate)} highlight={errorHighlight} />
         <StatCard label="Timed Out" value={summary.timedOutRequests.toLocaleString()} />
       </div>
@@ -515,11 +516,11 @@ function PerNodeTable({ output }: { output: SimulationOutput }) {
       {inactiveEntries.length > 0 && (
         <div>
           <button
+            type="button"
             onClick={() => setShowInactive((s) => !s)}
             className="text-[10px] text-nss-muted hover:text-nss-text transition-colors"
           >
-            {showInactive ? '▲' : '▼'} Inactive nodes ({inactiveEntries.length}) — not in source
-            path
+            {showInactive ? '▲' : '▼'} Inactive nodes ({inactiveEntries.length}) — post-warmup
           </button>
           {showInactive && (
             <table className="w-full text-xs tabular-nums mt-1 opacity-50">
@@ -528,7 +529,7 @@ function PerNodeTable({ output }: { output: SimulationOutput }) {
                   <tr key={nodeId} className="border-b border-nss-border">
                     <td className="py-0.5 pr-2 text-nss-muted">{m.nodeLabel ?? nodeId}</td>
                     <td className="text-right text-nss-muted text-[10px] italic" colSpan={12}>
-                      not in source path
+                      no post-warmup traffic
                     </td>
                   </tr>
                 ))}

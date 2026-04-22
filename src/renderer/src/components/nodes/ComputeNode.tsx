@@ -31,7 +31,7 @@ const ComputeNode = ({ id, data, selected }: NodeProps<ComputeNodeData>) => {
   })
 
   // After a simulation run, nodes that received zero post-warmup traffic are
-  // visually muted so users can see at a glance which nodes were bypassed.
+  // visually muted so users can see at a glance which nodes stayed inactive.
   const isInactive = hasRuntime && active === false
 
   const resolvedQueueDepth =
@@ -84,7 +84,7 @@ const ComputeNode = ({ id, data, selected }: NodeProps<ComputeNodeData>) => {
           <div className="p-3 space-y-3">
             {isInactive ? (
               <p className="text-[10px] text-nss-muted italic text-center py-1">
-                Not in source path
+                No post-warmup traffic
               </p>
             ) : (
               <>

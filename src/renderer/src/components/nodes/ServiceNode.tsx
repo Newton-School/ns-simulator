@@ -32,7 +32,7 @@ const ServiceNode = ({ id, data, selected }: NodeProps<ServiceNodeData>) => {
   )
 
   // After a simulation run, nodes that received zero post-warmup traffic are
-  // visually muted so users can see at a glance which nodes were bypassed.
+  // visually muted so users can see at a glance which nodes stayed inactive.
   const isInactive = hasRuntime && active === false
 
   return (
@@ -57,7 +57,7 @@ const ServiceNode = ({ id, data, selected }: NodeProps<ServiceNodeData>) => {
           <div className="p-4">
             {isInactive ? (
               <p className="text-[10px] text-nss-muted italic text-center py-2">
-                Not in source path
+                No post-warmup traffic
               </p>
             ) : (
               <>

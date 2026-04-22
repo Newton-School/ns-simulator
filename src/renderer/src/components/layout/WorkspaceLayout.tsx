@@ -22,12 +22,17 @@ import { ResultsTray } from '../simulation/ResultsTray'
 import { ResizeHandle } from '../ui/ResizeHandle'
 import type { ScenarioSettings } from '../simulation/ScenarioBar'
 
+type RunIssueTone = 'warning' | 'error'
+
 export const WorkspaceLayout = () => {
   // Sidebar State
   const [isLeftOpen, setIsLeftOpen] = useState(true)
   const [isRightOpen, setIsRightOpen] = useState(false)
   const [showResults, setShowResults] = useState(false)
-  const [runErrors, setRunErrors] = useState<string[]>([])
+  const [runIssues, setRunIssues] = useState<{ messages: string[]; tone: RunIssueTone }>({
+    messages: [],
+    tone: 'warning'
+  })
 
   const { handleSave, handleOpen } = useFlowPersistence()
 
@@ -82,7 +87,10 @@ export const WorkspaceLayout = () => {
     })
 
     if (!topology || errors.length > 0) {
-      setRunErrors(errors.length > 0 ? errors : ['Unable to serialize topology.'])
+      setRunIssues({
+        messages: errors.length > 0 ? errors : ['Unable to serialize topology.'],
+        tone: 'error'
+      })
       console.error('[ScenarioBar] Serialization errors:', errors)
       return
     }
@@ -92,11 +100,11 @@ export const WorkspaceLayout = () => {
       const validationErrors = validation.errors?.map(
         (error) => `${error.path ? `${error.path}: ` : ''}${error.message}`
       ) ?? ['Topology validation failed.']
-      setRunErrors(validationErrors)
+      setRunIssues({ messages: validationErrors, tone: 'error' })
       return
     }
 
-    setRunErrors(validation.warnings ?? [])
+    setRunIssues({ messages: validation.warnings ?? [], tone: 'warning' })
     setShowResults(true)
     clearSimulationMetrics()
     sim.run(topology)
@@ -147,18 +155,26 @@ export const WorkspaceLayout = () => {
           sim.stop()
           clearSimulationMetrics()
           setShowResults(false)
-          setRunErrors([])
+          setRunIssues({ messages: [], tone: 'warning' })
         }}
         isRunning={isRunning}
         isPaused={isPaused}
         sourceNodes={sourceNodes}
       />
 
-      {runErrors.length > 0 && (
-        <div className="mx-4 mt-2 p-3 bg-nss-warning/10 border border-nss-warning/30 rounded text-xs text-nss-warning">
-          <div className="font-semibold uppercase tracking-wide mb-1">Run checks</div>
+      {runIssues.messages.length > 0 && (
+        <div
+          className={
+            runIssues.tone === 'error'
+              ? 'mx-4 mt-2 p-3 bg-nss-danger/10 border border-nss-danger/30 rounded text-xs text-nss-danger'
+              : 'mx-4 mt-2 p-3 bg-nss-warning/10 border border-nss-warning/30 rounded text-xs text-nss-warning'
+          }
+        >
+          <div className="font-semibold uppercase tracking-wide mb-1">
+            {runIssues.tone === 'error' ? 'Run blocked' : 'Run checks'}
+          </div>
           <ul className="list-disc pl-4 space-y-1">
-            {runErrors.map((error, index) => (
+            {runIssues.messages.map((error, index) => (
               <li key={`${error}-${index}`}>{error}</li>
             ))}
           </ul>

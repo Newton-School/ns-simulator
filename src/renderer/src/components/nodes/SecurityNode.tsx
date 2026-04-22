@@ -47,7 +47,7 @@ const SecurityNode = ({ id, data, selected }: NodeProps<SecurityNodeData>) => {
           <div className="p-4">
             {isInactive ? (
               <p className="text-[10px] text-nss-muted italic text-center py-2">
-                Not in source path
+                No post-warmup traffic
               </p>
             ) : (
               <>
