@@ -10,10 +10,11 @@ import ReactFlow, {
   MiniMap
 } from 'reactflow'
 import 'reactflow/dist/style.css'
+import { EdgeSimulationData } from '@renderer/types/ui'
 
 import EmptyFlowState from '../ui/EmptyFlowState'
 // Hooks & Config
-import { EdgePropertiesPanel } from '../ui/EdgePropertiesPanel'
+import { EdgePropertiesPanel, EdgePropertiesPanelValue } from '../ui/EdgePropertiesPanel'
 
 import { useFlowStore } from './hooks/useFlowStore'
 import { useFlowDnD } from './hooks/useFlowDnD'
@@ -74,22 +75,37 @@ const FlowCanvasInternal = () => {
     setSelectedEdge(null)
   }, [])
 
-  const handleLabelChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!selectedEdge) return
+  const handleEdgePropertiesChange = useCallback(
+    (patch: Partial<EdgePropertiesPanelValue>) => {
+      if (!selectedEdge) return
 
-    const newLabel = e.target.value
+      const { label, ...dataPatch } = patch
+      const hasDataPatch = Object.keys(dataPatch).length > 0
 
-    updateEdgeData(selectedEdge.id, newLabel)
+      updateEdgeData(selectedEdge.id, {
+        ...(label !== undefined ? { label } : {}),
+        ...(hasDataPatch ? { data: dataPatch as Partial<EdgeSimulationData> } : {})
+      })
 
-    setSelectedEdge((prev) =>
-      prev
-        ? {
-            ...prev,
-            label: newLabel
-          }
-        : null
-    )
-  }
+      setSelectedEdge((prev) =>
+        prev
+          ? {
+              ...prev,
+              ...(label !== undefined ? { label } : {}),
+              ...(hasDataPatch
+                ? {
+                    data: {
+                      ...((prev.data as Record<string, unknown> | undefined) ?? {}),
+                      ...dataPatch
+                    }
+                  }
+                : {})
+            }
+          : null
+      )
+    },
+    [selectedEdge, updateEdgeData]
+  )
 
   return (
     <div style={{ width: '100%', height: '100%' }} className="bg-nss-bg relative">
@@ -120,8 +136,11 @@ const FlowCanvasInternal = () => {
 
       {selectedEdge && (
         <EdgePropertiesPanel
-          labelValue={(selectedEdge.label as string) || ''}
-          onLabelChange={handleLabelChange}
+          value={{
+            label: (selectedEdge.label as string) || '',
+            ...(((selectedEdge.data as EdgeSimulationData | undefined) ?? {}) as EdgeSimulationData)
+          }}
+          onChange={handleEdgePropertiesChange}
           onClose={() => setSelectedEdge(null)}
         />
       )}

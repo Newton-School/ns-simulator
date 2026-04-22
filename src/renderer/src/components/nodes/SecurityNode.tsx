@@ -22,12 +22,13 @@ const SecurityNode = ({ id, data, selected }: NodeProps<SecurityNodeData>) => {
     [id, updateNodeData]
   )
 
-  const { utilization } = useNodeMetrics(id, { utilization: data.load })
+  const { utilization, hasRuntime, active } = useNodeMetrics(id, { utilization: data.load })
+  const isInactive = hasRuntime && active === false
 
   return (
     <BaseNode id={id} selected={selected} selectionVariant="warning">
       {({ isMenuOpen, onMenuClose, onMenuToggle }) => (
-        <>
+        <div className={isInactive ? 'opacity-40 grayscale' : undefined}>
           <NodeHeader
             label={data.label || 'Security Element'}
             icon={IconComponent}
@@ -44,35 +45,43 @@ const SecurityNode = ({ id, data, selected }: NodeProps<SecurityNodeData>) => {
           </NodeHeader>
 
           <div className="p-4">
-            <div className="grid grid-cols-2 gap-4 mb-3">
-              {data.blockRate !== undefined && (
-                <MetricItem
-                  label="Block Rate"
-                  value={data.blockRate}
-                  unit="%"
-                  textColor="text-nss-warning"
-                />
-              )}
-              {data.droppedPackets !== undefined && (
-                <MetricItem
-                  label="Dropped Pkts"
-                  value={data.droppedPackets}
-                  unit="%"
-                  textColor="text-nss-danger"
-                />
-              )}
-              {data.activeThreats !== undefined && (
-                <MetricItem
-                  label="Active Threats"
-                  value={data.activeThreats}
-                  unit=""
-                  textColor="text-nss-danger"
-                />
-              )}
-            </div>
-            <ProgressBar label="CPU Load" value={utilization} />
+            {isInactive ? (
+              <p className="text-[10px] text-nss-muted italic text-center py-2">
+                No post-warmup traffic
+              </p>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-4 mb-3">
+                  {data.blockRate !== undefined && (
+                    <MetricItem
+                      label="Block Rate"
+                      value={data.blockRate}
+                      unit="%"
+                      textColor="text-nss-warning"
+                    />
+                  )}
+                  {data.droppedPackets !== undefined && (
+                    <MetricItem
+                      label="Dropped Pkts"
+                      value={data.droppedPackets}
+                      unit="%"
+                      textColor="text-nss-danger"
+                    />
+                  )}
+                  {data.activeThreats !== undefined && (
+                    <MetricItem
+                      label="Active Threats"
+                      value={data.activeThreats}
+                      unit=""
+                      textColor="text-nss-danger"
+                    />
+                  )}
+                </div>
+                <ProgressBar label="CPU Load" value={utilization} />
+              </>
+            )}
           </div>
-        </>
+        </div>
       )}
     </BaseNode>
   )

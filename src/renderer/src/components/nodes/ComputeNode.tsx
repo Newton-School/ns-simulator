@@ -20,10 +20,19 @@ const ComputeNode = ({ id, data, selected }: NodeProps<ComputeNodeData>) => {
     [id, updateNodeData]
   )
 
-  const { utilization, queueDepth: runtimeQueueDepth } = useNodeMetrics(id, {
+  const {
+    utilization,
+    queueDepth: runtimeQueueDepth,
+    hasRuntime,
+    active
+  } = useNodeMetrics(id, {
     utilization: data.utilization,
     queueDepth: data.queueDepth
   })
+
+  // After a simulation run, nodes that received zero post-warmup traffic are
+  // visually muted so users can see at a glance which nodes stayed inactive.
+  const isInactive = hasRuntime && active === false
 
   const resolvedQueueDepth =
     runtimeQueueDepth !== undefined ? Math.max(0, Math.round(runtimeQueueDepth)) : data.queueDepth
@@ -34,15 +43,14 @@ const ComputeNode = ({ id, data, selected }: NodeProps<ComputeNodeData>) => {
       ? 'bg-nss-danger/20 text-nss-danger'
       : 'bg-nss-primary/20 text-nss-primary'
 
-  // ComputeNode uses a distinct container style: border-2 + overload pulse.
-  // Pass containerClassName to BaseNode to override its default ring styling.
   const containerClassName = useMemo(() => {
     const base = 'group relative min-w-[180px] bg-nss-surface rounded-lg border-2'
+    if (isInactive) return `${base} border-nss-border opacity-40 grayscale`
     if (isOverloaded)
       return `${base} border-nss-danger shadow-[0_0_15px_rgba(239,68,68,0.6)] animate-pulse`
     if (selected) return `${base} border-nss-primary shadow-lg`
     return `${base} border-nss-border hover:border-nss-muted`
-  }, [isOverloaded, selected])
+  }, [isInactive, isOverloaded, selected])
 
   return (
     <BaseNode id={id} selected={selected} containerClassName={containerClassName}>
@@ -74,14 +82,22 @@ const ComputeNode = ({ id, data, selected }: NodeProps<ComputeNodeData>) => {
           </div>
 
           <div className="p-3 space-y-3">
-            <ProgressBar label="Utilization" value={utilization} />
+            {isInactive ? (
+              <p className="text-[10px] text-nss-muted italic text-center py-1">
+                No post-warmup traffic
+              </p>
+            ) : (
+              <>
+                <ProgressBar label="Utilization" value={utilization} />
 
-            <div className="flex items-center justify-between p-2 rounded bg-nss-bg border border-nss-border">
-              <span className="text-[10px] text-nss-muted font-medium">Queue Depth</span>
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${badgeClass}`}>
-                {resolvedQueueDepth} reqs
-              </span>
-            </div>
+                <div className="flex items-center justify-between p-2 rounded bg-nss-bg border border-nss-border">
+                  <span className="text-[10px] text-nss-muted font-medium">Queue Depth</span>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${badgeClass}`}>
+                    {resolvedQueueDepth} reqs
+                  </span>
+                </div>
+              </>
+            )}
           </div>
         </>
       )}

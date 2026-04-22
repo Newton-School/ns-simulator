@@ -5,7 +5,12 @@ import type { WorkloadProfile, GlobalConfig } from '../../../../engine/core/type
 
 export interface ScenarioSettings {
   global: Partial<GlobalConfig>
-  workload: Partial<Omit<WorkloadProfile, 'sourceNodeId' | 'requestDistribution'>>
+  workload: Partial<Omit<WorkloadProfile, 'requestDistribution'>>
+}
+
+export interface SourceNodeOption {
+  id: string
+  label: string
 }
 
 interface ScenarioBarProps {
@@ -15,6 +20,7 @@ interface ScenarioBarProps {
   onStop: () => void
   isRunning: boolean
   isPaused: boolean
+  sourceNodes: SourceNodeOption[]
   disabled?: boolean
 }
 
@@ -46,6 +52,7 @@ export function ScenarioBar({
   onStop,
   isRunning,
   isPaused,
+  sourceNodes,
   disabled = false
 }: ScenarioBarProps) {
   // ─── Workload settings ─────────────────────────────────────────────────────
@@ -68,10 +75,14 @@ export function ScenarioBar({
   const [simDuration, setSimDuration] = useState(60) // seconds
   const [warmup, setWarmup] = useState(5) // seconds
   const [seed, setSeed] = useState('default-seed')
+  const [sourceNodeId, setSourceNodeId] = useState('auto')
 
   // ─── Build settings object ─────────────────────────────────────────────────
   function buildSettings(): ScenarioSettings {
     const workload: Partial<WorkloadProfile> = { pattern, baseRps }
+    if (sourceNodeId !== 'auto') {
+      workload.sourceNodeId = sourceNodeId
+    }
 
     if (pattern === 'bursty') {
       workload.bursty = { burstRps, burstDuration, normalDuration }
@@ -156,6 +167,23 @@ export function ScenarioBar({
           {PATTERN_OPTIONS.map((o) => (
             <option key={o.value} value={o.value}>
               {o.label}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label className="flex items-center gap-1.5 text-xs text-nss-muted shrink-0">
+        Source
+        <select
+          value={sourceNodeId}
+          onChange={(e) => setSourceNodeId(e.target.value)}
+          disabled={isRunning}
+          className={`${CONTROL_BASE} min-w-[172px]`}
+        >
+          <option value="auto">Auto (heuristic)</option>
+          {sourceNodes.map((node) => (
+            <option key={node.id} value={node.id}>
+              {node.label}
             </option>
           ))}
         </select>

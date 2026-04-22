@@ -309,6 +309,50 @@ npm run build:linux
 
 ---
 
+## Accuracy Contract
+
+To keep demos and analysis trustworthy, parameters are classified into four classes:
+
+- **Invariant (hardcoded):** simulator mechanics and safety guards that should not vary per scenario.
+- **Default + Override:** defaults are provided, but users can override them per node/edge.
+- **User Parameter:** visible controls that must affect simulation behavior.
+- **Not Simulated:** fields retained for UX/modeling completeness that do not currently affect runtime behavior.
+
+### Invariants (hardcoded)
+
+- Event ordering and tie-breaking (timestamp -> priority -> stable sequence)
+- Core queue semantics (`fifo`/`lifo`/`priority`/`wfq`)
+- Time-unit internals (microsecond scheduling)
+- Safety clamps and bounds
+
+### Default + Override (edge model)
+
+Edges now use serializer defaults only as fallback and can be configured per edge:
+
+- Protocol and mode
+- Latency distribution (`mu`, `sigma`) and `pathType`
+- Bandwidth
+- Max concurrent requests
+- Packet loss rate
+- Edge error rate
+
+### User Parameters (node model)
+
+Visible node controls that currently influence runtime behavior:
+
+- Queueing knobs (`workers`, `capacity`, `queueDiscipline`, `meanServiceMs`, `timeoutMs`)
+- Throughput/load/queue hints
+- `vCPU` and `RAM` (deterministic mapping to derived queue/perf behavior)
+- `status` (healthy/degraded/critical performance/error impact)
+- Service `errorRate` (node-level failure injection)
+- Security `blockRate` and `droppedPackets` (arrival-time rejection/timeout behavior)
+
+### Not Simulated
+
+Fields that are not wired to runtime behavior are hidden from the default inspector UI.
+
+---
+
 ## Implementation Status
 
 | Area                                           | Status  |
