@@ -60,6 +60,8 @@ export class RoutingTable {
 
     const ROUND_ROBIN_TYPES = new Set<string>([
       'load-balancer',
+      'load-balancer-l4',
+      'load-balancer-l7',
       'ingress-controller',
       'reverse-proxy'
     ])

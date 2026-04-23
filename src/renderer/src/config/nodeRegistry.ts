@@ -164,6 +164,23 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     },
     simulationConfig: { componentType: 'search-service', category: 'compute' }
   },
+  'sidecar-proxy': {
+    id: 'sidecar-proxy',
+    type: 'computeNode',
+    label: 'Sidecar Proxy',
+    subLabel: 'Local Data Plane',
+    icon: ArrowRightLeft,
+    lookupKey: 'SIDECAR',
+    defaultData: {
+      kind: 'compute',
+      computeType: 'SIDECAR',
+      utilization: 18,
+      queueDepth: 2,
+      isOverloaded: false,
+      label: 'Sidecar Proxy'
+    },
+    simulationConfig: { componentType: 'sidecar', category: 'compute' }
+  },
 
   // ── Service Nodes ─────────────────────────────────────────────────────────────
   'primary-db': {
@@ -203,14 +220,14 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
   'load-balancer': {
     id: 'load-balancer',
     type: 'serviceNode',
-    label: 'Load Balancer',
-    subLabel: 'L7 Routing',
+    label: 'Load Balancer (Legacy)',
+    subLabel: 'Generic / Backward Compatible',
     icon: Network,
     lookupKey: 'network',
     defaultData: {
       kind: 'service',
       iconKey: 'network',
-      label: 'Load Balancer',
+      label: 'Load Balancer (Legacy)',
       status: 'healthy',
       throughput: 10000,
       load: 10
@@ -221,17 +238,59 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
       routingStrategy: 'round-robin'
     }
   },
+  'load-balancer-l4': {
+    id: 'load-balancer-l4',
+    type: 'serviceNode',
+    label: 'Load Balancer L4',
+    subLabel: 'TCP / UDP',
+    icon: Network,
+    lookupKey: 'load-balancer-l4',
+    defaultData: {
+      kind: 'service',
+      iconKey: 'load-balancer-l4',
+      label: 'Load Balancer L4',
+      status: 'healthy',
+      throughput: 25000,
+      load: 8
+    },
+    simulationConfig: {
+      componentType: 'load-balancer-l4',
+      category: 'network-and-edge',
+      routingStrategy: 'round-robin'
+    }
+  },
+  'load-balancer-l7': {
+    id: 'load-balancer-l7',
+    type: 'serviceNode',
+    label: 'Load Balancer L7',
+    subLabel: 'HTTP / gRPC',
+    icon: Globe,
+    lookupKey: 'load-balancer-l7',
+    defaultData: {
+      kind: 'service',
+      iconKey: 'load-balancer-l7',
+      label: 'Load Balancer L7',
+      status: 'healthy',
+      throughput: 18000,
+      load: 12
+    },
+    simulationConfig: {
+      componentType: 'load-balancer-l7',
+      category: 'network-and-edge',
+      routingStrategy: 'round-robin'
+    }
+  },
   'ingress-controller': {
     id: 'ingress-controller',
     type: 'serviceNode',
-    label: 'Ingress',
-    subLabel: 'K8s Traffic Routing',
+    label: 'Ingress Controller',
+    subLabel: 'Kubernetes Traffic Routing',
     icon: Waypoints,
     lookupKey: 'ingress',
     defaultData: {
       kind: 'service',
       iconKey: 'ingress',
-      label: 'Ingress',
+      label: 'Ingress Controller',
       status: 'healthy',
       throughput: 15000,
       load: 15
@@ -259,6 +318,27 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     },
     simulationConfig: {
       componentType: 'reverse-proxy',
+      category: 'network-and-edge',
+      routingStrategy: 'round-robin'
+    }
+  },
+  'service-mesh': {
+    id: 'service-mesh',
+    type: 'serviceNode',
+    label: 'Service Mesh',
+    subLabel: 'Service-to-Service Traffic',
+    icon: Waypoints,
+    lookupKey: 'service-mesh',
+    defaultData: {
+      kind: 'service',
+      iconKey: 'service-mesh',
+      label: 'Service Mesh',
+      status: 'healthy',
+      throughput: 12000,
+      load: 14
+    },
+    simulationConfig: {
+      componentType: 'service-mesh',
       category: 'network-and-edge',
       routingStrategy: 'round-robin'
     }
@@ -330,6 +410,40 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
       load: 5
     },
     simulationConfig: { componentType: 'routing-policy', category: 'network-and-edge' }
+  },
+  'edge-router': {
+    id: 'edge-router',
+    type: 'serviceNode',
+    label: 'Edge Router',
+    subLabel: 'Global / Edge Routing',
+    icon: Router,
+    lookupKey: 'edge-router',
+    defaultData: {
+      kind: 'service',
+      iconKey: 'edge-router',
+      label: 'Edge Router',
+      status: 'healthy',
+      throughput: 12000,
+      load: 18
+    },
+    simulationConfig: { componentType: 'edge-router', category: 'network-and-edge' }
+  },
+  'network-interface': {
+    id: 'network-interface',
+    type: 'serviceNode',
+    label: 'Network Interface',
+    subLabel: 'NIC / ENI',
+    icon: ArrowRightLeft,
+    lookupKey: 'network-interface',
+    defaultData: {
+      kind: 'service',
+      iconKey: 'network-interface',
+      label: 'Network Interface',
+      status: 'healthy',
+      throughput: 40000,
+      load: 6
+    },
+    simulationConfig: { componentType: 'high-perf-nic', category: 'network-and-edge' }
   },
 
   // ── Security Nodes ───────────────────────────────────────────────────────────
@@ -451,14 +565,14 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
   'client-user': {
     id: 'client-user',
     type: 'serviceNode',
-    label: 'Client',
+    label: 'Client App',
     subLabel: 'Browser / Mobile',
     icon: Monitor,
     lookupKey: 'monitor',
     defaultData: {
       kind: 'service',
       iconKey: 'monitor',
-      label: 'Client',
+      label: 'Client App',
       status: 'healthy',
       throughput: 0,
       load: 0
@@ -472,14 +586,14 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
   dns: {
     id: 'dns',
     type: 'serviceNode',
-    label: 'DNS',
-    subLabel: 'Name Resolution',
+    label: 'DNS Resolver',
+    subLabel: 'Client-side Name Resolution',
     icon: Navigation,
     lookupKey: 'dns',
     defaultData: {
       kind: 'service',
       iconKey: 'dns',
-      label: 'DNS',
+      label: 'DNS Resolver',
       status: 'healthy',
       throughput: 0,
       load: 0
@@ -561,6 +675,48 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
       isAsync: true
     }
   },
+  'pub-sub': {
+    id: 'pub-sub',
+    type: 'serviceNode',
+    label: 'Pub/Sub',
+    subLabel: 'Topic Fan-out',
+    icon: Bell,
+    lookupKey: 'pub-sub',
+    defaultData: {
+      kind: 'service',
+      iconKey: 'pub-sub',
+      label: 'Pub/Sub',
+      status: 'healthy',
+      throughput: 15000,
+      load: 12
+    },
+    simulationConfig: {
+      componentType: 'pub-sub',
+      category: 'messaging-and-streaming',
+      isAsync: true
+    }
+  },
+  stream: {
+    id: 'stream',
+    type: 'serviceNode',
+    label: 'Event Stream',
+    subLabel: 'Ordered Event Log',
+    icon: Activity,
+    lookupKey: 'stream',
+    defaultData: {
+      kind: 'service',
+      iconKey: 'stream',
+      label: 'Event Stream',
+      status: 'healthy',
+      throughput: 80000,
+      load: 18
+    },
+    simulationConfig: {
+      componentType: 'stream',
+      category: 'messaging-and-streaming',
+      isAsync: true
+    }
+  },
 
   // ── Data Stores ───────────────────────────────────────────────────────────────
   'nosql-db': {
@@ -631,6 +787,108 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
     },
     simulationConfig: { componentType: 'search-index', category: 'storage-and-data' }
   },
+  'time-series-db': {
+    id: 'time-series-db',
+    type: 'serviceNode',
+    label: 'Time-series DB',
+    subLabel: 'Metrics / Telemetry',
+    icon: LineChart,
+    lookupKey: 'time-series-db',
+    defaultData: {
+      kind: 'service',
+      iconKey: 'time-series-db',
+      label: 'Time-series DB',
+      status: 'healthy',
+      throughput: 12000,
+      load: 28
+    },
+    simulationConfig: { componentType: 'time-series-db', category: 'storage-and-data' }
+  },
+  'graph-db': {
+    id: 'graph-db',
+    type: 'serviceNode',
+    label: 'Graph DB',
+    subLabel: 'Connected Data',
+    icon: GitBranch,
+    lookupKey: 'graph-db',
+    defaultData: {
+      kind: 'service',
+      iconKey: 'graph-db',
+      label: 'Graph DB',
+      status: 'healthy',
+      throughput: 3000,
+      load: 30
+    },
+    simulationConfig: { componentType: 'graph-db', category: 'storage-and-data' }
+  },
+  'vector-db': {
+    id: 'vector-db',
+    type: 'serviceNode',
+    label: 'Vector DB',
+    subLabel: 'Embeddings / ANN',
+    icon: Radar,
+    lookupKey: 'vector-db',
+    defaultData: {
+      kind: 'service',
+      iconKey: 'vector-db',
+      label: 'Vector DB',
+      status: 'healthy',
+      throughput: 4000,
+      load: 32
+    },
+    simulationConfig: { componentType: 'vector-db', category: 'storage-and-data' }
+  },
+  'data-warehouse': {
+    id: 'data-warehouse',
+    type: 'serviceNode',
+    label: 'Data Warehouse',
+    subLabel: 'OLAP Analytics',
+    icon: HardDrive,
+    lookupKey: 'data-warehouse',
+    defaultData: {
+      kind: 'service',
+      iconKey: 'data-warehouse',
+      label: 'Data Warehouse',
+      status: 'healthy',
+      throughput: 2500,
+      load: 35
+    },
+    simulationConfig: { componentType: 'data-warehouse', category: 'storage-and-data' }
+  },
+  'data-lake': {
+    id: 'data-lake',
+    type: 'serviceNode',
+    label: 'Data Lake',
+    subLabel: 'Raw Analytical Storage',
+    icon: Layers,
+    lookupKey: 'data-lake',
+    defaultData: {
+      kind: 'service',
+      iconKey: 'data-lake',
+      label: 'Data Lake',
+      status: 'healthy',
+      throughput: 1800,
+      load: 22
+    },
+    simulationConfig: { componentType: 'data-lake', category: 'storage-and-data' }
+  },
+  'kv-store': {
+    id: 'kv-store',
+    type: 'serviceNode',
+    label: 'KV Store',
+    subLabel: 'Low-latency Key/Value',
+    icon: Database,
+    lookupKey: 'kv-store',
+    defaultData: {
+      kind: 'service',
+      iconKey: 'kv-store',
+      label: 'KV Store',
+      status: 'healthy',
+      throughput: 15000,
+      load: 16
+    },
+    simulationConfig: { componentType: 'kv-store', category: 'storage-and-data' }
+  },
 
   // ── App Support ──────────────────────────────────────────────────────────────
   'push-notification-service': {
@@ -657,14 +915,14 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
   'streaming-analytics': {
     id: 'streaming-analytics',
     type: 'serviceNode',
-    label: 'Analytics Service',
+    label: 'Streaming Analytics',
     subLabel: 'Streaming Analytics',
     icon: LineChart,
     lookupKey: 'analytics',
     defaultData: {
       kind: 'service',
       iconKey: 'analytics',
-      label: 'Analytics Service',
+      label: 'Streaming Analytics',
       status: 'healthy',
       throughput: 10000,
       load: 40
@@ -673,6 +931,184 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
       componentType: 'streaming-analytics',
       category: 'data-infra-and-analytics',
       isAsync: true
+    }
+  },
+  'llm-gateway': {
+    id: 'llm-gateway',
+    type: 'serviceNode',
+    label: 'LLM Gateway',
+    subLabel: 'Prompt Routing / Guardrails',
+    icon: Globe,
+    lookupKey: 'llm-gateway',
+    defaultData: {
+      kind: 'service',
+      iconKey: 'llm-gateway',
+      label: 'LLM Gateway',
+      status: 'healthy',
+      throughput: 1200,
+      load: 28
+    },
+    simulationConfig: {
+      componentType: 'llm-gateway',
+      category: 'external-and-integration'
+    }
+  },
+  'tool-registry': {
+    id: 'tool-registry',
+    type: 'serviceNode',
+    label: 'Tool Registry',
+    subLabel: 'Tool Discovery / Access Control',
+    icon: BookOpen,
+    lookupKey: 'tool-registry',
+    defaultData: {
+      kind: 'service',
+      iconKey: 'tool-registry',
+      label: 'Tool Registry',
+      status: 'healthy',
+      throughput: 2000,
+      load: 14
+    },
+    simulationConfig: {
+      componentType: 'tool-registry',
+      category: 'orchestration-and-infra'
+    }
+  },
+  'memory-fabric': {
+    id: 'memory-fabric',
+    type: 'serviceNode',
+    label: 'Memory Fabric',
+    subLabel: 'Context / Retrieval',
+    icon: Database,
+    lookupKey: 'memory-fabric',
+    defaultData: {
+      kind: 'service',
+      iconKey: 'memory-fabric',
+      label: 'Memory Fabric',
+      status: 'healthy',
+      throughput: 3500,
+      load: 24
+    },
+    simulationConfig: {
+      componentType: 'memory-fabric',
+      category: 'data-infra-and-analytics'
+    }
+  },
+  'agent-orchestrator': {
+    id: 'agent-orchestrator',
+    type: 'serviceNode',
+    label: 'Agent Orchestrator',
+    subLabel: 'Planning / Delegation',
+    icon: Waypoints,
+    lookupKey: 'agent-orchestrator',
+    defaultData: {
+      kind: 'service',
+      iconKey: 'agent-orchestrator',
+      label: 'Agent Orchestrator',
+      status: 'healthy',
+      throughput: 2500,
+      load: 18
+    },
+    simulationConfig: {
+      componentType: 'agent-orchestrator',
+      category: 'orchestration-and-infra'
+    }
+  },
+  'safety-observability-mesh': {
+    id: 'safety-observability-mesh',
+    type: 'serviceNode',
+    label: 'Safety & Observability',
+    subLabel: 'AI Eval / Audit / Policy',
+    icon: ShieldCheck,
+    lookupKey: 'safety-mesh',
+    defaultData: {
+      kind: 'service',
+      iconKey: 'safety-mesh',
+      label: 'Safety & Observability',
+      status: 'healthy',
+      throughput: 1800,
+      load: 12
+    },
+    simulationConfig: {
+      componentType: 'safety-observability-mesh',
+      category: 'observability',
+      isAsync: true
+    }
+  },
+
+  // ── Templates & Sketching ───────────────────────────────────────────────────
+  'generic-service': {
+    id: 'generic-service',
+    type: 'serviceNode',
+    label: 'Service',
+    subLabel: 'Generic Placeholder',
+    icon: Box,
+    lookupKey: 'generic-service',
+    defaultData: {
+      kind: 'service',
+      iconKey: 'generic-service',
+      label: 'Service',
+      status: 'healthy',
+      throughput: 1000,
+      load: 10
+    },
+    simulationConfig: { componentType: 'microservice', category: 'compute' }
+  },
+  'my-service': {
+    id: 'my-service',
+    type: 'serviceNode',
+    label: 'My Service',
+    subLabel: 'Named Placeholder',
+    icon: Server,
+    lookupKey: 'my-service',
+    defaultData: {
+      kind: 'service',
+      iconKey: 'my-service',
+      label: 'My Service',
+      status: 'healthy',
+      throughput: 1000,
+      load: 10
+    },
+    simulationConfig: { componentType: 'microservice', category: 'compute' }
+  },
+  'input-source': {
+    id: 'input-source',
+    type: 'serviceNode',
+    label: 'Input Source',
+    subLabel: 'Entry Point / Ingress',
+    icon: Navigation,
+    lookupKey: 'input-source',
+    defaultData: {
+      kind: 'service',
+      iconKey: 'input-source',
+      label: 'Input Source',
+      status: 'healthy',
+      throughput: 0,
+      load: 0
+    },
+    simulationConfig: {
+      componentType: 'api-endpoint',
+      category: 'compute',
+      isSourceOnly: true
+    }
+  },
+  'output-sink': {
+    id: 'output-sink',
+    type: 'serviceNode',
+    label: 'Output Sink',
+    subLabel: 'Destination / Egress',
+    icon: ExternalLink,
+    lookupKey: 'output-sink',
+    defaultData: {
+      kind: 'service',
+      iconKey: 'output-sink',
+      label: 'Output Sink',
+      status: 'healthy',
+      throughput: 0,
+      load: 0
+    },
+    simulationConfig: {
+      componentType: 'third-party-api-connector',
+      category: 'external-and-integration'
     }
   },
 
@@ -696,6 +1132,76 @@ export const NODE_REGISTRY: Record<string, NodeDef> = {
       componentType: 'third-party-api-connector',
       category: 'external-and-integration'
     }
+  },
+
+  // ── Scaling & Partitioning ──────────────────────────────────────────────────
+  sharding: {
+    id: 'sharding',
+    type: 'serviceNode',
+    label: 'Sharding',
+    subLabel: 'Shard Routing Strategy',
+    icon: GitBranch,
+    lookupKey: 'sharding',
+    defaultData: {
+      kind: 'service',
+      iconKey: 'sharding',
+      label: 'Sharding',
+      status: 'healthy',
+      throughput: 12000,
+      load: 14
+    },
+    simulationConfig: { componentType: 'sharding', category: 'auxiliary' }
+  },
+  hashing: {
+    id: 'hashing',
+    type: 'serviceNode',
+    label: 'Hashing',
+    subLabel: 'Partition Key Hash',
+    icon: Fingerprint,
+    lookupKey: 'hashing',
+    defaultData: {
+      kind: 'service',
+      iconKey: 'hashing',
+      label: 'Hashing',
+      status: 'healthy',
+      throughput: 20000,
+      load: 8
+    },
+    simulationConfig: { componentType: 'hashing', category: 'auxiliary' }
+  },
+  'shard-node': {
+    id: 'shard-node',
+    type: 'serviceNode',
+    label: 'Shard Node',
+    subLabel: 'Partition Replica',
+    icon: Box,
+    lookupKey: 'shard-node',
+    defaultData: {
+      kind: 'service',
+      iconKey: 'shard-node',
+      label: 'Shard Node',
+      status: 'healthy',
+      throughput: 5000,
+      load: 24
+    },
+    simulationConfig: { componentType: 'shard-node', category: 'auxiliary' }
+  },
+  'partition-node': {
+    id: 'partition-node',
+    type: 'serviceNode',
+    label: 'Partition Node',
+    subLabel: 'Range / Key Slice',
+    icon: LayoutGrid,
+    lookupKey: 'partition-node',
+    defaultData: {
+      kind: 'service',
+      iconKey: 'partition-node',
+      label: 'Partition Node',
+      status: 'healthy',
+      throughput: 6000,
+      load: 20
+    },
+    simulationConfig: { componentType: 'partition-node', category: 'auxiliary' }
   },
 
   // ── Control Plane ─────────────────────────────────────────────────────────────
@@ -906,5 +1412,9 @@ export const COMPUTE_DEFAULTS = {
   SEARCH_SERVICE: {
     label: NODE_REGISTRY['search-service'].label,
     subLabel: NODE_REGISTRY['search-service'].subLabel
+  },
+  SIDECAR: {
+    label: NODE_REGISTRY['sidecar-proxy'].label,
+    subLabel: NODE_REGISTRY['sidecar-proxy'].subLabel
   }
 }

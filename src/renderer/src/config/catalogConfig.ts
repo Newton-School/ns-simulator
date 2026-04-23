@@ -47,11 +47,15 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
     title: 'Network',
     items: getItems([
       'api-gateway',
-      'load-balancer',
+      'load-balancer-l4',
+      'load-balancer-l7',
       'ingress-controller',
       'reverse-proxy',
+      'service-mesh',
       'nat-gateway',
       'vpn-gateway',
+      'edge-router',
+      'network-interface',
       'routing-rule',
       'routing-policy'
     ])
@@ -63,36 +67,43 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
   },
   {
     id: 'compute',
-    title: 'Compute Abstractions',
+    title: 'Compute',
     items: getItems([
       'backend-server',
       'lambda-function',
       'async-worker',
       'cron-job',
       'auth-service',
-      'search-service'
+      'search-service',
+      'sidecar-proxy'
     ])
   },
   {
     id: 'messaging',
     title: 'Messaging',
-    items: getItems(['message-queue', 'message-broker'])
+    items: getItems(['message-queue', 'message-broker', 'pub-sub', 'stream'])
   },
   {
     id: 'datastore',
-    title: 'Data Store',
+    title: 'Data Stores',
     items: getItems([
       'primary-db',
       'read-replica',
       'redis-cache',
       'nosql-db',
       'object-storage',
-      'search-index'
+      'search-index',
+      'time-series-db',
+      'graph-db',
+      'vector-db',
+      'data-warehouse',
+      'data-lake',
+      'kv-store'
     ])
   },
   {
     id: 'app-support',
-    title: 'App Support',
+    title: 'App Services',
     items: getItems(['push-notification-service', 'streaming-analytics'])
   },
   {
@@ -101,9 +112,30 @@ export const CATALOG_CONFIG: CatalogCategory[] = [
     items: getItems(['external-service'])
   },
   {
+    id: 'templates',
+    title: 'Templates',
+    items: getItems(['generic-service', 'my-service', 'input-source', 'output-sink'])
+  },
+  {
+    id: 'ai-agents',
+    title: 'AI & Agents',
+    items: getItems([
+      'llm-gateway',
+      'tool-registry',
+      'memory-fabric',
+      'agent-orchestrator',
+      'safety-observability-mesh'
+    ])
+  },
+  {
     id: 'control-plane',
     title: 'Control Plane',
     items: getItems(['config-store', 'secrets-manager', 'feature-flag-service'])
+  },
+  {
+    id: 'scaling',
+    title: 'Scaling & Partitioning',
+    items: getItems(['sharding', 'hashing', 'shard-node', 'partition-node'])
   },
   {
     id: 'observability',

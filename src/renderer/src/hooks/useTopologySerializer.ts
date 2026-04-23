@@ -80,8 +80,12 @@ const TYPE_MEAN_SERVICE_MS: Partial<Record<ComponentType, number>> = {
   'search-index': 10, // Elasticsearch: ~5-20ms
   cdn: 2, // CDN cache hit: ~1-5ms
   'load-balancer': 0.2,
+  'load-balancer-l4': 0.15,
+  'load-balancer-l7': 0.4,
+  'edge-router': 0.8,
   'ingress-controller': 0.3,
   'reverse-proxy': 0.5,
+  'service-mesh': 0.6,
   'api-gateway': 1,
   'routing-rule': 0.1,
   'routing-policy': 0.1,
@@ -92,6 +96,21 @@ const TYPE_MEAN_SERVICE_MS: Partial<Record<ComponentType, number>> = {
   'third-party-api-connector': 150, // External: 100-300ms
   'payment-gateway': 200,
   'internal-dns': 0.5,
+  'time-series-db': 6,
+  'graph-db': 7,
+  'vector-db': 8,
+  'data-warehouse': 12,
+  'data-lake': 18,
+  'kv-store': 0.3,
+  'llm-gateway': 6,
+  'tool-registry': 1,
+  'memory-fabric': 3,
+  'agent-orchestrator': 10,
+  'safety-observability-mesh': 2,
+  sharding: 0.4,
+  hashing: 0.2,
+  'shard-node': 4,
+  'partition-node': 3,
   'centralized-logging': 1,
   'metrics-store': 0.5,
   'distributed-tracing': 1,
@@ -409,8 +428,9 @@ function serializeEdge(
   // Infer protocol from target type
   const targetType = nodeTypeById.get(target)
   let protocol: EdgeDefinition['protocol'] = 'https'
-  if (targetType === 'queue' || targetType === 'message-broker') protocol = 'amqp'
-  else if (targetType === 'stream') protocol = 'kafka'
+  if (targetType === 'queue' || targetType === 'message-broker' || targetType === 'pub-sub') {
+    protocol = 'amqp'
+  } else if (targetType === 'stream') protocol = 'kafka'
   protocol = asProtocol(d.protocol) ?? protocol
 
   const latencyMu = asPositiveNumber(d.latencyMu) ?? EDGE_DEFAULTS.latencyMu
