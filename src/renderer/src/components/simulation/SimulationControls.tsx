@@ -90,7 +90,8 @@ export function SimulationControls({
     if (sourceNodeId !== 'auto') workload.sourceNodeId = sourceNodeId
     if (pattern === 'bursty') workload.bursty = { burstRps, burstDuration, normalDuration }
     else if (pattern === 'spike') workload.spike = { spikeTime, spikeRps, spikeDuration }
-    else if (pattern === 'sawtooth') workload.sawtooth = { peakRps: sawPeakRps, rampDuration: sawRampDuration }
+    else if (pattern === 'sawtooth')
+      workload.sawtooth = { peakRps: sawPeakRps, rampDuration: sawRampDuration }
     return {
       global: { simulationDuration: simDuration * 1000, warmupDuration: warmup * 1000, seed },
       workload

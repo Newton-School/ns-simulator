@@ -14,9 +14,10 @@ export function RunToast({ messages, tone, onClose }: RunToastProps) {
       role="alert"
       className={`
         fixed top-14 right-4 z-50 w-80 rounded-lg border shadow-2xl font-sans text-xs
-        ${isError
-          ? 'bg-nss-panel border-nss-danger/40 text-nss-text'
-          : 'bg-nss-panel border-nss-warning/40 text-nss-text'
+        ${
+          isError
+            ? 'bg-nss-panel border-nss-danger/40 text-nss-text'
+            : 'bg-nss-panel border-nss-warning/40 text-nss-text'
         }
       `}
     >
@@ -24,9 +25,10 @@ export function RunToast({ messages, tone, onClose }: RunToastProps) {
       <div
         className={`
           flex items-center justify-between px-3 py-2 rounded-t-lg border-b
-          ${isError
-            ? 'bg-nss-danger/10 border-nss-danger/20 text-nss-danger'
-            : 'bg-nss-warning/10 border-nss-warning/20 text-nss-warning'
+          ${
+            isError
+              ? 'bg-nss-danger/10 border-nss-danger/20 text-nss-danger'
+              : 'bg-nss-warning/10 border-nss-warning/20 text-nss-warning'
           }
         `}
       >

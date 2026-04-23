@@ -101,7 +101,7 @@ export const LibrarySidebar = () => {
           ))
         ) : (
           <p className="px-2 pt-4 text-xs text-nss-muted text-center">
-            No components match "{query}"
+            No components match &quot;{query}&quot;
           </p>
         )}
       </div>
