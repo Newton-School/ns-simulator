@@ -20,7 +20,6 @@ export const LibraryItem = ({ item }: LibraryItemProps) => {
         registryId: id
       })
     )
-
     event.dataTransfer.effectAllowed = 'move'
   }
 
@@ -28,28 +27,29 @@ export const LibraryItem = ({ item }: LibraryItemProps) => {
     <div
       draggable
       onDragStart={onDragStart}
+      title={subLabel}
       className="
-        group flex items-start gap-3 p-3 rounded 
-        cursor-grab active:cursor-grabbing select-none 
-        bg-transparent hover:bg-nss-surface 
+        group flex flex-col items-center gap-1.5 p-1.5 rounded-lg
+        cursor-grab active:cursor-grabbing select-none
+        bg-transparent hover:bg-nss-surface
         border border-transparent hover:border-nss-border
         transition-all duration-200
       "
     >
-      {/* Icon Well */}
+      {/* Icon tile */}
       <div
-        className={`p-2 rounded bg-opacity-40 group-hover:bg-opacity-20 ${bg} shrink-0 transition-all`}
+        className={`
+          w-12 h-12 rounded-lg flex items-center justify-center
+          ${bg} bg-opacity-30 group-hover:bg-opacity-40 transition-all
+        `}
       >
-        <Icon size={18} className={text} />
+        <Icon size={16} className={text} />
       </div>
 
-      {/* Text Content */}
-      <div className="flex flex-col overflow-hidden">
-        <span className="text-sm font-medium text-nss-text truncate transition-colors">
-          {label}
-        </span>
-        <span className="text-[10px] text-nss-muted truncate mt-0.5">{subLabel}</span>
-      </div>
+      {/* Label */}
+      <span className="text-[10px] font-medium text-nss-text text-center leading-tight line-clamp-2 w-full">
+        {label}
+      </span>
     </div>
   )
 }

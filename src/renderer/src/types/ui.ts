@@ -40,7 +40,14 @@ export interface SecurityNodeData {
   region?: string
 }
 
-export type ComputeType = 'SERVER' | 'LAMBDA' | 'WORKER' | 'CRON' | 'AUTH' | 'SEARCH_SERVICE'
+export type ComputeType =
+  | 'SERVER'
+  | 'LAMBDA'
+  | 'WORKER'
+  | 'CRON'
+  | 'AUTH'
+  | 'SEARCH_SERVICE'
+  | 'SIDECAR'
 
 export interface ComputeNodeData {
   kind: 'compute'

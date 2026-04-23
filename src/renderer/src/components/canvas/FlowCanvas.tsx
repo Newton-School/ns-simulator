@@ -2,12 +2,12 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import ReactFlow, {
   Background,
   Controls,
+  MiniMap,
   BackgroundVariant,
   ReactFlowInstance,
   ReactFlowProvider,
   Edge,
-  ConnectionLineType,
-  MiniMap
+  ConnectionLineType
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 import { EdgeSimulationData } from '@renderer/types/ui'
@@ -48,12 +48,10 @@ const FlowCanvasInternal = () => {
   const prevNodeCount = useRef(nodes.length)
 
   useEffect(() => {
-    const isInitialLoad = prevNodeCount.current === 0 && nodes.length > 0
-
     const isBulkLoad = Math.abs(nodes.length - prevNodeCount.current) > 1
 
-    if (reactFlowInstance && (isInitialLoad || isBulkLoad)) {
-      // Wait one frame to ensure React Flow has calculated the actual pixel dimensions of the new nodes
+    if (reactFlowInstance && isBulkLoad) {
+      // Only fit view when many nodes are added at once (e.g. opening a saved file)
       window.requestAnimationFrame(() => {
         reactFlowInstance.fitView({
           padding: 0.2,
@@ -125,7 +123,6 @@ const FlowCanvasInternal = () => {
         onNodeDragStop={onNodeDragStop}
         onEdgeClick={onEdgeClick}
         onPaneClick={onPaneClick}
-        fitView
       >
         <Background variant={BackgroundVariant.Dots} gap={20} size={1} color={GRID_COLOR} />
         <Controls className="!bg-nss-surface !border-nss-border" />

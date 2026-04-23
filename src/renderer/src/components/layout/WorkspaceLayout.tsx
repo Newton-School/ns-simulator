@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Panel, PanelGroup } from 'react-resizable-panels'
+import { useEffect, useRef, useState } from 'react'
+import { Panel, PanelGroup, ImperativePanelHandle } from 'react-resizable-panels'
 
 // Store
 import useStore from '@renderer/store/useStore'
@@ -15,11 +15,11 @@ import { LibrarySidebar } from '../library/LibrarySidebar'
 import { PropertiesPanel } from '../properties/PropertiesPanel'
 import { FlowCanvas } from '../canvas/FlowCanvas'
 import { Header } from './Header'
-import { ScenarioBar } from '../simulation/ScenarioBar'
 import { ResultsTray } from '../simulation/ResultsTray'
 
 // Atoms
 import { ResizeHandle } from '../ui/ResizeHandle'
+import { RunToast } from '../ui/RunToast'
 import type { ScenarioSettings } from '../simulation/ScenarioBar'
 
 type RunIssueTone = 'warning' | 'error'
@@ -34,6 +34,21 @@ export const WorkspaceLayout = () => {
     tone: 'warning'
   })
 
+  // Panel refs — panels stay in the DOM always; we collapse/expand imperatively
+  // so that opening one side never redistributes the other side's size.
+  const leftPanelRef = useRef<ImperativePanelHandle>(null)
+  const rightPanelRef = useRef<ImperativePanelHandle>(null)
+
+  useEffect(() => {
+    if (isLeftOpen) leftPanelRef.current?.expand()
+    else leftPanelRef.current?.collapse()
+  }, [isLeftOpen])
+
+  useEffect(() => {
+    if (isRightOpen) rightPanelRef.current?.expand()
+    else rightPanelRef.current?.collapse()
+  }, [isRightOpen])
+
   const { handleSave, handleOpen } = useFlowPersistence()
 
   const fileName = useStore((s) => s.fileName)
@@ -47,6 +62,8 @@ export const WorkspaceLayout = () => {
   useEffect(() => {
     if (selectedNodeId) {
       setIsRightOpen(true)
+    } else {
+      setIsRightOpen(false)
     }
   }, [selectedNodeId])
 
@@ -63,7 +80,6 @@ export const WorkspaceLayout = () => {
         {
           throughput: Math.round(metrics.throughput * 10) / 10,
           queueDepth: Math.round(metrics.avgQueueLength * 10) / 10,
-          // Round to 1 decimal to prevent raw float leaking to UI (e.g. 5.8333…%)
           utilization: Math.round(metrics.utilization * 1000) / 10,
           errorRate: Math.round(metrics.errorRate * 10000) / 100,
           active: metrics.postWarmupArrived > 0
@@ -141,13 +157,6 @@ export const WorkspaceLayout = () => {
         onOpen={handleOpen}
         fileName={fileName}
         isUnsaved={isUnsaved}
-        onSimulate={() => {
-          startSimulation()
-        }}
-      />
-
-      {/* Scenario Bar */}
-      <ScenarioBar
         onRun={handleRun}
         onPause={sim.pause}
         onResume={sim.resume}
@@ -163,36 +172,29 @@ export const WorkspaceLayout = () => {
       />
 
       {runIssues.messages.length > 0 && (
-        <div
-          className={
-            runIssues.tone === 'error'
-              ? 'mx-4 mt-2 p-3 bg-nss-danger/10 border border-nss-danger/30 rounded text-xs text-nss-danger'
-              : 'mx-4 mt-2 p-3 bg-nss-warning/10 border border-nss-warning/30 rounded text-xs text-nss-warning'
-          }
-        >
-          <div className="font-semibold uppercase tracking-wide mb-1">
-            {runIssues.tone === 'error' ? 'Run blocked' : 'Run checks'}
-          </div>
-          <ul className="list-disc pl-4 space-y-1">
-            {runIssues.messages.map((error, index) => (
-              <li key={`${error}-${index}`}>{error}</li>
-            ))}
-          </ul>
-        </div>
+        <RunToast
+          messages={runIssues.messages}
+          tone={runIssues.tone}
+          onClose={() => setRunIssues({ messages: [], tone: 'warning' })}
+        />
       )}
 
       {/* Main Content Area */}
       <div className="flex-1 overflow-hidden relative h-full">
         <PanelGroup direction="horizontal" autoSaveId="main-layout-horizontal">
-          {/* Left Sidebar */}
-          {isLeftOpen && (
-            <>
-              <Panel defaultSize={20} minSize={10} maxSize={30} order={1} id="left-panel">
-                <LibrarySidebar />
-              </Panel>
-              <ResizeHandle vertical id="resize-left-catalog" />
-            </>
-          )}
+          {/* Left Sidebar — always in DOM, collapsed/expanded via ref */}
+          <Panel
+            ref={leftPanelRef}
+            collapsible
+            defaultSize={20}
+            minSize={10}
+            maxSize={30}
+            order={1}
+            id="left-panel"
+          >
+            <LibrarySidebar />
+          </Panel>
+          <ResizeHandle vertical id="resize-left-catalog" />
 
           {/* Center Column */}
           <Panel order={2} minSize={30} id="center-panel">
@@ -225,15 +227,19 @@ export const WorkspaceLayout = () => {
             </PanelGroup>
           </Panel>
 
-          {/* Right Sidebar */}
-          {isRightOpen && (
-            <>
-              <ResizeHandle vertical id="resize-right-inspector" />
-              <Panel defaultSize={25} minSize={15} maxSize={40} order={3} id="right-panel">
-                <PropertiesPanel />
-              </Panel>
-            </>
-          )}
+          {/* Right Sidebar — always in DOM, collapsed/expanded via ref */}
+          <ResizeHandle vertical id="resize-right-inspector" />
+          <Panel
+            ref={rightPanelRef}
+            collapsible
+            defaultSize={25}
+            minSize={15}
+            maxSize={40}
+            order={3}
+            id="right-panel"
+          >
+            <PropertiesPanel />
+          </Panel>
         </PanelGroup>
       </div>
     </div>

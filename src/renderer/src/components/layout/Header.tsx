@@ -1,32 +1,37 @@
 import { memo } from 'react'
 import { Sidebar, Save, FolderOpen } from 'lucide-react'
 
-// Atoms & Molecules
 import { Divider } from '../ui/Divider'
 import { IconButton } from '../ui/IconButton'
 import { ToggleButton } from '../ui/ToggleButton'
 import { Branding } from './Branding'
 import { FileStatus } from './FileStatus'
-
 import { ThemeToggle } from './ThemeToggle'
+import { SimulationControls } from '../simulation/SimulationControls'
+import type { ScenarioSettings, SourceNodeOption } from '../simulation/ScenarioBar'
 
 interface HeaderProps {
-  // Layout Actions
+  // Layout
   toggleLeft: () => void
   isLeftOpen: boolean
   toggleRight: () => void
   isRightOpen: boolean
 
-  // File Actions
+  // File
   onSave: () => void
   onOpen: () => void
-
-  // Simulation
-  onSimulate: () => void
-
-  // Data
   fileName: string | null
   isUnsaved: boolean
+
+  // Simulation
+  onRun: (settings: ScenarioSettings) => void
+  onPause: () => void
+  onResume: () => void
+  onStop: () => void
+  isRunning: boolean
+  isPaused: boolean
+  sourceNodes: SourceNodeOption[]
+  simulationDisabled?: boolean
 }
 
 export const Header = memo(
@@ -38,12 +43,20 @@ export const Header = memo(
     onSave,
     onOpen,
     fileName,
-    isUnsaved
+    isUnsaved,
+    onRun,
+    onPause,
+    onResume,
+    onStop,
+    isRunning,
+    isPaused,
+    sourceNodes,
+    simulationDisabled
   }: HeaderProps) => {
     return (
-      <header className="h-12 bg-nss-panel text-nss-text flex items-center justify-between px-4 shrink-0 border-b border-nss-border transition-colors duration-200">
-        {/* --- LEFT: Branding & Navigation --- */}
-        <div className="flex items-center gap-1">
+      <header className="h-12 bg-nss-panel text-nss-text flex items-center justify-between px-4 shrink-0 border-b border-nss-border transition-colors duration-200 overflow-visible">
+        {/* LEFT: Branding & left sidebar toggle */}
+        <div className="flex items-center gap-1 shrink-0">
           <Branding />
           <Divider />
           <ToggleButton
@@ -54,24 +67,31 @@ export const Header = memo(
           />
         </div>
 
-        {/* --- CENTER: Workspace Actions --- */}
+        {/* CENTER: File status + simulation controls */}
         <div className="flex items-center gap-3">
           <FileStatus fileName={fileName} isUnsaved={isUnsaved} />
 
           <div className="flex items-center gap-1">
-            <IconButton
-              onClick={onOpen}
-              icon={<FolderOpen size={18} />}
-              label="Open Scenario (Ctrl+O)"
-            />
-            <IconButton onClick={onSave} icon={<Save size={18} />} label="Save Scenario (Ctrl+S)" />
+            <IconButton onClick={onOpen} icon={<FolderOpen size={18} />} label="Open (Ctrl+O)" />
+            <IconButton onClick={onSave} icon={<Save size={18} />} label="Save (Ctrl+S)" />
           </div>
 
           <Divider />
+
+          <SimulationControls
+            onRun={onRun}
+            onPause={onPause}
+            onResume={onResume}
+            onStop={onStop}
+            isRunning={isRunning}
+            isPaused={isPaused}
+            sourceNodes={sourceNodes}
+            disabled={simulationDisabled}
+          />
         </div>
 
-        {/* RIGHT SECTION: Properties Toggle & Theme */}
-        <div className="flex items-center gap-3">
+        {/* RIGHT: Theme & right sidebar toggle */}
+        <div className="flex items-center gap-3 shrink-0">
           <ThemeToggle />
           <Divider />
           <ToggleButton
