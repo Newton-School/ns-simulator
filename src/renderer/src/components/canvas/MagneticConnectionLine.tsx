@@ -1,0 +1,88 @@
+import { memo } from 'react'
+import { getSmoothStepPath, Position } from 'reactflow'
+import type { ConnectionLineComponentProps } from 'reactflow'
+import { snapStateRef } from './hooks/useMagneticSnap'
+
+function inferToPosition(fromX: number, fromY: number, toX: number, toY: number): Position {
+  const dx = toX - fromX
+  const dy = toY - fromY
+  if (Math.abs(dx) >= Math.abs(dy)) {
+    return dx > 0 ? Position.Left : Position.Right
+  }
+  return dy > 0 ? Position.Top : Position.Bottom
+}
+
+const MagneticConnectionLine = memo(
+  ({ fromX, fromY, toX, toY, fromPosition, toPosition, connectionStatus }: ConnectionLineComponentProps) => {
+    const { lerpTarget, winner } = snapStateRef.current
+
+    const effectiveToX = lerpTarget?.x ?? toX
+    const effectiveToY = lerpTarget?.y ?? toY
+    const effectiveToPosition = winner
+      ? inferToPosition(fromX, fromY, effectiveToX, effectiveToY)
+      : toPosition
+
+    const [dPath] = getSmoothStepPath({
+      sourceX: fromX,
+      sourceY: fromY,
+      sourcePosition: fromPosition ?? Position.Right,
+      targetX: effectiveToX,
+      targetY: effectiveToY,
+      targetPosition: effectiveToPosition,
+      borderRadius: 16
+    })
+
+    const isSnapping = winner !== null
+    // connectionStatus === 'valid' means the cursor is within connectionRadius of a handle —
+    // releasing right now will commit the connection.
+    const canDrop = connectionStatus === 'valid' && isSnapping
+
+    const stroke = isSnapping ? '#3b82f6' : '#94a3b8'
+    const strokeWidth = canDrop ? 3 : isSnapping ? 2.5 : 2
+
+    // Use the winner's exact handle position for the "can drop" ring, since lerp may still
+    // leave a small gap between cursor and handle center.
+    const snapX = winner?.x ?? effectiveToX
+    const snapY = winner?.y ?? effectiveToY
+
+    return (
+      <g>
+        <path
+          d={dPath}
+          fill="none"
+          stroke={stroke}
+          strokeWidth={strokeWidth}
+          strokeDasharray={isSnapping ? undefined : '6 3'}
+          style={{ transition: 'stroke 100ms, stroke-width 100ms' }}
+        />
+
+        {/* Magnetic approach — small dot shows where the line will land */}
+        {isSnapping && !canDrop && (
+          <circle cx={effectiveToX} cy={effectiveToY} r={4} fill={stroke} opacity={0.8} />
+        )}
+
+        {/* Drop zone reached — pulsing ring + solid dot at exact handle center */}
+        {canDrop && (
+          <>
+            {/* Outer pulsing ring */}
+            <circle
+              className="connection-snap-ring"
+              cx={snapX}
+              cy={snapY}
+              r={10}
+              fill="none"
+              stroke="#3b82f6"
+              strokeWidth={1.5}
+            />
+            {/* Inner solid dot */}
+            <circle cx={snapX} cy={snapY} r={5} fill="#3b82f6" opacity={0.95} />
+          </>
+        )}
+      </g>
+    )
+  }
+)
+
+MagneticConnectionLine.displayName = 'MagneticConnectionLine'
+
+export default MagneticConnectionLine

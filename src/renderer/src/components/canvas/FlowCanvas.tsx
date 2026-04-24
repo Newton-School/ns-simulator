@@ -7,7 +7,9 @@ import ReactFlow, {
   ReactFlowInstance,
   ReactFlowProvider,
   Edge,
-  ConnectionLineType
+  Connection,
+  ConnectionLineType,
+  updateEdge
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 import { EdgeSimulationData } from '@renderer/types/ui'
@@ -19,6 +21,9 @@ import { EdgePropertiesPanel, EdgePropertiesPanelValue } from '../ui/EdgePropert
 import { useFlowStore } from './hooks/useFlowStore'
 import { useFlowDnD } from './hooks/useFlowDnD'
 import { useFlowConfig, nodeTypes, GRID_COLOR } from './config/flowConfig'
+import { useMagneticSnap } from './hooks/useMagneticSnap'
+import { useHandleProximity } from './hooks/useHandleProximity'
+import MagneticConnectionLine from './MagneticConnectionLine'
 
 const FlowCanvasInternal = () => {
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null)
@@ -32,10 +37,21 @@ const FlowCanvasInternal = () => {
     onConnect,
     addNode,
     setNodes,
+    setEdges,
     updateEdgeData
   } = useFlowStore()
 
   const { edgeTypes, defaultEdgeOptions } = useFlowConfig()
+
+  const { onConnectStart, onConnectEnd, onEdgeUpdateStart, onEdgeUpdateEnd } = useMagneticSnap()
+  useHandleProximity()
+
+  const onEdgeUpdate = useCallback(
+    (oldEdge: Edge, newConnection: Connection) => {
+      setEdges(updateEdge(oldEdge, newConnection, edges))
+    },
+    [edges, setEdges]
+  )
 
   const { onDragOver, onDrop, onNodeDragStop } = useFlowDnD({
     nodes,
@@ -117,6 +133,13 @@ const FlowCanvasInternal = () => {
         edgeTypes={edgeTypes}
         defaultEdgeOptions={defaultEdgeOptions}
         connectionLineType={ConnectionLineType.SmoothStep}
+        connectionLineComponent={MagneticConnectionLine}
+        connectionRadius={90}
+        onConnectStart={onConnectStart}
+        onConnectEnd={onConnectEnd}
+        onEdgeUpdate={onEdgeUpdate}
+        onEdgeUpdateStart={onEdgeUpdateStart}
+        onEdgeUpdateEnd={onEdgeUpdateEnd}
         onInit={setReactFlowInstance}
         onDrop={onDrop}
         onDragOver={onDragOver}
@@ -124,7 +147,7 @@ const FlowCanvasInternal = () => {
         onEdgeClick={onEdgeClick}
         onPaneClick={onPaneClick}
       >
-        <Background variant={BackgroundVariant.Dots} gap={20} size={1} color={GRID_COLOR} />
+        <Background variant={BackgroundVariant.Dots} gap={30} size={1.2} color={GRID_COLOR} />
         <Controls className="!bg-nss-surface !border-nss-border" />
         <MiniMap className="!bg-nss-surface !border-nss-border" />
       </ReactFlow>
