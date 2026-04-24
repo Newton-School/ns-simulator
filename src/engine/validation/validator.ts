@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { TopologyJSON } from '../core/types'
+import { inferStructuralRole } from '../catalog/componentSpecs'
 
 const COMPONENT_CATEGORIES = [
   'compute',
@@ -229,6 +230,7 @@ export const ComponentNodeSchema = z.object({
   id: z.string().min(1),
   type: z.enum(COMPONENT_TYPES),
   category: z.enum(COMPONENT_CATEGORIES),
+  role: z.enum(['source', 'processor', 'storage', 'router', 'sink']).optional(),
   label: z.string(),
   position: z.object({ x: z.number(), y: z.number() }),
 
@@ -423,14 +425,38 @@ export interface ValidationResult {
   warnings?: string[]
 }
 
-const SOURCE_NODE_TYPES = [
-  'user-client',
-  'mobile-app',
-  'web-browser',
-  'iot-device',
-  'external-system',
-  'api-gateway'
-]
+function resolvedRole(node: TopologyJSON['nodes'][number]) {
+  return node.role ?? inferStructuralRole(node.type)
+}
+
+function isSourceNode(node: TopologyJSON['nodes'][number], topology: TopologyJSON): boolean {
+  return resolvedRole(node) === 'source' || topology.workload?.sourceNodeId === node.id
+}
+
+function collectReachableNodeIds(
+  startNodeIds: string[],
+  adjacencyList: Map<string, string[]>
+): Set<string> {
+  const visited = new Set<string>()
+  const queue = [...startNodeIds]
+
+  for (let index = 0; index < queue.length; index++) {
+    const current = queue[index]
+    if (visited.has(current)) {
+      continue
+    }
+
+    visited.add(current)
+
+    for (const neighbor of adjacencyList.get(current) ?? []) {
+      if (!visited.has(neighbor)) {
+        queue.push(neighbor)
+      }
+    }
+  }
+
+  return visited
+}
 
 export const validateTopology = (input: unknown): ValidationResult => {
   const warnings: string[] = []
@@ -452,8 +478,13 @@ export const validateTopology = (input: unknown): ValidationResult => {
 
   //Cross-Reference Validations
   const nodeIds = new Set<string>()
+  const nodeById = new Map<string, TopologyJSON['nodes'][number]>()
   const edgeIds = new Set<string>()
   let hasSourceNode = false
+
+  const incomingCount = new Map<string, number>()
+  const outgoingCount = new Map<string, number>()
+  const adjacencyList = new Map<string, string[]>()
 
   //Check Nodes
   topology.nodes.forEach((node, index) => {
@@ -461,9 +492,92 @@ export const validateTopology = (input: unknown): ValidationResult => {
       errors.push({ path: `nodes[${index}].id`, message: `Duplicate node ID: ${node.id}` })
     }
     nodeIds.add(node.id)
+    nodeById.set(node.id, node)
+    incomingCount.set(node.id, 0)
+    outgoingCount.set(node.id, 0)
+    adjacencyList.set(node.id, [])
 
-    if (SOURCE_NODE_TYPES.includes(node.type) || topology.workload?.sourceNodeId === node.id) {
+    if (isSourceNode(node, topology)) {
       hasSourceNode = true
+    }
+
+    const role = resolvedRole(node)
+
+    if (role !== 'source') {
+      if (!node.queue) {
+        warnings.push(
+          `Node '${node.label}' is missing queue config; applying legacy default queue settings.`
+        )
+        node.queue = { workers: 1, capacity: 100, discipline: 'fifo' }
+      }
+
+      if (!node.processing) {
+        warnings.push(
+          `Node '${node.label}' is missing processing config; applying legacy default processing settings.`
+        )
+        node.processing = {
+          distribution: { type: 'constant', value: 1 },
+          timeout: 30_000
+        }
+      }
+    }
+
+    if (node.queue && node.queue.capacity < node.queue.workers) {
+      errors.push({
+        path: `nodes[${index}].queue.capacity`,
+        message: 'queue.capacity must be greater than or equal to queue.workers.'
+      })
+    }
+
+    if (node.processing && node.processing.timeout <= 0) {
+      errors.push({
+        path: `nodes[${index}].processing.timeout`,
+        message: 'processing.timeout must be greater than 0.'
+      })
+    }
+
+    const nodeErrorRate = node.config?.['nodeErrorRate']
+    if (
+      nodeErrorRate !== undefined &&
+      (typeof nodeErrorRate !== 'number' ||
+        !Number.isFinite(nodeErrorRate) ||
+        nodeErrorRate < 0 ||
+        nodeErrorRate > 1)
+    ) {
+      errors.push({
+        path: `nodes[${index}].config.nodeErrorRate`,
+        message: 'nodeErrorRate must be between 0 and 1.'
+      })
+    }
+
+    if (role === 'sink' && node.config?.['routingStrategy'] !== undefined) {
+      errors.push({
+        path: `nodes[${index}].config.routingStrategy`,
+        message: 'Sink nodes cannot expose routing configuration.'
+      })
+    }
+
+    if (node.type === 'waf' || node.type === 'firewall') {
+      const securityPolicy = node.config?.['securityPolicy']
+      const blockRate =
+        securityPolicy && typeof securityPolicy === 'object'
+          ? (securityPolicy as Record<string, unknown>)['blockRate']
+          : undefined
+      const droppedPackets =
+        securityPolicy && typeof securityPolicy === 'object'
+          ? (securityPolicy as Record<string, unknown>)['droppedPackets']
+          : undefined
+
+      const hasSecurityKnob =
+        (typeof blockRate === 'number' && blockRate > 0) ||
+        (typeof droppedPackets === 'number' && droppedPackets > 0)
+
+      if (!hasSecurityKnob) {
+        errors.push({
+          path: `nodes[${index}].config.securityPolicy`,
+          message: 'Security filter nodes require blockRate or droppedPackets.'
+        })
+      }
     }
   })
 
@@ -502,6 +616,12 @@ export const validateTopology = (input: unknown): ValidationResult => {
         message: `Target node ID '${edge.target}' does not exist.`
       })
     }
+
+    if (adjacencyList.has(edge.source) && adjacencyList.has(edge.target)) {
+      adjacencyList.get(edge.source)!.push(edge.target)
+      outgoingCount.set(edge.source, (outgoingCount.get(edge.source) ?? 0) + 1)
+      incomingCount.set(edge.target, (incomingCount.get(edge.target) ?? 0) + 1)
+    }
   })
 
   topology.nodes.forEach((node, index) => {
@@ -533,34 +653,80 @@ export const validateTopology = (input: unknown): ValidationResult => {
     })
   }
 
+  if (errors.length === 0 && workloadSourceNodeId) {
+    const selectedSourceNode = nodeById.get(workloadSourceNodeId)
+    const reachableFromSelectedSource = collectReachableNodeIds(
+      [workloadSourceNodeId],
+      adjacencyList
+    )
+    const hasReachableDownstreamRuntimeNode = [...reachableFromSelectedSource].some((nodeId) => {
+      if (nodeId === workloadSourceNodeId) {
+        return false
+      }
+
+      const reachableNode = nodeById.get(nodeId)
+      return reachableNode !== undefined && !isSourceNode(reachableNode, topology)
+    })
+
+    if (selectedSourceNode && !hasReachableDownstreamRuntimeNode) {
+      errors.push({
+        path: 'workload.sourceNodeId',
+        message: `'${selectedSourceNode.label}' is not connected to any downstream component that can be simulated. Connect it to at least one service, router, database, or external API.`
+      })
+    }
+  }
+
   if (errors.length > 0) {
     return { valid: false, errors, warnings }
   }
 
   //Graph Connectivity Check (Warnings only)
   const sourceNodeIds = topology.nodes
-    .filter((n) => SOURCE_NODE_TYPES.includes(n.type) || topology.workload?.sourceNodeId === n.id)
+    .filter((node) => isSourceNode(node, topology))
     .map((n) => n.id)
+  const visited = collectReachableNodeIds(sourceNodeIds, adjacencyList)
 
-  const adjacencyList = new Map<string, string[]>()
-  topology.nodes.forEach((n) => adjacencyList.set(n.id, []))
-  topology.edges.forEach((e) => {
-    adjacencyList.get(e.source)?.push(e.target)
+  topology.edges.forEach((edge) => {
+    const sourceNode = nodeById.get(edge.source)
+    const targetNode = nodeById.get(edge.target)
+    if (!sourceNode || !targetNode) {
+      return
+    }
+
+    if (edge.source === edge.target) {
+      warnings.push(`Edge '${edge.id}' forms a self-loop on node '${sourceNode.label}'.`)
+    }
+
+    if (
+      edge.source !== edge.target &&
+      isSourceNode(sourceNode, topology) &&
+      isSourceNode(targetNode, topology)
+    ) {
+      warnings.push(
+        `Edge '${edge.id}' connects source node '${sourceNode.label}' to source node '${targetNode.label}'.`
+      )
+    }
   })
 
-  const visited = new Set<string>()
-  const queue = [...sourceNodeIds]
-
-  while (queue.length > 0) {
-    const current = queue.shift()!
-    if (!visited.has(current)) {
-      visited.add(current)
-      const neighbors = adjacencyList.get(current) || []
-      queue.push(...neighbors)
-    }
-  }
-
   topology.nodes.forEach((node) => {
+    const role = resolvedRole(node)
+    const incoming = incomingCount.get(node.id) ?? 0
+    const outgoing = outgoingCount.get(node.id) ?? 0
+
+    if (role === 'source' && incoming > 0) {
+      warnings.push(`Source node '${node.label}' has ${incoming} incoming edge(s).`)
+    }
+
+    if (role === 'sink' && outgoing > 0) {
+      warnings.push(`Sink node '${node.label}' has ${outgoing} outgoing edge(s).`)
+    }
+
+    if (role === 'router' && outgoing <= 1 && node.config?.['routingStrategy'] !== undefined) {
+      warnings.push(
+        `Router node '${node.label}' exposes routing strategy but has ${outgoing} outgoing edge(s).`
+      )
+    }
+
     if (!visited.has(node.id)) {
       warnings.push(
         `Node '${node.id}' (${node.label}) is disconnected and unreachable from any source node.`

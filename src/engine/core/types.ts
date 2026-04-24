@@ -1,4 +1,5 @@
 import type { SimulationEvent } from './events'
+import type { StructuralRole } from '../catalog/nodeSpecTypes'
 
 /**
  * Accuracy contract classification for simulator parameters.
@@ -291,6 +292,7 @@ export interface ComponentNode {
   id: string
   type: ComponentType
   category: ComponentCategory
+  role?: Exclude<StructuralRole, 'composite'>
   label: string
   position: { x: number; y: number }
   resources?: ResourceConfig

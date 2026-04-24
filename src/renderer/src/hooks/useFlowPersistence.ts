@@ -6,6 +6,8 @@ import {
   convertNestedToFlat,
   NestedFileData
 } from '@renderer/utils/nodeTransformers'
+import { migrateCanvasNodes } from '../../../engine/catalog/legacyCanvasMigration'
+import { normalizeScenarioState } from '@renderer/types/ui'
 
 const extractFileName = (path: string): string => {
   return path.replace(/^.*[\\/]/, '')
@@ -38,14 +40,16 @@ export const useFlowPersistence = () => {
   const setEdges = useStore((s) => s.setEdges)
   const setFileName = useStore((s) => s.setFileName)
   const setUnsaved = useStore((s) => s.setUnsaved)
+  const scenario = useStore((s) => s.scenario)
+  const setScenario = useStore((s) => s.setScenario)
 
   const isLoadingRef = useRef(false)
 
   const handleGetFileData = useCallback(() => {
     const { nodes, edges } = useStore.getState()
     const nestedNodes = convertFlatToNested(nodes)
-    return JSON.stringify({ nodes: nestedNodes, edges }, null, 2)
-  }, [])
+    return JSON.stringify({ version: '2.0.0', nodes: nestedNodes, edges, scenario }, null, 2)
+  }, [scenario])
 
   const handleLoadFileData = useCallback(
     (fileContent: string | object, filePath?: string) => {
@@ -56,12 +60,13 @@ export const useFlowPersistence = () => {
 
         if (!data?.nodes) throw new Error('Invalid file format')
 
-        const flatNodes = convertNestedToFlat(data.nodes)
+        const flatNodes = migrateCanvasNodes(convertNestedToFlat(data.nodes))
 
         isLoadingRef.current = true
 
         setNodes(flatNodes)
         setEdges(data.edges || [])
+        setScenario(normalizeScenarioState(data.scenario))
         setUnsaved(false)
 
         if (filePath && typeof filePath === 'string') {
@@ -77,7 +82,7 @@ export const useFlowPersistence = () => {
         isLoadingRef.current = false
       }
     },
-    [setNodes, setEdges, setFileName, setUnsaved]
+    [setEdges, setFileName, setNodes, setScenario, setUnsaved]
   )
 
   const { handleSave: innerSave, handleOpen } = useFileHandlers(
@@ -122,7 +127,7 @@ export const useFlowPersistence = () => {
     if (nodes.length > 0) {
       setUnsaved(true)
     }
-  }, [nodes, edges, setUnsaved])
+  }, [edges, nodes, scenario, setUnsaved])
 
   return { handleSave: handleSaveWrapper, handleOpen: handleOpenWithCheckIfSaved }
 }

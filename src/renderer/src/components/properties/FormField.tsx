@@ -2,16 +2,16 @@ import { Label } from '../ui/Label'
 import { Input } from '../ui/Input'
 import { Select } from '../ui/Select'
 import { Slider } from '../ui/Slider'
-import type { FieldDefinition, FieldKey } from '@renderer/config/fieldConfig'
+import type { FieldDefinition, FieldPath } from '@renderer/config/fieldConfig'
 
 interface FormFieldProps {
-  fieldKey: FieldKey
+  fieldPath: FieldPath
   config: FieldDefinition
   value: unknown
   onChange: (value: unknown) => void
 }
 
-export const FormField = ({ config, value, onChange }: FormFieldProps) => {
+export const FormField = ({ fieldPath, config, value, onChange }: FormFieldProps) => {
   const normalizedValue = (() => {
     if (value !== undefined) return value
 
@@ -85,11 +85,16 @@ export const FormField = ({ config, value, onChange }: FormFieldProps) => {
   }
 
   if (config.type === 'boolean') {
-    return <div className="mb-5">{renderInput()}</div>
+    return (
+      <div className="mb-5 flex items-center justify-between rounded border border-nss-border bg-nss-surface px-3 py-2">
+        <Label className="mb-0">{config.label}</Label>
+        {renderInput()}
+      </div>
+    )
   }
 
   return (
-    <div className="mb-5">
+    <div className="mb-5" data-field-path={fieldPath}>
       <Label>{config.label}</Label>
       {renderInput()}
     </div>

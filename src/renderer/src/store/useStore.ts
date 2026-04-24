@@ -15,10 +15,10 @@ import {
 import type {
   NodeSimulationMetrics,
   AnyNodeData,
-  AnyNodeDataKey,
-  AnyNodeDataValue,
-  EdgeSimulationData
+  EdgeSimulationData,
+  ScenarioState
 } from '@renderer/types/ui'
+import { DEFAULT_SCENARIO_STATE } from '@renderer/types/ui'
 
 type RFState = {
   // --- Graph Data ---
@@ -29,6 +29,7 @@ type RFState = {
   // --- File State ---
   fileName: string | null
   isUnsaved: boolean
+  scenario: ScenarioState
 
   // --- Actions ---
   onNodesChange: OnNodesChange
@@ -36,11 +37,6 @@ type RFState = {
   onConnect: OnConnect
   addNode: (node: Node) => void
   updateNodeData: (nodeId: string, patch: Partial<AnyNodeData>) => void
-  updateNodeField: <K extends AnyNodeDataKey>(
-    nodeId: string,
-    key: K,
-    value: AnyNodeDataValue<K>
-  ) => void
   updateEdgeData: (
     edgeId: string,
     patch: { label?: string; data?: Partial<EdgeSimulationData> }
@@ -53,6 +49,8 @@ type RFState = {
   // --- File Actions ---
   setFileName: (name: string | null) => void
   setUnsaved: (unsaved: boolean) => void
+  setScenario: (scenario: ScenarioState) => void
+  updateScenario: (updater: (scenario: ScenarioState) => ScenarioState) => void
 }
 
 const useStore = create<RFState>((set, get) => ({
@@ -63,6 +61,7 @@ const useStore = create<RFState>((set, get) => ({
   // Initial File State
   fileName: 'Untitled',
   isUnsaved: false,
+  scenario: DEFAULT_SCENARIO_STATE,
 
   onNodesChange: (changes: NodeChange[]) => {
     set({
@@ -139,10 +138,6 @@ const useStore = create<RFState>((set, get) => ({
     })
   },
 
-  updateNodeField: (nodeId, key, value) => {
-    get().updateNodeData(nodeId, { [key]: value } as Partial<AnyNodeData>)
-  },
-
   updateEdgeData: (edgeId, patch) => {
     set({
       edges: get().edges.map((edge) => {
@@ -174,7 +169,9 @@ const useStore = create<RFState>((set, get) => ({
 
   // File State Setters
   setFileName: (fileName) => set({ fileName }),
-  setUnsaved: (isUnsaved) => set({ isUnsaved })
+  setUnsaved: (isUnsaved) => set({ isUnsaved }),
+  setScenario: (scenario) => set({ scenario }),
+  updateScenario: (updater) => set((state) => ({ scenario: updater(state.scenario) }))
 }))
 
 export default useStore

@@ -1,4 +1,5 @@
 import { Node, Edge } from 'reactflow'
+import type { ScenarioState } from '@renderer/types/ui'
 
 // --- Types ---
 export type NestedNode = Node & {
@@ -8,6 +9,7 @@ export type NestedNode = Node & {
 export type NestedFileData = {
   nodes: NestedNode[]
   edges: Edge[]
+  scenario?: ScenarioState
 }
 
 // --- Transformers ---

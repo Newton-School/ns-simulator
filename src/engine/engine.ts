@@ -27,6 +27,7 @@ export class SimulationEngine {
   private readonly tracer: RequestTracer
   private readonly nodes = new Map<string, GGcKNode>()
   private readonly nodeErrorRateById = new Map<string, number>()
+  private readonly nodeTimeoutUsById = new Map<string, bigint>()
   private readonly securityPolicyByNodeId = new Map<string, SecurityPolicyConfig>()
   private readonly workload?: WorkloadGenerator
 
@@ -68,6 +69,10 @@ export class SimulationEngine {
       const nodeErrorRate = this.readNodeErrorRate(normalized)
       if (nodeErrorRate !== null && nodeErrorRate > 0) {
         this.nodeErrorRateById.set(node.id, nodeErrorRate)
+      }
+
+      if (normalized.processing?.timeout) {
+        this.nodeTimeoutUsById.set(node.id, msToMicro(normalized.processing.timeout))
       }
 
       const securityPolicy = this.readSecurityPolicy(normalized)
@@ -254,17 +259,7 @@ export class SimulationEngine {
         this.requestById.set(routedRequest.id, routedRequest)
         this.tracer.setRequestCreatedAt(routedRequest.id, routedRequest.createdAt)
       }
-
-      const arrivalTime = this.clock + this.sampleEdgeLatencyUs(route.edge)
-      this.eventQueue.insert(
-        createEvent(
-          'request-arrival',
-          route.targetNodeId,
-          routedRequest.id,
-          { request: routedRequest },
-          arrivalTime
-        )
-      )
+      this.enqueueEdgeTransfer(routedRequest, route.edge, route.targetNodeId)
     }
   }
 
@@ -291,7 +286,10 @@ export class SimulationEngine {
           this.clock
         )
       )
+      return
     }
+
+    this.scheduleNodeTimeout(event.nodeId, request)
   }
 
   private handleProcessingComplete(event: SimulationEvent): void {
@@ -364,24 +362,7 @@ export class SimulationEngine {
       return
     }
 
-    if (this.distributions.random() < edge.packetLossRate) {
-      const timeoutAt = request.deadline > this.clock ? request.deadline : this.clock
-      this.eventQueue.insert(
-        createEvent(
-          'request-timeout',
-          targetNodeId,
-          request.id,
-          { request, nodeArrivalTime: this.clock },
-          timeoutAt
-        )
-      )
-      return
-    }
-
-    const arrivalTime = this.clock + this.sampleEdgeLatencyUs(edge)
-    this.eventQueue.insert(
-      createEvent('request-arrival', targetNodeId, request.id, { request }, arrivalTime)
-    )
+    this.enqueueEdgeTransfer(request, edge, targetNodeId)
   }
 
   private handleRequestComplete(event: SimulationEvent): void {
@@ -405,6 +386,7 @@ export class SimulationEngine {
       this.tracer.recordSpan(request.id, span)
     }
     this.tracer.markStatus(request.id, 'success')
+    request.metadata.__terminal = 'success'
     this.requestById.delete(request.id)
   }
 
@@ -414,10 +396,20 @@ export class SimulationEngine {
       return
     }
 
+    const scope = typeof event.data.scope === 'string' ? event.data.scope : undefined
+    if (scope === 'node') {
+      const arrivalTime = this.nodes.get(event.nodeId)?.cancelRequest(request.id, this.clock)
+      if (arrivalTime === null || arrivalTime === undefined) {
+        return
+      }
+      event.data.nodeArrivalTime = arrivalTime
+    }
+
     for (const span of request.spans) {
       this.tracer.recordSpan(request.id, span)
     }
     this.tracer.markStatus(request.id, 'timeout')
+    request.metadata.__terminal = 'timeout'
     this.requestById.delete(request.id)
 
     const nodeArrivalTime =
@@ -446,6 +438,7 @@ export class SimulationEngine {
       this.tracer.recordSpan(request.id, span)
     }
     this.tracer.markStatus(request.id, 'rejected')
+    request.metadata.__terminal = 'rejected'
     this.requestById.delete(request.id)
   }
 
@@ -465,6 +458,9 @@ export class SimulationEngine {
     }
 
     const fromEvent = event.data.request as Request | undefined
+    if (fromEvent?.metadata?.__terminal) {
+      return undefined
+    }
     if (fromEvent) {
       this.requestById.set(fromEvent.id, fromEvent)
       return fromEvent
@@ -616,5 +612,72 @@ export class SimulationEngine {
     const nodeErrorRate = this.nodeErrorRateById.get(nodeId)
     if (!nodeErrorRate || nodeErrorRate <= 0) return false
     return this.distributions.random() < nodeErrorRate
+  }
+
+  private scheduleNodeTimeout(nodeId: string, request: Request): void {
+    const nodeTimeoutUs = this.nodeTimeoutUsById.get(nodeId)
+    if (!nodeTimeoutUs) {
+      return
+    }
+
+    const timeoutAt = this.clock + nodeTimeoutUs
+    const effectiveTimeoutAt = request.deadline < timeoutAt ? request.deadline : timeoutAt
+
+    this.eventQueue.insert(
+      createEvent(
+        'request-timeout',
+        nodeId,
+        request.id,
+        { request, nodeArrivalTime: this.clock, scope: 'node' },
+        effectiveTimeoutAt
+      )
+    )
+  }
+
+  private enqueueEdgeTransfer(request: Request, edge: EdgeDefinition, targetNodeId: string): void {
+    if (this.distributions.random() < edge.packetLossRate) {
+      const timeoutAt = request.deadline > this.clock ? request.deadline : this.clock
+      this.eventQueue.insert(
+        createEvent(
+          'request-timeout',
+          targetNodeId,
+          request.id,
+          { request, nodeArrivalTime: this.clock, scope: 'in-flight' },
+          timeoutAt
+        )
+      )
+      return
+    }
+
+    if (this.distributions.random() < edge.errorRate) {
+      this.eventQueue.insert(
+        createEvent(
+          'request-rejected',
+          targetNodeId,
+          request.id,
+          { request, reason: 'edge_error_rate', nodeArrivalTime: this.clock },
+          this.clock
+        )
+      )
+      return
+    }
+
+    const arrivalTime = this.clock + this.sampleEdgeLatencyUs(edge)
+    if (request.deadline <= arrivalTime) {
+      this.eventQueue.insert(
+        createEvent(
+          'request-timeout',
+          targetNodeId,
+          request.id,
+          { request, nodeArrivalTime: this.clock, scope: 'in-flight' },
+          request.deadline
+        )
+      )
+      return
+    }
+
+    this.eventQueue.insert(
+      createEvent('request-arrival', targetNodeId, request.id, { request }, arrivalTime)
+    )
   }
 }

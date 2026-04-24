@@ -1,6 +1,7 @@
 import { useId, useState } from 'react'
 import type { SimulationOutput } from '../../../../engine/analysis/output'
 import type { SimulationStatus } from '../../hooks/useSimulation'
+import type { ScenarioRunContext } from '@renderer/types/ui'
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -10,6 +11,7 @@ interface ResultsTrayProps {
   eventsProcessed: number
   results: SimulationOutput | null
   error: string | null
+  runContext: ScenarioRunContext | null
   onClose?: () => void
 }
 
@@ -24,6 +26,10 @@ function fmtMs(ms: number): string {
 
 function fmtPct(ratio: number): string {
   return `${(ratio * 100).toFixed(1)}%`
+}
+
+function fmtSeconds(ms: number): string {
+  return `${(ms / 1000).toFixed(ms % 1000 === 0 ? 0 : 1)}s`
 }
 
 function fmtRps(rps: number | null): string {
@@ -45,6 +51,88 @@ function fmtW(wSeconds: number): string {
 const SECTION_TITLE = 'text-[11px] font-semibold text-nss-muted uppercase tracking-wider'
 const SURFACE_CARD = 'bg-nss-surface border border-nss-border rounded-md'
 
+const E2E_PERCENTILE_TOOLTIPS: Record<'p50' | 'p90' | 'p95' | 'p99' | 'max', string> = {
+  p50: 'Median end-to-end latency. Half of requests were faster than this, half slower.',
+  p90: '90th percentile — 10% of requests were slower than this value.',
+  p95: '95th percentile — typical SLO target for latency-sensitive services.',
+  p99: '99th percentile tail latency — 1% of requests were slower. Most user-facing SLOs live here.',
+  max: 'Slowest observed request. Useful for spotting outliers; not a reliable tail metric.'
+}
+
+const HEALTH_CHECK_TOOLTIPS = {
+  slo: "Compares each node's measured p99 latency and availability against the SLO targets you configured on the node.",
+  errorRate:
+    "Breakdown of rejected and timed-out requests by node. Rejections happen when the queue is full; timeouts happen when processing exceeds the node's configured timeout.",
+  littlesLaw:
+    "Little's Law (L = λ·W) is a queueing-theory identity that must hold in steady state. Violations usually indicate either measurement noise at low utilization, or that the simulation never reached steady state. At very low L (<0.1), relative errors can be large while absolute differences are sub-request — treat these as noise.",
+  conservation:
+    "Verifies that for every node: arrived = processed + rejected + timed out. If this fails, there's a request-accounting bug in the simulator.",
+  warmup:
+    "Checks that warmup duration is at least 10× the max observed p99. If it isn't, post-warmup metrics may still be contaminated by startup transients."
+} as const
+
+const PER_NODE_COLUMN_TOOLTIPS = {
+  arrived: 'Requests that reached this node during the post-warmup window.',
+  done: 'Requests this node finished processing (post-warmup).',
+  reject: "Requests turned away because the node's queue was full.",
+  timedOut: "Requests that exceeded this node's processing timeout.",
+  avgQueue: 'Time-averaged queue depth (requests waiting, not yet being processed).',
+  util: 'Fraction of workers busy on average. Below 70% is comfortable; above 80% queueing grows sharply; near 100% the node is saturated.',
+  p50: 'Median service + queue time at this node only. Does not include network/link latency.',
+  p95: '95th percentile per-hop latency at this node.',
+  p99: '99th percentile per-hop latency at this node. Per-hop p99s do not sum to end-to-end p99.',
+  lambda: 'Arrival rate (λ, requests per second) during the post-warmup window.',
+  w: 'Mean time a request spends at this node (W, service + queue). End-to-end latency is roughly the sum of W across the path.',
+  l: "Average number of requests concurrently at this node (L). By Little's Law, L = λ·W."
+} as const
+
+function RunContextPanel({ runContext }: { runContext: ScenarioRunContext }) {
+  const workload = runContext.workload
+  const patternExtras: string[] = []
+
+  if (workload.pattern === 'bursty' && workload.bursty) {
+    patternExtras.push(
+      `${workload.bursty.burstRps} burst rps`,
+      `${workload.bursty.burstDuration}ms burst`,
+      `${workload.bursty.normalDuration}ms normal`
+    )
+  }
+
+  if (workload.pattern === 'spike' && workload.spike) {
+    patternExtras.push(
+      `${workload.spike.spikeRps} spike rps`,
+      `t=${workload.spike.spikeTime}ms`,
+      `${workload.spike.spikeDuration}ms duration`
+    )
+  }
+
+  if (workload.pattern === 'sawtooth' && workload.sawtooth) {
+    patternExtras.push(
+      `${workload.sawtooth.peakRps} peak rps`,
+      `${workload.sawtooth.rampDuration}ms ramp`
+    )
+  }
+
+  return (
+    <div className="space-y-2">
+      <h3 className={SECTION_TITLE}>Run Context</h3>
+      <div className="grid grid-cols-2 gap-2 text-sm">
+        <StatCard label="Source" value={runContext.sourceLabel} />
+        <StatCard label="Pattern" value={workload.pattern} />
+        <StatCard label="Base RPS" value={`${workload.baseRps.toFixed(1)} req/s`} />
+        <StatCard label="Duration" value={fmtSeconds(runContext.global.simulationDuration)} />
+        <StatCard label="Warmup" value={fmtSeconds(runContext.global.warmupDuration)} />
+        <StatCard label="Seed" value={runContext.global.seed} />
+      </div>
+      {patternExtras.length > 0 && (
+        <div className={`${SURFACE_CARD} p-2 text-xs text-nss-muted`}>
+          {patternExtras.join(' • ')}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Progress Bar ─────────────────────────────────────────────────────────────
 
 function ProgressBar({ progress }: { progress: number }) {
@@ -63,11 +151,13 @@ function ProgressBar({ progress }: { progress: number }) {
 function StatCard({
   label,
   value,
-  highlight
+  highlight,
+  tooltip
 }: {
   label: string
   value: string
   highlight?: 'ok' | 'warn' | 'crit'
+  tooltip?: string
 }) {
   const colour =
     highlight === 'crit'
@@ -77,7 +167,7 @@ function StatCard({
         : 'text-nss-text'
 
   return (
-    <div className={`${SURFACE_CARD} p-2`}>
+    <div className={`${SURFACE_CARD} p-2`} title={tooltip}>
       <div className="text-xs text-nss-muted">{label}</div>
       <div className={`font-medium tabular-nums text-sm ${colour}`}>{value}</div>
     </div>
@@ -113,10 +203,24 @@ function SummaryPanel({ output }: { output: SimulationOutput }) {
         <StatCard
           label="Requests (post-warmup)"
           value={summary.postWarmupTotalRequests.toLocaleString()}
+          tooltip="Total requests that entered the system after warmup ended. Warmup samples are excluded so transient startup behavior doesn't skew the metrics."
         />
-        <StatCard label="Throughput" value={throughputDisplay} />
-        <StatCard label="Error Rate" value={fmtPct(summary.errorRate)} highlight={errorHighlight} />
-        <StatCard label="Timed Out" value={summary.timedOutRequests.toLocaleString()} />
+        <StatCard
+          label="Throughput"
+          value={throughputDisplay}
+          tooltip="Requests completed per second, averaged over the post-warmup window. If this exceeds your configured Base RPS, something (retries, fan-out, misconfigured source) is amplifying traffic."
+        />
+        <StatCard
+          label="Error Rate"
+          value={fmtPct(summary.errorRate)}
+          highlight={errorHighlight}
+          tooltip="Fraction of requests that were rejected or timed out. >1% turns yellow, >5% turns red."
+        />
+        <StatCard
+          label="Timed Out"
+          value={summary.timedOutRequests.toLocaleString()}
+          tooltip="Requests that exceeded a node's processing timeout. Zero timeouts usually means either the system has headroom or the timeout is set too high."
+        />
       </div>
 
       <div className="flex items-baseline justify-between pt-1">
@@ -130,7 +234,7 @@ function SummaryPanel({ output }: { output: SimulationOutput }) {
       </div>
       <div className="grid grid-cols-5 gap-1 text-xs text-center">
         {(['p50', 'p90', 'p95', 'p99', 'max'] as const).map((k) => (
-          <div key={k} className={`${SURFACE_CARD} p-1.5`}>
+          <div key={k} className={`${SURFACE_CARD} p-1.5`} title={E2E_PERCENTILE_TOOLTIPS[k]}>
             <div className="text-nss-muted">{k}</div>
             <div className="font-medium tabular-nums text-nss-text">{fmtMs(l[k])}</div>
           </div>
@@ -168,10 +272,12 @@ function HealthBadge({ level }: { level: HealthLevel }) {
 function CollapsibleCheck({
   title,
   level,
+  tooltip,
   children
 }: {
   title: string
   level: HealthLevel
+  tooltip?: string
   children: React.ReactNode
 }) {
   const [open, setOpen] = useState(false)
@@ -191,6 +297,7 @@ function CollapsibleCheck({
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         aria-controls={contentId}
+        title={tooltip}
         className="w-full flex items-center justify-between px-3 py-2 bg-nss-surface hover:bg-nss-bg text-left transition-colors"
       >
         <span className="flex items-center gap-2 text-xs font-medium text-nss-text">
@@ -255,6 +362,7 @@ function SimulationHealth({ output }: { output: SimulationOutput }) {
             : `SLO — ${output.sloBreaches.length} breach${output.sloBreaches.length !== 1 ? 'es' : ''}`
         }
         level={sloLevel}
+        tooltip={HEALTH_CHECK_TOOLTIPS.slo}
       >
         {sloLevel === 'healthy' ? (
           <p className="text-xs text-nss-muted">All configured SLO targets met.</p>
@@ -293,6 +401,7 @@ function SimulationHealth({ output }: { output: SimulationOutput }) {
             : `Error Rate — ${fmtPct(output.summary.errorRate)} (${(output.summary.rejectedRequests + output.summary.timedOutRequests).toLocaleString()} errors)`
         }
         level={errorLevel}
+        tooltip={HEALTH_CHECK_TOOLTIPS.errorRate}
       >
         {errorLevel === 'healthy' ? (
           <p className="text-xs text-nss-muted">No rejected or timed-out requests.</p>
@@ -334,6 +443,7 @@ function SimulationHealth({ output }: { output: SimulationOutput }) {
             : `Little's Law — ${llViolations.length} violation${llViolations.length !== 1 ? 's' : ''} (error > 10%)`
         }
         level={llLevel}
+        tooltip={HEALTH_CHECK_TOOLTIPS.littlesLaw}
       >
         {llLevel === 'healthy' ? (
           <p className="text-xs text-nss-muted">L = λW verified for all nodes (error ≤ 10%).</p>
@@ -362,6 +472,7 @@ function SimulationHealth({ output }: { output: SimulationOutput }) {
             : `Conservation — ${imbalanced.length} node${imbalanced.length !== 1 ? 's' : ''} with in-flight requests`
         }
         level={conservationLevel}
+        tooltip={HEALTH_CHECK_TOOLTIPS.conservation}
       >
         {conservationLevel === 'healthy' ? (
           <p className="text-xs text-nss-muted">
@@ -384,6 +495,7 @@ function SimulationHealth({ output }: { output: SimulationOutput }) {
       <CollapsibleCheck
         title={warmupLevel === 'healthy' ? 'Warmup — Adequate' : 'Warmup — May be too short'}
         level={warmupLevel}
+        tooltip={HEALTH_CHECK_TOOLTIPS.warmup}
       >
         <p
           className={`text-xs ${warmupLevel === 'healthy' ? 'text-nss-muted' : 'text-nss-warning'}`}
@@ -423,38 +535,40 @@ function PerNodeTable({ output }: { output: SimulationOutput }) {
           <thead>
             <tr className="text-nss-muted border-b border-nss-border">
               <th className="text-left pb-1 pr-2">Node</th>
-              <th className="text-right pb-1 pr-2" title="Post-warmup arrivals">
+              <th className="text-right pb-1 pr-2" title={PER_NODE_COLUMN_TOOLTIPS.arrived}>
                 Arrived
               </th>
-              <th className="text-right pb-1 pr-2" title="Post-warmup processed">
+              <th className="text-right pb-1 pr-2" title={PER_NODE_COLUMN_TOOLTIPS.done}>
                 Done
               </th>
-              <th className="text-right pb-1 pr-2" title="Post-warmup rejected">
+              <th className="text-right pb-1 pr-2" title={PER_NODE_COLUMN_TOOLTIPS.reject}>
                 Reject
               </th>
-              <th className="text-right pb-1 pr-2" title="Post-warmup timed out">
+              <th className="text-right pb-1 pr-2" title={PER_NODE_COLUMN_TOOLTIPS.timedOut}>
                 T.O.
               </th>
-              <th className="text-right pb-1 pr-2" title="Avg queue depth">
+              <th className="text-right pb-1 pr-2" title={PER_NODE_COLUMN_TOOLTIPS.avgQueue}>
                 Avg Q
               </th>
-              <th className="text-right pb-1 pr-2">Util</th>
-              <th className="text-right pb-1 pr-2" title="Per-hop p50">
+              <th className="text-right pb-1 pr-2" title={PER_NODE_COLUMN_TOOLTIPS.util}>
+                Util
+              </th>
+              <th className="text-right pb-1 pr-2" title={PER_NODE_COLUMN_TOOLTIPS.p50}>
                 p50
               </th>
-              <th className="text-right pb-1 pr-2" title="Per-hop p95">
+              <th className="text-right pb-1 pr-2" title={PER_NODE_COLUMN_TOOLTIPS.p95}>
                 p95
               </th>
-              <th className="text-right pb-1 pr-2" title="Per-hop p99">
+              <th className="text-right pb-1 pr-2" title={PER_NODE_COLUMN_TOOLTIPS.p99}>
                 p99
               </th>
-              <th className="text-right pb-1 pr-2" title="Arrival rate (post-warmup)">
+              <th className="text-right pb-1 pr-2" title={PER_NODE_COLUMN_TOOLTIPS.lambda}>
                 λ
               </th>
-              <th className="text-right pb-1 pr-2" title="Mean sojourn (post-warmup)">
+              <th className="text-right pb-1 pr-2" title={PER_NODE_COLUMN_TOOLTIPS.w}>
                 W
               </th>
-              <th className="text-right pb-1" title="Avg items in system (post-warmup)">
+              <th className="text-right pb-1" title={PER_NODE_COLUMN_TOOLTIPS.l}>
                 L
               </th>
             </tr>
@@ -564,6 +678,7 @@ export function ResultsTray({
   eventsProcessed,
   results,
   error,
+  runContext,
   onClose
 }: ResultsTrayProps) {
   if (status === 'idle') return null
@@ -605,6 +720,7 @@ export function ResultsTray({
       {/* Results */}
       {results && (
         <div className="flex-1 overflow-y-auto px-4 py-3 space-y-5">
+          {runContext && <RunContextPanel runContext={runContext} />}
           <SummaryPanel output={results} />
           <SimulationHealth output={results} />
           <PerNodeTable output={results} />

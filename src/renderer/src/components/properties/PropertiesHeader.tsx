@@ -1,15 +1,13 @@
-import { StatusBadge } from '../ui/StatusBadge'
+import type { AnyNodeData } from '@renderer/types/ui'
 import { resolveNodeConfig } from '@renderer/config/nodeRegistry'
 
 interface PropertiesHeaderProps {
-  data: any
+  data: AnyNodeData
 }
 
 export const PropertiesHeader = ({ data }: PropertiesHeaderProps) => {
-  const lookupKey = data.kind === 'compute' ? data.computeType : data.iconKey
-  const { icon: Icon, theme, label, subLabel } = resolveNodeConfig(lookupKey)
-
-  const isOverloaded = data.isOverloaded
+  const { icon: Icon, theme, label, subLabel } = resolveNodeConfig(data.templateId || data.iconKey)
+  const isOverloaded = data.ui?.overloadPreview
   const safeColor = theme.bg || 'bg-nss-primary'
 
   return (
@@ -35,13 +33,13 @@ export const PropertiesHeader = ({ data }: PropertiesHeaderProps) => {
             >
               {data.label || label}
             </h2>
-
-            {data.status && <StatusBadge status={data.status} />}
           </div>
           <div className="mt-1 flex items-center gap-2">
             <span className="text-[10px] text-nss-muted font-mono uppercase truncate">
-              {/* Prioritize subLabel from config if not on data */}
               {data.subLabel || subLabel}
+            </span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded border border-nss-border bg-nss-surface text-nss-muted uppercase tracking-wide">
+              {data.profile}
             </span>
           </div>
         </div>

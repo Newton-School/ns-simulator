@@ -12,12 +12,12 @@ const fromRegistry = (id: string) => {
 
   return {
     id: def.id,
+    templateId: def.id,
     type: def.type,
     label: def.label,
     subLabel: def.subLabel,
     icon: def.icon,
-    color: theme,
-    data: { ...def.defaultData, registryId: def.id }
+    color: theme
   }
 }
 

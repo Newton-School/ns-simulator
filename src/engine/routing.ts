@@ -34,7 +34,7 @@ export class RoutingTable {
 
   /**
    * Set of node IDs that should use round-robin routing, derived from node
-   * type metadata. Only populated when node definitions are provided.
+   * config metadata. Only populated when node definitions are provided.
    */
   private readonly roundRobinSourceIds: Set<string>
 
@@ -42,7 +42,7 @@ export class RoutingTable {
    * @param edges Topology edges used to build routing lookup tables.
    * @param rng   RNG dependency used for probabilistic routing decisions.
    * @param nodes Optional node definitions used to identify round-robin sources
-   *              by type rather than by ID heuristic.
+   *              by explicit routing strategy rather than by type heuristic.
    */
   constructor(
     edges: EdgeDefinition[],
@@ -58,15 +58,10 @@ export class RoutingTable {
       }
     }
 
-    const ROUND_ROBIN_TYPES = new Set<string>([
-      'load-balancer',
-      'load-balancer-l4',
-      'load-balancer-l7',
-      'ingress-controller',
-      'reverse-proxy'
-    ])
     this.roundRobinSourceIds = new Set(
-      nodes.filter((n) => ROUND_ROBIN_TYPES.has(n.type)).map((n) => n.id)
+      nodes
+        .filter((node) => node.config?.['routingStrategy'] === 'round-robin')
+        .map((node) => node.id)
     )
   }
 
@@ -210,16 +205,20 @@ export class RoutingTable {
 
   /**
    * Returns true if the source node should use round-robin routing.
-   * Uses node type metadata when available (node type === 'load-balancer').
-   * Falls back to an ID substring heuristic when the RoutingTable was
-   * constructed without node definitions.
+   * Uses explicit node config when available. Falls back to an ID substring
+   * heuristic for legacy topology JSON that predates routingStrategy.
    */
   private isRoundRobinSource(sourceNodeId: string): boolean {
     if (this.roundRobinSourceIds.size > 0) {
       return this.roundRobinSourceIds.has(sourceNodeId)
     }
     const id = sourceNodeId.toLowerCase()
-    return id.includes('load-balancer') || id.includes('lb')
+    return (
+      id.includes('load-balancer') ||
+      id.includes('lb') ||
+      id.includes('ingress') ||
+      id.includes('reverse-proxy')
+    )
   }
 
   /**

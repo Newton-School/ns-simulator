@@ -1,0 +1,627 @@
+{
+  "version": "2.0.0",
+  "nodes": [
+    {
+      "id": "node_3",
+      "type": "serviceNode",
+      "position": {
+        "x": 221.9931640687812,
+        "y": -706.1019070031791
+      },
+      "data": {
+        "schemaVersion": 2,
+        "templateId": "client-user",
+        "componentType": "api-endpoint",
+        "structuralRole": "source",
+        "profile": "source",
+        "rendererType": "serviceNode",
+        "label": "Client App",
+        "subLabel": "Browser / Mobile",
+        "iconKey": "monitor",
+        "source": {
+          "requestDistribution": [
+            {
+              "type": "GET",
+              "weight": 1,
+              "sizeBytes": 1024
+            }
+          ],
+          "defaultWorkload": {
+            "pattern": "poisson",
+            "baseRps": 100,
+            "bursty": {
+              "burstRps": 500,
+              "burstDuration": 2000,
+              "normalDuration": 8000
+            },
+            "spike": {
+              "spikeTime": 30000,
+              "spikeRps": 1000,
+              "spikeDuration": 5000
+            },
+            "sawtooth": {
+              "peakRps": 300,
+              "rampDuration": 10000
+            }
+          }
+        }
+      },
+      "width": 256,
+      "height": 118,
+      "selected": false,
+      "positionAbsolute": {
+        "x": 221.9931640687812,
+        "y": -706.1019070031791
+      },
+      "dragging": false,
+      "nodes": []
+    },
+    {
+      "id": "node_5",
+      "type": "serviceNode",
+      "position": {
+        "x": 222.81957853020583,
+        "y": -504.0929911630642
+      },
+      "data": {
+        "schemaVersion": 2,
+        "templateId": "dns",
+        "componentType": "internal-dns",
+        "structuralRole": "router",
+        "profile": "router",
+        "rendererType": "serviceNode",
+        "label": "DNS Resolver",
+        "subLabel": "Client-side Name Resolution",
+        "iconKey": "dns",
+        "sim": {
+          "queue": {
+            "workers": 8,
+            "capacity": 9,
+            "discipline": "fifo"
+          },
+          "processing": {
+            "distribution": {
+              "type": "exponential",
+              "lambda": 2
+            },
+            "timeout": 100
+          }
+        }
+      },
+      "width": 256,
+      "height": 228,
+      "selected": false,
+      "positionAbsolute": {
+        "x": 222.81957853020583,
+        "y": -504.0929911630642
+      },
+      "dragging": false,
+      "nodes": []
+    },
+    {
+      "id": "node_6",
+      "type": "serviceNode",
+      "position": {
+        "x": 222.81957853020572,
+        "y": -244.30760344391297
+      },
+      "data": {
+        "schemaVersion": 2,
+        "templateId": "load-balancer-l7",
+        "componentType": "load-balancer-l7",
+        "structuralRole": "router",
+        "profile": "router",
+        "rendererType": "serviceNode",
+        "label": "Load Balancer L7",
+        "subLabel": "HTTP / gRPC",
+        "iconKey": "load-balancer-l7",
+        "routingStrategy": "round-robin",
+        "sim": {
+          "queue": {
+            "workers": 8,
+            "capacity": 16,
+            "discipline": "fifo"
+          },
+          "processing": {
+            "distribution": {
+              "type": "exponential",
+              "lambda": 2.5
+            },
+            "timeout": 100
+          }
+        }
+      },
+      "width": 256,
+      "height": 228,
+      "selected": false,
+      "positionAbsolute": {
+        "x": 222.81957853020572,
+        "y": -244.30760344391297
+      },
+      "dragging": false,
+      "nodes": []
+    },
+    {
+      "id": "node_7",
+      "type": "serviceNode",
+      "position": {
+        "x": 222.81957853020572,
+        "y": 20.116809055937352
+      },
+      "data": {
+        "schemaVersion": 2,
+        "templateId": "api-gateway",
+        "componentType": "api-gateway",
+        "structuralRole": "router",
+        "profile": "router",
+        "rendererType": "serviceNode",
+        "label": "API Gateway",
+        "subLabel": "Request Router",
+        "iconKey": "globe",
+        "sim": {
+          "queue": {
+            "workers": 8,
+            "capacity": 18,
+            "discipline": "fifo"
+          },
+          "processing": {
+            "distribution": {
+              "type": "exponential",
+              "lambda": 1
+            },
+            "timeout": 100
+          }
+        }
+      },
+      "width": 256,
+      "height": 226,
+      "selected": true,
+      "positionAbsolute": {
+        "x": 222.81957853020572,
+        "y": 20.116809055937352
+      },
+      "dragging": false,
+      "nodes": []
+    },
+    {
+      "id": "node_8",
+      "type": "computeNode",
+      "position": {
+        "x": 615.5903432960653,
+        "y": 23.663150649503706
+      },
+      "data": {
+        "schemaVersion": 2,
+        "templateId": "auth-service",
+        "componentType": "auth-service",
+        "structuralRole": "processor",
+        "profile": "compute-service",
+        "rendererType": "computeNode",
+        "label": "Auth Service",
+        "subLabel": "Authentication / Tokens",
+        "iconKey": "AUTH",
+        "sim": {
+          "queue": {
+            "workers": 8,
+            "capacity": 13,
+            "discipline": "fifo"
+          },
+          "processing": {
+            "distribution": {
+              "type": "exponential",
+              "lambda": 0.4
+            },
+            "timeout": 100
+          }
+        }
+      },
+      "width": 180,
+      "height": 161,
+      "selected": false,
+      "positionAbsolute": {
+        "x": 615.5903432960653,
+        "y": 23.663150649503706
+      },
+      "dragging": false,
+      "nodes": []
+    },
+    {
+      "id": "node_9",
+      "type": "computeNode",
+      "position": {
+        "x": 260.83909358866595,
+        "y": 284.9948799622213
+      },
+      "data": {
+        "schemaVersion": 2,
+        "templateId": "backend-server",
+        "componentType": "microservice",
+        "structuralRole": "processor",
+        "profile": "compute-service",
+        "rendererType": "computeNode",
+        "label": "API Server",
+        "subLabel": "Long-running Process",
+        "iconKey": "SERVER",
+        "sim": {
+          "queue": {
+            "workers": 8,
+            "capacity": 20,
+            "discipline": "fifo"
+          },
+          "processing": {
+            "distribution": {
+              "type": "exponential",
+              "lambda": 0.2777777777777778
+            },
+            "timeout": 144
+          }
+        }
+      },
+      "width": 180,
+      "height": 161,
+      "selected": false,
+      "positionAbsolute": {
+        "x": 260.83909358866595,
+        "y": 284.9948799622213
+      },
+      "dragging": false,
+      "nodes": []
+    },
+    {
+      "id": "node_10",
+      "type": "serviceNode",
+      "position": {
+        "x": -148.51215078251187,
+        "y": 581.3168517457085
+      },
+      "data": {
+        "schemaVersion": 2,
+        "templateId": "message-queue",
+        "componentType": "queue",
+        "structuralRole": "storage",
+        "profile": "broker",
+        "rendererType": "serviceNode",
+        "label": "Message Queue",
+        "subLabel": "SQS / RabbitMQ",
+        "iconKey": "queue",
+        "sim": {
+          "queue": {
+            "workers": 8,
+            "capacity": 8,
+            "discipline": "fifo"
+          },
+          "processing": {
+            "distribution": {
+              "type": "exponential",
+              "lambda": 3.75
+            },
+            "timeout": 100
+          }
+        }
+      },
+      "width": 256,
+      "height": 228,
+      "selected": false,
+      "positionAbsolute": {
+        "x": -148.51215078251187,
+        "y": 581.3168517457085
+      },
+      "dragging": false,
+      "nodes": []
+    },
+    {
+      "id": "node_11",
+      "type": "serviceNode",
+      "position": {
+        "x": 222.29764410026814,
+        "y": 584.7217225059917
+      },
+      "data": {
+        "schemaVersion": 2,
+        "templateId": "redis-cache",
+        "componentType": "in-memory-cache",
+        "structuralRole": "storage",
+        "profile": "datastore",
+        "rendererType": "serviceNode",
+        "label": "Redis Cache",
+        "subLabel": "In-memory key/val",
+        "iconKey": "server",
+        "sim": {
+          "queue": {
+            "workers": 8,
+            "capacity": 12,
+            "discipline": "fifo"
+          },
+          "processing": {
+            "distribution": {
+              "type": "exponential",
+              "lambda": 0.3333333333333333
+            },
+            "timeout": 120
+          }
+        }
+      },
+      "width": 256,
+      "height": 228,
+      "selected": false,
+      "positionAbsolute": {
+        "x": 222.29764410026814,
+        "y": 584.7217225059917
+      },
+      "dragging": false,
+      "nodes": []
+    },
+    {
+      "id": "node_12",
+      "type": "serviceNode",
+      "position": {
+        "x": 580.2976441002681,
+        "y": 582.7217225059917
+      },
+      "data": {
+        "schemaVersion": 2,
+        "templateId": "primary-db",
+        "componentType": "relational-db",
+        "structuralRole": "storage",
+        "profile": "datastore",
+        "rendererType": "serviceNode",
+        "label": "Primary DB",
+        "subLabel": "Relational SQL",
+        "iconKey": "database",
+        "sim": {
+          "queue": {
+            "workers": 8,
+            "capacity": 33,
+            "discipline": "fifo"
+          },
+          "processing": {
+            "distribution": {
+              "type": "exponential",
+              "lambda": 0.125
+            },
+            "timeout": 320
+          }
+        }
+      },
+      "width": 256,
+      "height": 228,
+      "selected": false,
+      "positionAbsolute": {
+        "x": 580.2976441002681,
+        "y": 582.7217225059917
+      },
+      "dragging": false,
+      "nodes": []
+    },
+    {
+      "id": "node_13",
+      "type": "computeNode",
+      "position": {
+        "x": -141.70235589973186,
+        "y": 874.7217225059917
+      },
+      "data": {
+        "schemaVersion": 2,
+        "templateId": "async-worker",
+        "componentType": "batch-worker",
+        "structuralRole": "processor",
+        "profile": "worker",
+        "rendererType": "computeNode",
+        "label": "Job Worker",
+        "subLabel": "Background Task",
+        "iconKey": "WORKER",
+        "sim": {
+          "queue": {
+            "workers": 9,
+            "capacity": 157,
+            "discipline": "fifo"
+          },
+          "processing": {
+            "distribution": {
+              "type": "exponential",
+              "lambda": 0.056818181818181816
+            },
+            "timeout": 704
+          }
+        },
+        "ui": {
+          "overloadPreview": true
+        }
+      },
+      "width": 180,
+      "height": 161,
+      "selected": false,
+      "positionAbsolute": {
+        "x": -141.70235589973186,
+        "y": 874.7217225059917
+      },
+      "dragging": false,
+      "nodes": []
+    },
+    {
+      "id": "node_14",
+      "type": "serviceNode",
+      "position": {
+        "x": 582.2976441002681,
+        "y": 876.7217225059917
+      },
+      "data": {
+        "schemaVersion": 2,
+        "templateId": "read-replica",
+        "componentType": "relational-db",
+        "structuralRole": "storage",
+        "profile": "datastore",
+        "rendererType": "serviceNode",
+        "label": "Read Replica",
+        "subLabel": "SQL Read Replica",
+        "iconKey": "replica",
+        "sim": {
+          "queue": {
+            "workers": 8,
+            "capacity": 18,
+            "discipline": "fifo"
+          },
+          "processing": {
+            "distribution": {
+              "type": "exponential",
+              "lambda": 0.125
+            },
+            "timeout": 320
+          }
+        }
+      },
+      "width": 256,
+      "height": 228,
+      "selected": false,
+      "positionAbsolute": {
+        "x": 582.2976441002681,
+        "y": 876.7217225059917
+      },
+      "dragging": false,
+      "nodes": []
+    }
+  ],
+  "edges": [
+    {
+      "type": "packet",
+      "animated": true,
+      "style": {
+        "stroke": "#94A3B8",
+        "strokeWidth": 2
+      },
+      "source": "node_3",
+      "sourceHandle": "bottom-1-source",
+      "target": "node_5",
+      "targetHandle": "top-1-target",
+      "id": "reactflow__edge-node_3bottom-1-source-node_5top-1-target"
+    },
+    {
+      "type": "packet",
+      "animated": true,
+      "style": {
+        "stroke": "#94A3B8",
+        "strokeWidth": 2
+      },
+      "source": "node_5",
+      "sourceHandle": "bottom-1-source",
+      "target": "node_6",
+      "targetHandle": "top-1-target",
+      "id": "reactflow__edge-node_5bottom-1-source-node_6top-1-target"
+    },
+    {
+      "type": "packet",
+      "animated": true,
+      "style": {
+        "stroke": "#94A3B8",
+        "strokeWidth": 2
+      },
+      "source": "node_6",
+      "sourceHandle": "bottom-1-source",
+      "target": "node_7",
+      "targetHandle": "top-1-target",
+      "id": "reactflow__edge-node_6bottom-1-source-node_7top-1-target"
+    },
+    {
+      "type": "packet",
+      "animated": true,
+      "style": {
+        "stroke": "#94A3B8",
+        "strokeWidth": 2
+      },
+      "source": "node_7",
+      "sourceHandle": "right-1-source",
+      "target": "node_8",
+      "targetHandle": "left-1-target",
+      "id": "reactflow__edge-node_7right-1-source-node_8left-1-target"
+    },
+    {
+      "type": "packet",
+      "animated": true,
+      "style": {
+        "stroke": "#94A3B8",
+        "strokeWidth": 2
+      },
+      "source": "node_7",
+      "sourceHandle": "bottom-1-source",
+      "target": "node_9",
+      "targetHandle": "top-1-target",
+      "id": "reactflow__edge-node_7bottom-1-source-node_9top-1-target"
+    },
+    {
+      "type": "packet",
+      "animated": true,
+      "style": {
+        "stroke": "#94A3B8",
+        "strokeWidth": 2
+      },
+      "source": "node_9",
+      "sourceHandle": "bottom-1-source",
+      "target": "node_10",
+      "targetHandle": "top-1-target",
+      "id": "reactflow__edge-node_9bottom-1-source-node_10top-1-target"
+    },
+    {
+      "type": "packet",
+      "animated": true,
+      "style": {
+        "stroke": "#94A3B8",
+        "strokeWidth": 2
+      },
+      "source": "node_9",
+      "sourceHandle": "bottom-1-source",
+      "target": "node_11",
+      "targetHandle": "top-1-target",
+      "id": "reactflow__edge-node_9bottom-1-source-node_11top-1-target"
+    },
+    {
+      "type": "packet",
+      "animated": true,
+      "style": {
+        "stroke": "#94A3B8",
+        "strokeWidth": 2
+      },
+      "source": "node_9",
+      "sourceHandle": "bottom-1-source",
+      "target": "node_12",
+      "targetHandle": "top-1-target",
+      "id": "reactflow__edge-node_9bottom-1-source-node_12top-1-target"
+    },
+    {
+      "type": "packet",
+      "animated": true,
+      "style": {
+        "stroke": "#94A3B8",
+        "strokeWidth": 2
+      },
+      "source": "node_10",
+      "sourceHandle": "bottom-1-source",
+      "target": "node_13",
+      "targetHandle": "top-1-target",
+      "id": "reactflow__edge-node_10bottom-1-source-node_13top-1-target"
+    },
+    {
+      "type": "packet",
+      "animated": true,
+      "style": {
+        "stroke": "#94A3B8",
+        "strokeWidth": 2
+      },
+      "source": "node_12",
+      "sourceHandle": "bottom-1-source",
+      "target": "node_14",
+      "targetHandle": "top-1-target",
+      "id": "reactflow__edge-node_12bottom-1-source-node_14top-1-target"
+    }
+  ],
+  "scenario": {
+    "global": {
+      "simulationDuration": 60000,
+      "warmupDuration": 5000,
+      "seed": "default-seed",
+      "defaultTimeout": 5000,
+      "traceSampleRate": 0.01
+    },
+    "selectedSourceNodeId": "node_1",
+    "workloadOverride": {}
+  }
+}

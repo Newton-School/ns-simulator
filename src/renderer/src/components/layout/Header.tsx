@@ -8,7 +8,7 @@ import { Branding } from './Branding'
 import { FileStatus } from './FileStatus'
 import { ThemeToggle } from './ThemeToggle'
 import { SimulationControls } from '../simulation/SimulationControls'
-import type { ScenarioSettings, SourceNodeOption } from '../simulation/ScenarioBar'
+import type { ScenarioState, SourceNodeOption } from '@renderer/types/ui'
 
 interface HeaderProps {
   // Layout
@@ -24,13 +24,15 @@ interface HeaderProps {
   isUnsaved: boolean
 
   // Simulation
-  onRun: (settings: ScenarioSettings) => void
+  onRun: () => void
   onPause: () => void
   onResume: () => void
   onStop: () => void
   isRunning: boolean
   isPaused: boolean
   sourceNodes: SourceNodeOption[]
+  scenario: ScenarioState
+  onScenarioChange: (updater: (current: ScenarioState) => ScenarioState) => void
   simulationDisabled?: boolean
 }
 
@@ -51,6 +53,8 @@ export const Header = memo(
     isRunning,
     isPaused,
     sourceNodes,
+    scenario,
+    onScenarioChange,
     simulationDisabled
   }: HeaderProps) => {
     return (
@@ -86,6 +90,8 @@ export const Header = memo(
             isRunning={isRunning}
             isPaused={isPaused}
             sourceNodes={sourceNodes}
+            scenario={scenario}
+            onScenarioChange={onScenarioChange}
             disabled={simulationDisabled}
           />
         </div>

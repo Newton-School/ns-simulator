@@ -6,20 +6,12 @@ interface LibraryItemProps {
 }
 
 export const LibraryItem = ({ item }: LibraryItemProps) => {
-  const { icon: Icon, label, subLabel, color, type, data, id } = item
+  const { icon: Icon, label, subLabel, color, type, templateId } = item
   const { bg, text } = color
 
   const onDragStart = (event: React.DragEvent) => {
     event.dataTransfer.setData('application/reactflow/type', type)
-    event.dataTransfer.setData(
-      'application/reactflow/data',
-      JSON.stringify({
-        label,
-        color,
-        ...data,
-        registryId: id
-      })
-    )
+    event.dataTransfer.setData('application/reactflow/template-id', templateId)
     event.dataTransfer.effectAllowed = 'move'
   }
 

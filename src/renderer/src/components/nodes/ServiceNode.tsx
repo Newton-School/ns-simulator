@@ -9,10 +9,11 @@ import { resolveNodeConfig } from '@renderer/config/nodeRegistry'
 import { useNodeMetrics } from '@renderer/hooks/useNodeMetrics'
 import BaseNode from '@renderer/components/nodes/BaseNode'
 import { useFlowStore } from '@renderer/components/canvas/hooks/useFlowStore'
+import { getNodeStatus, getPreRunSummary } from './nodePresentation'
 
 const ServiceNode = ({ id, data, selected }: NodeProps<ServiceNodeData>) => {
   const { updateNodeData } = useFlowStore()
-  const { icon: IconComponent } = resolveNodeConfig(data.iconKey)
+  const { icon: IconComponent, theme } = resolveNodeConfig(data.templateId || data.iconKey)
 
   const handleLabelChange = useCallback(
     (newLabel: string) => {
@@ -21,15 +22,9 @@ const ServiceNode = ({ id, data, selected }: NodeProps<ServiceNodeData>) => {
     [id, updateNodeData]
   )
 
-  const { throughput, errorRate, queueDepth, utilization, hasRuntime, active } = useNodeMetrics(
-    id,
-    {
-      throughput: data.throughput,
-      errorRate: data.errorRate,
-      queueDepth: data.queueDepth,
-      utilization: data.load
-    }
-  )
+  const { throughput, errorRate, queueDepth, utilization, hasRuntime, active } = useNodeMetrics(id)
+  const summaryMetrics = getPreRunSummary(data)
+  const status = getNodeStatus(data)
 
   // After a simulation run, nodes that received zero post-warmup traffic are
   // visually muted so users can see at a glance which nodes stayed inactive.
@@ -42,8 +37,8 @@ const ServiceNode = ({ id, data, selected }: NodeProps<ServiceNodeData>) => {
           <NodeHeader
             label={data.label || 'Service'}
             icon={IconComponent}
-            status={data.status}
-            color={data.color}
+            status={status}
+            color={theme}
             onLabelChange={handleLabelChange}
           >
             <NodeSettingsMenu
@@ -59,7 +54,7 @@ const ServiceNode = ({ id, data, selected }: NodeProps<ServiceNodeData>) => {
               <p className="text-[10px] text-nss-muted italic text-center py-2">
                 No post-warmup traffic
               </p>
-            ) : (
+            ) : hasRuntime ? (
               <>
                 <div className="grid grid-cols-2 gap-4 mb-3">
                   <MetricItem
@@ -82,6 +77,18 @@ const ServiceNode = ({ id, data, selected }: NodeProps<ServiceNodeData>) => {
                 </div>
                 <ProgressBar label="Utilization" value={utilization} />
               </>
+            ) : (
+              <div className="grid grid-cols-2 gap-4">
+                {summaryMetrics.map((metric) => (
+                  <MetricItem
+                    key={metric.label}
+                    label={metric.label}
+                    value={metric.value}
+                    unit={metric.unit}
+                    textColor={metric.textColor}
+                  />
+                ))}
+              </div>
             )}
           </div>
         </div>
