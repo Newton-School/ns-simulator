@@ -103,7 +103,7 @@ export const FIELD_DEFINITIONS: Record<FieldPath, FieldDefinition> = {
   'sim.queue.discipline': {
     type: 'select',
     label: 'Queue Discipline',
-    options: ['fifo', 'lifo', 'priority']
+    options: ['fifo', 'lifo', 'priority', 'wfq']
   },
   'sim.processing.timeout': { type: 'input', label: 'Timeout', unit: 'ms' },
   'sim.processing.distribution.type': {

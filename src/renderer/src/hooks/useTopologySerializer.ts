@@ -11,7 +11,7 @@ import { getPaletteTemplate } from '../../../engine/catalog/paletteTemplates'
 import type { CanvasNodeDataV2 } from '../../../engine/catalog/nodeSpecTypes'
 import useStore from '../store/useStore'
 import type { ScenarioRunContext, ScenarioState } from '@renderer/types/ui'
-import { DEFAULT_SCENARIO_STATE } from '@renderer/types/ui'
+import { normalizeScenarioState } from '@renderer/types/ui'
 
 type EdgeRuntimeData = {
   protocol?: EdgeDefinition['protocol']
@@ -31,8 +31,8 @@ const EDGE_DEFAULTS = {
   pathType: 'same-dc' as const,
   bandwidth: 1000,
   maxConcurrentRequests: 100,
-  packetLossRate: 0,
-  errorRate: 0.1
+  packetLossRatePercent: 0,
+  errorRatePercent: 0.1
 }
 
 function asPositiveNumber(value: unknown): number | null {
@@ -50,6 +50,10 @@ function asProbabilityFromPercent(value: unknown): number | null {
   }
 
   return value / 100
+}
+
+function normalizePercentToRatio(value: unknown, defaultPercent: number): number {
+  return clamp(asProbabilityFromPercent(value) ?? defaultPercent / 100, 0, 1)
 }
 
 function asPathType(value: unknown): EdgeDefinition['latency']['pathType'] | null {
@@ -210,16 +214,11 @@ function serializeEdge(
     bandwidth: asPositiveNumber(edgeData.bandwidth) ?? EDGE_DEFAULTS.bandwidth,
     maxConcurrentRequests:
       asPositiveInt(edgeData.maxConcurrentRequests) ?? EDGE_DEFAULTS.maxConcurrentRequests,
-    packetLossRate: clamp(
-      asProbabilityFromPercent(edgeData.packetLossRate) ?? EDGE_DEFAULTS.packetLossRate,
-      0,
-      1
+    packetLossRate: normalizePercentToRatio(
+      edgeData.packetLossRate,
+      EDGE_DEFAULTS.packetLossRatePercent
     ),
-    errorRate: clamp(
-      asProbabilityFromPercent(edgeData.errorRate) ?? EDGE_DEFAULTS.errorRate / 100,
-      0,
-      1
-    )
+    errorRate: normalizePercentToRatio(edgeData.errorRate, EDGE_DEFAULTS.errorRatePercent)
   }
 }
 
@@ -236,15 +235,7 @@ export function useTopologySerializer() {
 
   const serialize = useCallback(
     (overrideScenario?: ScenarioState): SerializerResult => {
-      const activeScenario = overrideScenario ?? scenario
-      const resolvedScenario: ScenarioState = {
-        global: {
-          ...DEFAULT_SCENARIO_STATE.global,
-          ...activeScenario.global
-        },
-        selectedSourceNodeId: activeScenario.selectedSourceNodeId,
-        workloadOverride: activeScenario.workloadOverride ?? {}
-      }
+      const resolvedScenario = normalizeScenarioState(overrideScenario ?? scenario)
 
       const errors: string[] = []
       const engineNodes: TopologyJSON['nodes'] = []

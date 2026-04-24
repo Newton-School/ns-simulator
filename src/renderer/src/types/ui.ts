@@ -85,3 +85,33 @@ export const DEFAULT_SCENARIO_STATE: ScenarioState = {
   selectedSourceNodeId: undefined,
   workloadOverride: {}
 }
+
+export function normalizeScenarioState(value: unknown): ScenarioState {
+  if (!value || typeof value !== 'object') {
+    return {
+      global: { ...DEFAULT_SCENARIO_STATE.global },
+      selectedSourceNodeId: DEFAULT_SCENARIO_STATE.selectedSourceNodeId,
+      workloadOverride: {}
+    }
+  }
+
+  const scenario = value as Partial<ScenarioState>
+  const global =
+    scenario.global && typeof scenario.global === 'object' ? scenario.global : undefined
+  const workloadOverride =
+    scenario.workloadOverride && typeof scenario.workloadOverride === 'object'
+      ? scenario.workloadOverride
+      : undefined
+
+  return {
+    global: {
+      ...DEFAULT_SCENARIO_STATE.global,
+      ...global
+    },
+    selectedSourceNodeId:
+      typeof scenario.selectedSourceNodeId === 'string' && scenario.selectedSourceNodeId.length > 0
+        ? scenario.selectedSourceNodeId
+        : undefined,
+    workloadOverride: workloadOverride ? { ...workloadOverride } : {}
+  }
+}

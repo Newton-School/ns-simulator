@@ -7,7 +7,7 @@ import {
   NestedFileData
 } from '@renderer/utils/nodeTransformers'
 import { migrateCanvasNodes } from '../../../engine/catalog/legacyCanvasMigration'
-import { DEFAULT_SCENARIO_STATE } from '@renderer/types/ui'
+import { normalizeScenarioState } from '@renderer/types/ui'
 
 const extractFileName = (path: string): string => {
   return path.replace(/^.*[\\/]/, '')
@@ -66,7 +66,7 @@ export const useFlowPersistence = () => {
 
         setNodes(flatNodes)
         setEdges(data.edges || [])
-        setScenario(data.scenario ?? DEFAULT_SCENARIO_STATE)
+        setScenario(normalizeScenarioState(data.scenario))
         setUnsaved(false)
 
         if (filePath && typeof filePath === 'string') {
