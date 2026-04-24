@@ -141,11 +141,27 @@
 .custom-source-handle {
   z-index: 10 !important;
   cursor: grab;
+  --prox-scale: 1;
+  --prox-intensity: 0;
+  will-change: transform, opacity;
+  transition: transform 80ms ease-out, opacity 80ms ease-out, box-shadow 80ms ease-out;
+}
+
+/* Passive proximity: source handle scales up when cursor is nearby */
+.custom-source-handle.proximity-source {
+  opacity: var(--prox-intensity) !important;
+  transform: scale(var(--prox-scale)) !important;
+  background-color: #f59e0b !important;
+  box-shadow: 0 0 0 1.5px rgba(245, 158, 11, calc(var(--prox-intensity) * 0.25)) !important;
 }
 
 .custom-target-handle {
   z-index: 1 !important;
   pointer-events: none;
+  --magnetic-glow-alpha: 0;
+  --magnetic-scale: 1;
+  will-change: transform, opacity, box-shadow;
+  transition: transform 80ms ease-out, opacity 80ms ease-out, box-shadow 80ms ease-out;
 }
 
 .custom-source-handle:hover {
@@ -170,4 +186,56 @@ body.react-flow-connecting .custom-target-handle:hover {
   transform: scale(1.7);
   background-color: #3b82f6 !important;
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+/* Edge endpoint grab handles */
+.edge-endpoint {
+  fill: #3b82f6;
+  stroke: var(--nss-surface, #fff);
+  stroke-width: 2;
+  opacity: 0;
+  transition: opacity 150ms ease, r 150ms ease;
+  cursor: grab;
+}
+
+.react-flow__edge:hover .edge-endpoint,
+.react-flow__edge.selected .edge-endpoint {
+  opacity: 1;
+}
+
+.react-flow__edge.updating .edge-endpoint {
+  opacity: 0;
+}
+
+/* All target handles in snap radius: graduated glow */
+body.react-flow-connecting .custom-target-handle.magnetic-nearby {
+  opacity: var(--magnetic-glow-alpha, 0.4) !important;
+  transform: scale(var(--magnetic-scale, 1)) !important;
+}
+
+/* Winner (closest) also gets a colored ring on top */
+body.react-flow-connecting .custom-target-handle.magnetic-snap-winner {
+  opacity: var(--magnetic-glow-alpha, 0.4) !important;
+  transform: scale(var(--magnetic-scale, 1)) !important;
+  background-color: #3b82f6 !important;
+  box-shadow:
+    0 0 0 2px rgba(59, 130, 246, calc(var(--magnetic-glow-alpha, 0) * 0.6)),
+    0 0 12px rgba(59, 130, 246, calc(var(--magnetic-glow-alpha, 0) * 0.8)) !important;
+}
+
+[data-theme='dark'] body.react-flow-connecting .custom-target-handle.magnetic-snap-winner {
+  box-shadow:
+    0 0 0 2px rgba(59, 130, 246, calc(var(--magnetic-glow-alpha, 0) * 0.7)),
+    0 0 16px rgba(59, 130, 246, calc(var(--magnetic-glow-alpha, 0) * 1.0)) !important;
+}
+
+/* Pulsing ring in connection line SVG — shown when cursor is in the drop zone */
+@keyframes connection-snap-ring {
+  0%   { r: 8px;  opacity: 0.7; }
+  60%  { r: 18px; opacity: 0;   }
+  100% { r: 18px; opacity: 0;   }
+}
+
+.connection-snap-ring {
+  animation: connection-snap-ring 0.75s ease-out infinite;
 }
