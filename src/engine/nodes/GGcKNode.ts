@@ -151,6 +151,40 @@ export class GGcKNode {
     return { nextRequest, completedSpan }
   }
 
+  cancelRequest(requestId: string, currentTime: bigint): bigint | null {
+    const arrivalTime = this.arrivalTimes.get(requestId) ?? null
+
+    const queuedIndex = this.queue.findIndex((request) => request.id === requestId)
+    if (queuedIndex >= 0) {
+      this.queue.splice(queuedIndex, 1)
+      this.arrivalTimes.delete(requestId)
+      this.startTimes.delete(requestId)
+      this.updateStatus()
+      return arrivalTime
+    }
+
+    if (this.startTimes.has(requestId)) {
+      if (this.activeWorkers > 0) {
+        this.activeWorkers--
+      }
+
+      this.arrivalTimes.delete(requestId)
+      this.startTimes.delete(requestId)
+
+      if (this.status !== 'failed' && this.queue.length > 0) {
+        const nextRequest = this.dequeue()
+        if (nextRequest) {
+          this.startProcessing(nextRequest, currentTime)
+        }
+      }
+
+      this.updateStatus()
+      return arrivalTime
+    }
+
+    return null
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   fail(_currentTime: bigint): void {
     this.metrics.totalRejections += this.queue.length

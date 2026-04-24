@@ -138,6 +138,28 @@ describe('RoutingTable', () => {
     expect(picks.map((r) => r.targetNodeId)).toEqual(['a', 'b', 'c', 'a', 'b', 'c', 'a'])
   })
 
+  it('round-robin cycles through targets when routingStrategy is explicit on the node config', () => {
+    const edges = [
+      makeEdge('e1', 'router-1', 'a'),
+      makeEdge('e2', 'router-1', 'b'),
+      makeEdge('e3', 'router-1', 'c')
+    ]
+    const nodes: ComponentNode[] = [
+      {
+        ...makeNode('router-1'),
+        config: { routingStrategy: 'round-robin' }
+      }
+    ]
+
+    const routing = new RoutingTable(edges, createRandom('rr-config'), nodes)
+    const picks = Array.from(
+      { length: 6 },
+      () => routing.resolveTarget('router-1', makeRequest())[0]
+    )
+
+    expect(picks.map((route) => route.targetNodeId)).toEqual(['a', 'b', 'c', 'a', 'b', 'c'])
+  })
+
   it('round-robin falls back to id heuristic when no nodes provided', () => {
     const edges = [makeEdge('e1', 'load-balancer-1', 'a'), makeEdge('e2', 'load-balancer-1', 'b')]
 

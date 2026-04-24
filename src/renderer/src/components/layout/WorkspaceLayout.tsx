@@ -9,6 +9,7 @@ import { useFlowPersistence } from '@renderer/hooks/useFlowPersistence'
 import { useSimulation } from '@renderer/hooks/useSimulation'
 import { useTopologySerializer } from '@renderer/hooks/useTopologySerializer'
 import { validateTopology } from '../../../../engine/validation/validator'
+import type { ValidationError } from '../../../../engine/validation/validator'
 
 // Organisms
 import { LibrarySidebar } from '../library/LibrarySidebar'
@@ -20,9 +21,18 @@ import { ResultsTray } from '../simulation/ResultsTray'
 // Atoms
 import { ResizeHandle } from '../ui/ResizeHandle'
 import { RunToast } from '../ui/RunToast'
-import type { ScenarioSettings } from '../simulation/ScenarioBar'
+import type { CanvasNodeDataV2 } from '../../../../engine/catalog/nodeSpecTypes'
+import type { ScenarioRunContext, SourceNodeOption } from '@renderer/types/ui'
 
 type RunIssueTone = 'warning' | 'error'
+
+function formatValidationIssue(error: ValidationError): string {
+  if (error.path === 'workload.sourceNodeId') {
+    return error.message
+  }
+
+  return error.path ? `${error.path}: ${error.message}` : error.message
+}
 
 export const WorkspaceLayout = () => {
   // Sidebar State
@@ -33,6 +43,7 @@ export const WorkspaceLayout = () => {
     messages: [],
     tone: 'warning'
   })
+  const [lastRunContext, setLastRunContext] = useState<ScenarioRunContext | null>(null)
 
   // Panel refs — panels stay in the DOM always; we collapse/expand imperatively
   // so that opening one side never redistributes the other side's size.
@@ -54,6 +65,8 @@ export const WorkspaceLayout = () => {
   const fileName = useStore((s) => s.fileName)
   const isUnsaved = useStore((s) => s.isUnsaved)
   const nodes = useStore((s) => s.nodes)
+  const scenario = useStore((s) => s.scenario)
+  const updateScenario = useStore((s) => s.updateScenario)
   const setSimulationMetrics = useStore((s) => s.setSimulationMetrics)
   const clearSimulationMetrics = useStore((s) => s.clearSimulationMetrics)
 
@@ -96,52 +109,53 @@ export const WorkspaceLayout = () => {
     }
   }, [sim.status, clearSimulationMetrics])
 
-  function startSimulation(settings?: ScenarioSettings) {
-    const { topology, errors } = serialize({
-      global: settings?.global,
-      workload: settings?.workload
-    })
+  function startSimulation() {
+    const { topology, errors, runContext } = serialize()
 
     if (!topology || errors.length > 0) {
       setRunIssues({
         messages: errors.length > 0 ? errors : ['Unable to serialize topology.'],
         tone: 'error'
       })
-      console.error('[ScenarioBar] Serialization errors:', errors)
       return
     }
 
     const validation = validateTopology(topology)
     if (!validation.valid) {
-      const validationErrors = validation.errors?.map(
-        (error) => `${error.path ? `${error.path}: ` : ''}${error.message}`
-      ) ?? ['Topology validation failed.']
+      const validationErrors = validation.errors?.map(formatValidationIssue) ?? [
+        'Topology validation failed.'
+      ]
       setRunIssues({ messages: validationErrors, tone: 'error' })
       return
     }
 
     setRunIssues({ messages: validation.warnings ?? [], tone: 'warning' })
     setShowResults(true)
+    setLastRunContext(runContext)
     clearSimulationMetrics()
     sim.run(topology)
   }
 
-  function handleRun(settings: ScenarioSettings) {
-    startSimulation(settings)
+  function handleRun() {
+    startSimulation()
   }
 
   const isRunning = sim.status === 'running'
   const isPaused = sim.status === 'paused'
-  const sourceNodes = nodes
-    .filter((node) => node.type !== 'vpcNode')
+  const sourceNodes: SourceNodeOption[] = nodes
+    .filter((node) => (node.data as CanvasNodeDataV2).profile === 'source')
     .map((node) => {
-      const label =
-        typeof (node.data as { label?: unknown })?.label === 'string'
-          ? ((node.data as { label?: string }).label as string)
-          : undefined
+      const data = node.data as CanvasNodeDataV2
       return {
         id: node.id,
-        label: label && label.trim().length > 0 ? `${label} (${node.id})` : node.id
+        label: data.label && data.label.trim().length > 0 ? `${data.label} (${node.id})` : node.id,
+        workload: data.source?.defaultWorkload ?? {
+          pattern: 'poisson',
+          baseRps: 100,
+          bursty: { burstRps: 500, burstDuration: 2000, normalDuration: 8000 },
+          spike: { spikeTime: 30_000, spikeRps: 1000, spikeDuration: 5000 },
+          sawtooth: { peakRps: 300, rampDuration: 10_000 }
+        }
       }
     })
 
@@ -164,11 +178,14 @@ export const WorkspaceLayout = () => {
           sim.stop()
           clearSimulationMetrics()
           setShowResults(false)
+          setLastRunContext(null)
           setRunIssues({ messages: [], tone: 'warning' })
         }}
         isRunning={isRunning}
         isPaused={isPaused}
         sourceNodes={sourceNodes}
+        scenario={scenario}
+        onScenarioChange={updateScenario}
       />
 
       {runIssues.messages.length > 0 && (
@@ -215,10 +232,12 @@ export const WorkspaceLayout = () => {
                       eventsProcessed={sim.eventsProcessed}
                       results={sim.results}
                       error={sim.error}
+                      runContext={lastRunContext}
                       onClose={() => {
                         setShowResults(false)
                         sim.reset()
                         clearSimulationMetrics()
+                        setLastRunContext(null)
                       }}
                     />
                   </Panel>

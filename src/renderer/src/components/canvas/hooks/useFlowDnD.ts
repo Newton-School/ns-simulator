@@ -1,6 +1,7 @@
 import { useCallback } from 'react'
 import { ReactFlowInstance, NodeDragHandler, Node, useReactFlow } from 'reactflow'
 import { findTargetVpc, getId } from '../utils/canvasUtils'
+import { instantiateTemplate } from '../../../../../engine/catalog/paletteTemplates'
 
 interface UseFlowDnDProps {
   nodes: Node[]
@@ -23,11 +24,9 @@ export const useFlowDnD = ({ nodes, addNode, setNodes, instance }: UseFlowDnDPro
     (event: React.DragEvent) => {
       event.preventDefault()
       const type = event.dataTransfer.getData('application/reactflow/type')
-      const dataString = event.dataTransfer.getData('application/reactflow/data')
+      const templateId = event.dataTransfer.getData('application/reactflow/template-id')
 
-      if (!type || !dataString) return
-
-      const data = JSON.parse(dataString)
+      if (!type || !templateId) return
       const position = instance?.screenToFlowPosition({
         x: event.clientX,
         y: event.clientY
@@ -40,7 +39,7 @@ export const useFlowDnD = ({ nodes, addNode, setNodes, instance }: UseFlowDnDPro
         id: getId(),
         type,
         position,
-        data: { ...data }
+        data: instantiateTemplate(templateId)
       }
 
       if (targetVpc) {

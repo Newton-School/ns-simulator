@@ -1,83 +1,18 @@
 import { LucideIcon } from 'lucide-react'
+import type { GlobalConfig, WorkloadProfile } from '../../../engine/core/types'
+import type { CanvasNodeDataV2, RendererNodeType } from '../../../engine/catalog/nodeSpecTypes'
 
-export interface ServiceNodeData {
-  kind: 'service'
-  registryId?: string
-  iconKey: string
-  status?: 'healthy' | 'degraded' | 'critical'
-  throughput?: number
-  errorRate?: number
-  load?: number
-  queueDepth?: number
-  workers?: number
-  capacity?: number
-  queueDiscipline?: 'fifo' | 'lifo' | 'priority' | 'wfq'
-  meanServiceMs?: number
-  timeoutMs?: number
-  region?: string
-
-  label: string
-  color?: ColorTheme | string
-}
-
-export interface SecurityNodeData {
-  kind: 'security'
-  registryId?: string
-  label: string
-  subLabel?: string
-  iconKey: string
-  status: 'healthy' | 'degraded' | 'critical'
-  color?: ColorTheme | string
-  blockRate?: number
-  droppedPackets?: number
-  activeThreats?: number
-  load?: number
-  workers?: number
-  capacity?: number
-  queueDiscipline?: 'fifo' | 'lifo' | 'priority' | 'wfq'
-  meanServiceMs?: number
-  timeoutMs?: number
-  region?: string
-}
-
-export type ComputeType =
-  | 'SERVER'
-  | 'LAMBDA'
-  | 'WORKER'
-  | 'CRON'
-  | 'AUTH'
-  | 'SEARCH_SERVICE'
-  | 'SIDECAR'
-
-export interface ComputeNodeData {
-  kind: 'compute'
-  registryId?: string
-  computeType: ComputeType
-  utilization: number // 0-100 (was cpu_usage)
-  queueDepth: number // pending work count (was queue_depth)
-  isOverloaded: boolean // simulation state (was is_overloaded)
-  workers?: number
-  capacity?: number
-  queueDiscipline?: 'fifo' | 'lifo' | 'priority' | 'wfq'
-  meanServiceMs?: number
-  timeoutMs?: number
-  vCPU?: number
-  ram?: number
-  region?: string
-  threadPool?: number
-  coldStart?: boolean
-
-  // Optional overrides
-  iconKey?: string
-  label?: string
-}
+export type AnyNodeData = CanvasNodeDataV2
+export type ServiceNodeData = CanvasNodeDataV2
+export type ComputeNodeData = CanvasNodeDataV2
+export type SecurityNodeData = CanvasNodeDataV2
+export type VpcNodeData = CanvasNodeDataV2
 
 export interface NodeSimulationMetrics {
   throughput?: number
   queueDepth?: number
   utilization?: number
   errorRate?: number
-  /** True when this node received traffic during the post-warmup window. */
   active?: boolean
 }
 
@@ -93,26 +28,7 @@ export interface EdgeSimulationData {
   errorRate?: number
 }
 
-// VPC Node Data
-export interface VpcNodeData {
-  kind: 'vpc'
-  registryId?: string
-  iconKey?: string
-}
-
-export type NodeType = 'serviceNode' | 'computeNode' | 'databaseNode' | 'vpcNode' | 'securityNode'
-
-export type AnyNodeData = ServiceNodeData | ComputeNodeData | VpcNodeData | SecurityNodeData
-
-type UnionKeyOf<T> = T extends unknown ? keyof T : never
-type UnionValueOf<T, K extends PropertyKey> = T extends unknown
-  ? K extends keyof T
-    ? T[K]
-    : never
-  : never
-
-export type AnyNodeDataKey = UnionKeyOf<AnyNodeData>
-export type AnyNodeDataValue<K extends AnyNodeDataKey> = UnionValueOf<AnyNodeData, K>
+export type NodeType = RendererNodeType
 
 export interface ColorTheme {
   bg: string
@@ -122,16 +38,50 @@ export interface ColorTheme {
 
 export interface CatalogItem {
   id: string
+  templateId: string
   type: NodeType
   label: string
   subLabel: string
-  icon: LucideIcon // Better type than 'any'
+  icon: LucideIcon
   color: ColorTheme
-  data: AnyNodeData
 }
 
 export interface CatalogCategory {
   id: string
   title: string
   items: CatalogItem[]
+}
+
+export interface ScenarioState {
+  global: Pick<
+    GlobalConfig,
+    'simulationDuration' | 'warmupDuration' | 'seed' | 'defaultTimeout' | 'traceSampleRate'
+  >
+  selectedSourceNodeId?: string
+  workloadOverride?: Partial<Omit<WorkloadProfile, 'sourceNodeId' | 'requestDistribution'>>
+}
+
+export interface SourceNodeOption {
+  id: string
+  label: string
+  workload: NonNullable<CanvasNodeDataV2['source']>['defaultWorkload']
+}
+
+export interface ScenarioRunContext {
+  sourceNodeId: string
+  sourceLabel: string
+  global: ScenarioState['global']
+  workload: WorkloadProfile
+}
+
+export const DEFAULT_SCENARIO_STATE: ScenarioState = {
+  global: {
+    simulationDuration: 60_000,
+    warmupDuration: 5_000,
+    seed: 'default-seed',
+    defaultTimeout: 5_000,
+    traceSampleRate: 0.01
+  },
+  selectedSourceNodeId: undefined,
+  workloadOverride: {}
 }

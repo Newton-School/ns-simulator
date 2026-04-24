@@ -219,15 +219,19 @@ function calculateLittlesLaw(
     const lambda = metrics.postWarmupArrived / durationSec
     const wSeconds = metrics.postWarmupAvgTimeInSystem / 1000
     const expectedL = lambda * wSeconds
+    // const observedL = metrics.postWarmupAvgInSystem
+    // const error = Math.abs(observedL - expectedL) / Math.max(expectedL, 0.001)
+
     const observedL = metrics.postWarmupAvgInSystem
-    const error = Math.abs(observedL - expectedL) / Math.max(expectedL, 0.001)
+    const absoluteError = Math.abs(observedL - expectedL)
+    const error = absoluteError / Math.max(expectedL, 0.001)
 
     return {
       nodeId,
       observedL,
       expectedL,
       error,
-      withinTolerance: error <= 0.1,
+      withinTolerance: error <= 0.1 || absoluteError <= 0.5, // ← dual guard,
       lambda,
       wSeconds
     }

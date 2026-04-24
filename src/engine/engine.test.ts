@@ -153,4 +153,48 @@ describe('SimulationEngine', () => {
     expect(output.perNode.a.totalProcessed).toBe(1)
     expect(output.perNode.b.totalProcessed).toBe(1)
   })
+
+  it('times out a request when node processing exceeds the authored node timeout', () => {
+    const slowWorker: ComponentNode = {
+      ...makeNode('slow-worker'),
+      processing: { distribution: { type: 'constant', value: 50 }, timeout: 1 }
+    }
+
+    const topology = makeTopology({
+      global: { simulationDuration: 100, defaultTimeout: 30_000, traceSampleRate: 1 },
+      nodes: [makeNode('source'), slowWorker],
+      edges: [makeEdge('source-to-worker', 'source', 'slow-worker')],
+      workload: {
+        sourceNodeId: 'source',
+        pattern: 'constant',
+        baseRps: 1,
+        requestDistribution: [{ type: 'GET', weight: 1, sizeBytes: 100 }]
+      }
+    })
+
+    const output = new SimulationEngine(topology).run()
+
+    expect(output.summary.successfulRequests).toBe(0)
+    expect(output.summary.timedOutRequests).toBe(1)
+    expect(output.perNode['slow-worker'].postWarmupTimedOut).toBe(1)
+  })
+
+  it('rejects a request when an edge hits its configured error rate', () => {
+    const topology = makeTopology({
+      global: { simulationDuration: 20, traceSampleRate: 1 },
+      nodes: [makeNode('source'), makeNode('dst')],
+      edges: [makeEdge('source-to-dst', 'source', 'dst', { errorRate: 1 })],
+      workload: {
+        sourceNodeId: 'source',
+        pattern: 'constant',
+        baseRps: 1,
+        requestDistribution: [{ type: 'GET', weight: 1, sizeBytes: 100 }]
+      }
+    })
+
+    const output = new SimulationEngine(topology).run()
+
+    expect(output.summary.successfulRequests).toBe(0)
+    expect(output.summary.rejectedRequests).toBe(1)
+  })
 })

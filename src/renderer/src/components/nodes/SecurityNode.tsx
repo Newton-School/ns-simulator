@@ -9,11 +9,13 @@ import { resolveNodeConfig } from '@renderer/config/nodeRegistry'
 import { useNodeMetrics } from '@renderer/hooks/useNodeMetrics'
 import BaseNode from '@renderer/components/nodes/BaseNode'
 import { useFlowStore } from '@renderer/components/canvas/hooks/useFlowStore'
+import { getNodeStatus, getPreRunSummary } from './nodePresentation'
 
 const SecurityNode = ({ id, data, selected }: NodeProps<SecurityNodeData>) => {
   const { updateNodeData } = useFlowStore()
-  // Icon resolved from the shared registry — no local ICON_LOOKUP needed
-  const { icon: IconComponent } = resolveNodeConfig(data.iconKey)
+  const { icon: IconComponent, theme } = resolveNodeConfig(data.templateId || data.iconKey)
+  const status = getNodeStatus(data)
+  const summaryMetrics = getPreRunSummary(data)
 
   const handleLabelChange = useCallback(
     (newLabel: string) => {
@@ -22,7 +24,7 @@ const SecurityNode = ({ id, data, selected }: NodeProps<SecurityNodeData>) => {
     [id, updateNodeData]
   )
 
-  const { utilization, hasRuntime, active } = useNodeMetrics(id, { utilization: data.load })
+  const { throughput, errorRate, queueDepth, utilization, hasRuntime, active } = useNodeMetrics(id)
   const isInactive = hasRuntime && active === false
 
   return (
@@ -32,8 +34,8 @@ const SecurityNode = ({ id, data, selected }: NodeProps<SecurityNodeData>) => {
           <NodeHeader
             label={data.label || 'Security Element'}
             icon={IconComponent}
-            status={data.status}
-            color={data.color}
+            status={status}
+            color={theme}
             onLabelChange={handleLabelChange}
           >
             <NodeSettingsMenu
@@ -49,35 +51,38 @@ const SecurityNode = ({ id, data, selected }: NodeProps<SecurityNodeData>) => {
               <p className="text-[10px] text-nss-muted italic text-center py-2">
                 No post-warmup traffic
               </p>
+            ) : hasRuntime ? (
+              <>
+                <div className="grid grid-cols-2 gap-4 mb-3">
+                  <MetricItem label="Throughput" value={throughput} unit="req/s" />
+                  <MetricItem
+                    label="Error Rate"
+                    value={errorRate}
+                    unit="%"
+                    textColor="text-nss-danger"
+                  />
+                  <MetricItem
+                    label="Queue Depth"
+                    value={queueDepth}
+                    unit="req"
+                    textColor="text-nss-warning"
+                  />
+                </div>
+                <ProgressBar label="Utilization" value={utilization} />
+              </>
             ) : (
               <>
                 <div className="grid grid-cols-2 gap-4 mb-3">
-                  {data.blockRate !== undefined && (
+                  {summaryMetrics.map((metric) => (
                     <MetricItem
-                      label="Block Rate"
-                      value={data.blockRate}
-                      unit="%"
-                      textColor="text-nss-warning"
+                      key={metric.label}
+                      label={metric.label}
+                      value={metric.value}
+                      unit={metric.unit}
+                      textColor={metric.textColor}
                     />
-                  )}
-                  {data.droppedPackets !== undefined && (
-                    <MetricItem
-                      label="Dropped Pkts"
-                      value={data.droppedPackets}
-                      unit="%"
-                      textColor="text-nss-danger"
-                    />
-                  )}
-                  {data.activeThreats !== undefined && (
-                    <MetricItem
-                      label="Active Threats"
-                      value={data.activeThreats}
-                      unit=""
-                      textColor="text-nss-danger"
-                    />
-                  )}
+                  ))}
                 </div>
-                <ProgressBar label="CPU Load" value={utilization} />
               </>
             )}
           </div>
