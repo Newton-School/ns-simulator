@@ -13,7 +13,15 @@ function inferToPosition(fromX: number, fromY: number, toX: number, toY: number)
 }
 
 const MagneticConnectionLine = memo(
-  ({ fromX, fromY, toX, toY, fromPosition, toPosition, connectionStatus }: ConnectionLineComponentProps) => {
+  ({
+    fromX,
+    fromY,
+    toX,
+    toY,
+    fromPosition,
+    toPosition,
+    connectionStatus
+  }: ConnectionLineComponentProps) => {
     const { lerpTarget, winner } = snapStateRef.current
 
     const effectiveToX = lerpTarget?.x ?? toX

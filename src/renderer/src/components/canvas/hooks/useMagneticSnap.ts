@@ -175,8 +175,8 @@ export function useMagneticSnap() {
         if (dist < SNAP_RADIUS) {
           const norm = dist / SNAP_RADIUS
           // Winner gets stronger glow; nearby non-winners get lighter graduated glow
-          const alpha = isWinner ? (0.6 + (1 - norm) * 0.4) : (0.35 + (1 - norm) * 0.2)
-          const scale = isWinner ? (1 + (1 - norm) * 0.8) : (1 + (1 - norm) * 0.3)
+          const alpha = isWinner ? 0.6 + (1 - norm) * 0.4 : 0.35 + (1 - norm) * 0.2
+          const scale = isWinner ? 1 + (1 - norm) * 0.8 : 1 + (1 - norm) * 0.3
 
           el.style.setProperty('--magnetic-glow-alpha', String(alpha))
           el.style.setProperty('--magnetic-scale', String(scale))
