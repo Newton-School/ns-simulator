@@ -55,15 +55,15 @@ export const PacketEdge = ({
         cx={sourceX}
         cy={sourceY}
         r={5}
-        className="edge-endpoint"
-        style={selected ? { opacity: 1 } : undefined}
+        className="edge-endpoint nodrag nopan"
+        style={{ pointerEvents: 'all', ...(selected ? { opacity: 1 } : {}) }}
       />
       <circle
         cx={targetX}
         cy={targetY}
         r={5}
-        className="edge-endpoint"
-        style={selected ? { opacity: 1 } : undefined}
+        className="edge-endpoint nodrag nopan"
+        style={{ pointerEvents: 'all', ...(selected ? { opacity: 1 } : {}) }}
       />
 
       {hasLabel && (

@@ -41,15 +41,16 @@ const MagneticConnectionLine = memo(
     })
 
     const isSnapping = winner !== null
-    // connectionStatus === 'valid' means the cursor is within connectionRadius of a handle —
-    // releasing right now will commit the connection.
-    const canDrop = connectionStatus === 'valid' && isSnapping
+    // connectionStatus === 'valid' means React Flow will commit the connection on release.
+    // Magnetic snap uses the same radius, but this fallback keeps the affordance consistent
+    // if React Flow reports a valid drop before a snap winner is available.
+    const canDrop = connectionStatus === 'valid'
 
-    const stroke = isSnapping ? '#3b82f6' : '#94a3b8'
+    const stroke = canDrop || isSnapping ? '#3b82f6' : '#94a3b8'
     const strokeWidth = canDrop ? 3 : isSnapping ? 2.5 : 2
 
-    // Use the winner's exact handle position for the "can drop" ring, since lerp may still
-    // leave a small gap between cursor and handle center.
+    // Use the winner's exact handle position when available; otherwise render the affordance
+    // at the current connection target so valid drops always get feedback.
     const snapX = winner?.x ?? effectiveToX
     const snapY = winner?.y ?? effectiveToY
 
@@ -60,7 +61,7 @@ const MagneticConnectionLine = memo(
           fill="none"
           stroke={stroke}
           strokeWidth={strokeWidth}
-          strokeDasharray={isSnapping ? undefined : '6 3'}
+          strokeDasharray={canDrop || isSnapping ? undefined : '6 3'}
           style={{ transition: 'stroke 100ms, stroke-width 100ms' }}
         />
 

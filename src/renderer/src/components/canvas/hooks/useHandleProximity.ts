@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { useStoreApi, internalsSymbol } from 'reactflow'
+import { getMagneticRadiusInFlowUnits } from '../magneticSnapConfig'
 import { snapStateRef } from './useMagneticSnap'
 
-/** Flow-unit radius within which source handles scale up (passive, no drag). */
-const PROX_RADIUS = 80
 /** Max scale applied to a source handle at zero distance. */
 const MAX_SCALE = 1.8
 
@@ -20,6 +19,13 @@ export function useHandleProximity() {
   const glowedRef = useRef<Map<string, HTMLElement>>(new Map())
   const rafRef = useRef<number | undefined>(undefined)
 
+  const cancelPendingFrame = useCallback(() => {
+    if (rafRef.current !== undefined) {
+      cancelAnimationFrame(rafRef.current)
+      rafRef.current = undefined
+    }
+  }, [])
+
   const clearAll = useCallback(() => {
     glowedRef.current.forEach((el) => {
       el.style.removeProperty('--prox-scale')
@@ -33,15 +39,18 @@ export function useHandleProximity() {
     (e: MouseEvent) => {
       // Defer to the drag system while a connection drag is in progress
       if (snapStateRef.current.candidates.length > 0) {
+        cancelPendingFrame()
         clearAll()
         return
       }
 
-      cancelAnimationFrame(rafRef.current!)
+      cancelPendingFrame()
       rafRef.current = requestAnimationFrame(() => {
+        rafRef.current = undefined
         const { transform, domNode, nodeInternals } = storeApi.getState()
         if (!domNode) return
 
+        const proximityRadius = getMagneticRadiusInFlowUnits(transform[2])
         const bounds = domNode.getBoundingClientRect()
 
         // Cursor outside canvas — clear and bail
@@ -58,7 +67,7 @@ export function useHandleProximity() {
         const flowX = (e.clientX - bounds.left - transform[0]) / transform[2]
         const flowY = (e.clientY - bounds.top - transform[1]) / transform[2]
 
-        // Find the single closest source handle within PROX_RADIUS
+        // Find the single closest source handle within the shared interaction radius.
         let minDist = Infinity
         let winner: { domId: string; dist: number } | null = null
 
@@ -78,7 +87,7 @@ export function useHandleProximity() {
             const hx = absX + h.x + h.width / 2
             const hy = absY + h.y + h.height / 2
             const dist = Math.sqrt((hx - flowX) ** 2 + (hy - flowY) ** 2)
-            if (dist < PROX_RADIUS && dist < minDist) {
+            if (dist < proximityRadius && dist < minDist) {
               minDist = dist
               winner = { domId: `${node.id}-${h.id}-source`, dist }
             }
@@ -91,7 +100,7 @@ export function useHandleProximity() {
           const { domId, dist } = winner as { domId: string; dist: number }
           const el = domNode.querySelector<HTMLElement>(`[data-id="${domId}"]`)
           if (el) {
-            const norm = dist / PROX_RADIUS
+            const norm = dist / proximityRadius
             el.style.setProperty('--prox-scale', String(1 + (1 - norm) * (MAX_SCALE - 1)))
             el.style.setProperty('--prox-intensity', String(0.5 + (1 - norm) * 0.5))
             el.classList.add('proximity-source')
@@ -111,15 +120,15 @@ export function useHandleProximity() {
         glowedRef.current = nextGlowed
       })
     },
-    [storeApi, clearAll]
+    [storeApi, cancelPendingFrame, clearAll]
   )
 
   useEffect(() => {
     document.addEventListener('mousemove', mouseMoveHandler, { passive: true })
     return () => {
       document.removeEventListener('mousemove', mouseMoveHandler)
-      cancelAnimationFrame(rafRef.current!)
+      cancelPendingFrame()
       clearAll()
     }
-  }, [mouseMoveHandler, clearAll])
+  }, [mouseMoveHandler, cancelPendingFrame, clearAll])
 }

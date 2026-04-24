@@ -1,8 +1,7 @@
 import { useCallback, useEffect, MutableRefObject } from 'react'
 import { useStoreApi, internalsSymbol } from 'reactflow'
 import type { OnConnectStartParams, Edge } from 'reactflow'
-
-const SNAP_RADIUS = 80
+import { getMagneticRadiusInFlowUnits } from '../magneticSnapConfig'
 
 interface HandleCandidate {
   nodeId: string
@@ -128,6 +127,7 @@ export function useMagneticSnap() {
       const { transform, domNode } = storeApi.getState()
       if (!domNode) return
 
+      const snapRadius = getMagneticRadiusInFlowUnits(transform[2])
       const bounds = domNode.getBoundingClientRect()
       const flowX = (e.clientX - bounds.left - transform[0]) / transform[2]
       const flowY = (e.clientY - bounds.top - transform[1]) / transform[2]
@@ -150,12 +150,12 @@ export function useMagneticSnap() {
         }
       }
 
-      const inRange = minDist <= SNAP_RADIUS
+      const inRange = minDist <= snapRadius
       const newWinner = inRange ? winner : null
       snapStateRef.current.winner = newWinner
 
       if (newWinner) {
-        const t = computeLerpT(minDist, SNAP_RADIUS)
+        const t = computeLerpT(minDist, snapRadius)
         snapStateRef.current.lerpTarget = {
           x: flowX + (newWinner.x - flowX) * t,
           y: flowY + (newWinner.y - flowY) * t
@@ -172,8 +172,8 @@ export function useMagneticSnap() {
         const dist = distMap.get(c.domId) ?? Infinity
         const isWinner = c.domId === newWinner?.domId
 
-        if (dist < SNAP_RADIUS) {
-          const norm = dist / SNAP_RADIUS
+        if (dist < snapRadius) {
+          const norm = dist / snapRadius
           // Winner gets stronger glow; nearby non-winners get lighter graduated glow
           const alpha = isWinner ? 0.6 + (1 - norm) * 0.4 : 0.35 + (1 - norm) * 0.2
           const scale = isWinner ? 1 + (1 - norm) * 0.8 : 1 + (1 - norm) * 0.3
@@ -222,8 +222,7 @@ export function useMagneticSnap() {
 
   useEffect(() => {
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove)
-      clearGlows(snapStateRef.current.domCache)
+      deactivateSnap(handleMouseMove)
     }
   }, [handleMouseMove])
 

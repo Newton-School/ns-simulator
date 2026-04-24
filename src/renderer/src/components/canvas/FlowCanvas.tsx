@@ -24,6 +24,7 @@ import { useFlowConfig, nodeTypes, GRID_COLOR } from './config/flowConfig'
 import { useMagneticSnap } from './hooks/useMagneticSnap'
 import { useHandleProximity } from './hooks/useHandleProximity'
 import MagneticConnectionLine from './MagneticConnectionLine'
+import { MAGNETIC_CONNECTION_RADIUS_PX } from './magneticSnapConfig'
 
 const FlowCanvasInternal = () => {
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null)
@@ -134,7 +135,7 @@ const FlowCanvasInternal = () => {
         defaultEdgeOptions={defaultEdgeOptions}
         connectionLineType={ConnectionLineType.SmoothStep}
         connectionLineComponent={MagneticConnectionLine}
-        connectionRadius={90}
+        connectionRadius={MAGNETIC_CONNECTION_RADIUS_PX}
         onConnectStart={onConnectStart}
         onConnectEnd={onConnectEnd}
         onEdgeUpdate={onEdgeUpdate}
