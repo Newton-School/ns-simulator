@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { RequestSpan } from '../core/events'
 import type { GlobalConfig } from '../core/types'
+import { createEmptyEventCounts, type CanonicalEventRecord } from '../core/event-stream'
 import type { CompletedRequest } from '../metrics'
 import { MetricsCollector } from '../metrics'
 import { RequestTracer } from '../tracer'
@@ -95,6 +96,45 @@ describe('generateSimulationOutput', () => {
     const output = generateSimulationOutput(metrics, tracer, [], null, [], config, 0)
     expect(output.simulationDuration).toBe(60_000)
     expect(output.warmupDuration).toBe(5_000)
+  })
+
+  it('stores canonical event stream and event counts on the output', () => {
+    const metrics = new MetricsCollector({ warmupDuration: 0 })
+    const tracer = new RequestTracer({ sampleRate: 0 })
+    const config: GlobalConfig = {
+      simulationDuration: 1_000,
+      seed: 'test-seed',
+      warmupDuration: 0,
+      timeResolution: 'microsecond',
+      defaultTimeout: 1_000
+    }
+    const eventStream: CanonicalEventRecord[] = [
+      {
+        sequence: 0,
+        timestampUs: '0',
+        type: 'request-generated',
+        priority: 1,
+        requestId: 'req-1',
+        payload: {}
+      }
+    ]
+    const eventCountsByType = createEmptyEventCounts()
+    eventCountsByType['request-generated'] = 1
+
+    const output = generateSimulationOutput(
+      metrics,
+      tracer,
+      [],
+      null,
+      [],
+      config,
+      1,
+      eventStream,
+      eventCountsByType
+    )
+
+    expect(output.eventStream).toEqual(eventStream)
+    expect(output.eventCountsByType['request-generated']).toBe(1)
   })
 
   it('conservation check flags nodes with large in-flight counts', () => {

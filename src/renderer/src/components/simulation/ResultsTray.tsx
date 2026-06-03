@@ -1,5 +1,8 @@
-import { useId, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
 import type { SimulationOutput } from '../../../../engine/analysis/output'
+import type { DebugEvent } from '../../../../engine/core/event-stream'
+import { projectToDebugEvent } from '../../../../engine/core/event-stream'
 import type { SimulationStatus } from '../../hooks/useSimulation'
 import type { ScenarioRunContext } from '@renderer/types/ui'
 
@@ -48,6 +51,15 @@ function fmtW(wSeconds: number): string {
   return wSeconds === 0 ? '—' : fmtMs(wSeconds * 1000)
 }
 
+function fmtEventTime(timestampMs: number): string {
+  if (timestampMs < 1000) return `${timestampMs.toFixed(3)}ms`
+  return `${(timestampMs / 1000).toFixed(3)}s`
+}
+
+function clampSequence(sequence: number, maxSequence: number): number {
+  return Math.min(maxSequence, Math.max(0, sequence))
+}
+
 const SECTION_TITLE = 'text-[11px] font-semibold text-nss-muted uppercase tracking-wider'
 const SURFACE_CARD = 'bg-nss-surface border border-nss-border rounded-md'
 
@@ -85,6 +97,59 @@ const PER_NODE_COLUMN_TOOLTIPS = {
   w: 'Mean time a request spends at this node (W, service + queue). End-to-end latency is roughly the sum of W across the path.',
   l: "Average number of requests concurrently at this node (L). By Little's Law, L = λ·W."
 } as const
+
+function eventStatusClass(status: DebugEvent['status']): string {
+  switch (status) {
+    case 'success':
+      return 'text-nss-success bg-nss-success/10 border-nss-success/20'
+    case 'timeout':
+      return 'text-nss-warning bg-nss-warning/10 border-nss-warning/20'
+    case 'rejected':
+    case 'failure':
+      return 'text-nss-danger bg-nss-danger/10 border-nss-danger/20'
+    default:
+      return 'text-nss-muted bg-nss-surface border-nss-border'
+  }
+}
+
+function eventMatchesQuery(event: DebugEvent, query: string): boolean {
+  const normalized = query.trim()
+  if (normalized.length === 0) {
+    return true
+  }
+
+  return normalized
+    .split(/\s+OR\s+/i)
+    .some((group) => group.split(/\s+AND\s+/i).every((term) => eventMatchesTerm(event, term)))
+}
+
+function eventMatchesTerm(event: DebugEvent, rawTerm: string): boolean {
+  const term = rawTerm.trim()
+  if (term.length === 0) {
+    return true
+  }
+
+  const [field, ...rest] = term.split(':')
+  const value = rest.join(':').toLowerCase()
+  if (!value) {
+    return event.message.toLowerCase().includes(term.toLowerCase())
+  }
+
+  switch (field.toLowerCase()) {
+    case 'request':
+      return event.requestId?.toLowerCase().includes(value) ?? false
+    case 'node':
+      return event.nodeId?.toLowerCase().includes(value) ?? false
+    case 'edge':
+      return event.edgeId?.toLowerCase().includes(value) ?? false
+    case 'status':
+      return event.status.toLowerCase() === value
+    case 'type':
+      return event.type.toLowerCase() === value
+    default:
+      return event.message.toLowerCase().includes(term.toLowerCase())
+  }
+}
 
 function RunContextPanel({ runContext }: { runContext: ScenarioRunContext }) {
   const workload = runContext.workload
@@ -656,6 +721,246 @@ function PerNodeTable({ output }: { output: SimulationOutput }) {
   )
 }
 
+// ─── Replay Preview ──────────────────────────────────────────────────────────
+
+function ReplayPreview({ output }: { output: SimulationOutput }) {
+  const [sequence, setSequence] = useState(0)
+  const maxSequence = Math.max(0, output.eventStream.length - 1)
+
+  useEffect(() => {
+    setSequence((current) => clampSequence(current, maxSequence))
+  }, [maxSequence])
+
+  const event = output.eventStream[clampSequence(sequence, maxSequence)]
+  const debugEvent = useMemo(() => (event ? projectToDebugEvent(event) : null), [event])
+
+  if (!debugEvent) {
+    return null
+  }
+
+  const buttonClass =
+    'h-7 w-7 inline-flex items-center justify-center rounded border border-nss-border text-nss-muted hover:text-nss-text hover:bg-nss-surface transition-colors disabled:opacity-40 disabled:hover:bg-transparent'
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <h3 className={SECTION_TITLE}>Replay Preview</h3>
+        <span className="text-[10px] text-nss-muted tabular-nums">
+          {sequence + 1} / {output.eventStream.length.toLocaleString()}
+        </span>
+      </div>
+
+      <div className={`${SURFACE_CARD} p-3 space-y-3`}>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setSequence(0)}
+            disabled={sequence === 0}
+            className={buttonClass}
+            title="Jump to start"
+          >
+            <ChevronsLeft size={14} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setSequence((current) => clampSequence(current - 1, maxSequence))}
+            disabled={sequence === 0}
+            className={buttonClass}
+            title="Previous event"
+          >
+            <ChevronLeft size={14} />
+          </button>
+          <input
+            type="range"
+            min={0}
+            max={maxSequence}
+            value={sequence}
+            onChange={(event) => setSequence(Number(event.target.value))}
+            className="min-w-0 flex-1 accent-nss-primary"
+            aria-label="Replay sequence"
+          />
+          <button
+            type="button"
+            onClick={() => setSequence((current) => clampSequence(current + 1, maxSequence))}
+            disabled={sequence === maxSequence}
+            className={buttonClass}
+            title="Next event"
+          >
+            <ChevronRight size={14} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setSequence(maxSequence)}
+            disabled={sequence === maxSequence}
+            className={buttonClass}
+            title="Jump to end"
+          >
+            <ChevronsRight size={14} />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          <StatCard label="Sequence" value={debugEvent.sequence.toLocaleString()} />
+          <StatCard label="Time" value={fmtEventTime(debugEvent.timestampMs)} />
+          <StatCard label="Type" value={debugEvent.type} />
+          <StatCard label="Status" value={debugEvent.status} />
+          <StatCard label="Request" value={debugEvent.requestId ?? '—'} />
+          <StatCard label="Node" value={debugEvent.nodeId ?? '—'} />
+          <StatCard label="Edge" value={debugEvent.edgeId ?? '—'} />
+          <StatCard
+            label="Route"
+            value={
+              debugEvent.sourceNodeId || debugEvent.targetNodeId
+                ? `${debugEvent.sourceNodeId ?? '—'} → ${debugEvent.targetNodeId ?? '—'}`
+                : '—'
+            }
+          />
+        </div>
+
+        {(debugEvent.reasonCode || debugEvent.nodeSnapshot) && (
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            {debugEvent.reasonCode && <StatCard label="Reason" value={debugEvent.reasonCode} />}
+            {debugEvent.nodeSnapshot && (
+              <StatCard
+                label="Node State"
+                value={`${debugEvent.nodeSnapshot.activeWorkers} active / ${debugEvent.nodeSnapshot.queueLength} queued`}
+              />
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function EventLog({ output }: { output: SimulationOutput }) {
+  const [isOpen, setIsOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const eventCount = output.eventStream.length
+  const debugEvents = useMemo(
+    () => (isOpen ? output.eventStream.map((event) => projectToDebugEvent(event)) : []),
+    [isOpen, output.eventStream]
+  )
+  const visibleEvents = useMemo(
+    () => debugEvents.filter((event) => eventMatchesQuery(event, query)),
+    [debugEvents, query]
+  )
+  const summary = useMemo(
+    () =>
+      visibleEvents.reduce(
+        (acc, event) => {
+          acc[event.status] = (acc[event.status] ?? 0) + 1
+          return acc
+        },
+        {} as Partial<Record<DebugEvent['status'], number>>
+      ),
+    [visibleEvents]
+  )
+  const rows = visibleEvents.slice(0, 50)
+
+  if (eventCount === 0) {
+    return null
+  }
+
+  return (
+    <div className="space-y-2">
+      <button
+        type="button"
+        onClick={() => setIsOpen((open) => !open)}
+        className="w-full flex items-center justify-between gap-3 text-left"
+        aria-expanded={isOpen}
+      >
+        <span className={SECTION_TITLE}>Event Log</span>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-nss-muted tabular-nums">
+            {eventCount.toLocaleString()} replay events
+          </span>
+          <span className="text-nss-muted text-[10px]">{isOpen ? '▲' : '▼'}</span>
+        </div>
+      </button>
+
+      {!isOpen && (
+        <div className={`${SURFACE_CARD} px-3 py-2 text-xs text-nss-muted`}>
+          Open to inspect canonical events and filter by request, node, edge, status, or type.
+        </div>
+      )}
+
+      {isOpen && (
+        <>
+          <div className="flex flex-wrap gap-1 text-[10px]">
+            {(['rejected', 'timeout', 'success', 'info'] as const).map((status) => (
+              <span
+                key={status}
+                className={`px-1.5 py-0.5 rounded border ${eventStatusClass(status)}`}
+              >
+                {summary[status] ?? 0} {status}
+              </span>
+            ))}
+          </div>
+
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="edge:api-db OR status:rejected"
+            className="w-full h-8 px-2 rounded-md bg-nss-surface border border-nss-border text-xs text-nss-text placeholder:text-nss-muted outline-none focus:border-nss-primary"
+          />
+
+          <div className={`${SURFACE_CARD} overflow-hidden`}>
+            <div className="max-h-80 overflow-auto">
+              <table className="w-full text-[11px] tabular-nums">
+                <thead className="sticky top-0 bg-nss-surface text-nss-muted border-b border-nss-border">
+                  <tr>
+                    <th className="text-right py-1.5 px-2">Seq</th>
+                    <th className="text-right py-1.5 px-2">Time</th>
+                    <th className="text-left py-1.5 px-2">Type</th>
+                    <th className="text-left py-1.5 px-2">Request</th>
+                    <th className="text-left py-1.5 px-2">Node</th>
+                    <th className="text-left py-1.5 px-2">Edge</th>
+                    <th className="text-left py-1.5 px-2">Status</th>
+                    <th className="text-left py-1.5 px-2">Reason</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((event) => (
+                    <tr key={event.sequence} className="border-b border-nss-border hover:bg-nss-bg">
+                      <td className="text-right py-1 px-2 text-nss-muted">{event.sequence}</td>
+                      <td className="text-right py-1 px-2 text-nss-muted">
+                        {fmtEventTime(event.timestampMs)}
+                      </td>
+                      <td className="py-1 px-2 text-nss-text whitespace-nowrap">{event.type}</td>
+                      <td className="py-1 px-2 text-nss-muted">{event.requestId ?? '—'}</td>
+                      <td className="py-1 px-2 text-nss-muted">{event.nodeId ?? '—'}</td>
+                      <td className="py-1 px-2 text-nss-muted">{event.edgeId ?? '—'}</td>
+                      <td className="py-1 px-2">
+                        <span
+                          className={`px-1.5 py-0.5 rounded border ${eventStatusClass(event.status)}`}
+                        >
+                          {event.status}
+                        </span>
+                      </td>
+                      <td className="py-1 px-2 text-nss-muted">{event.reasonCode ?? '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {visibleEvents.length > rows.length && (
+              <div className="px-2 py-1 text-[10px] text-nss-muted border-t border-nss-border">
+                Showing {rows.length.toLocaleString()} of {visibleEvents.length.toLocaleString()}
+              </div>
+            )}
+            {visibleEvents.length === 0 && (
+              <div className="px-3 py-4 text-xs text-nss-muted text-center">
+                No events match this filter.
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 // ─── Status Badge ─────────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: SimulationStatus }) {
@@ -724,12 +1029,15 @@ export function ResultsTray({
           <SummaryPanel output={results} />
           <SimulationHealth output={results} />
           <PerNodeTable output={results} />
+          <ReplayPreview output={results} />
+          <EventLog output={results} />
 
           {/* Footer — debug info */}
           <div className="text-[10px] text-nss-muted pb-2 flex flex-wrap gap-x-3 gap-y-1">
             <span>Seed: {results.seed}</span>
             <span>Reproducible: {results.reproducible ? 'yes' : 'no'}</span>
             <span>{eventsProcessed.toLocaleString()} events processed</span>
+            <span>{results.eventStream.length.toLocaleString()} replay events</span>
           </div>
         </div>
       )}
