@@ -62,6 +62,7 @@ function clampSequence(sequence: number, maxSequence: number): number {
 
 const SECTION_TITLE = 'text-[11px] font-semibold text-nss-muted uppercase tracking-wider'
 const SURFACE_CARD = 'bg-nss-surface border border-nss-border rounded-md'
+const EVENT_LOG_PAGE_SIZE = 50
 
 const E2E_PERCENTILE_TOOLTIPS: Record<'p50' | 'p90' | 'p95' | 'p99' | 'max', string> = {
   p50: 'Median end-to-end latency. Half of requests were faster than this, half slower.',
@@ -836,6 +837,7 @@ function ReplayPreview({ output }: { output: SimulationOutput }) {
 function EventLog({ output }: { output: SimulationOutput }) {
   const [isOpen, setIsOpen] = useState(false)
   const [query, setQuery] = useState('')
+  const [page, setPage] = useState(0)
   const eventCount = output.eventStream.length
   const debugEvents = useMemo(
     () => (isOpen ? output.eventStream.map((event) => projectToDebugEvent(event)) : []),
@@ -856,7 +858,16 @@ function EventLog({ output }: { output: SimulationOutput }) {
       ),
     [visibleEvents]
   )
-  const rows = visibleEvents.slice(0, 50)
+  const pageCount = Math.max(1, Math.ceil(visibleEvents.length / EVENT_LOG_PAGE_SIZE))
+  const clampedPage = Math.min(page, pageCount - 1)
+  const pageStart = clampedPage * EVENT_LOG_PAGE_SIZE
+  const rows = visibleEvents.slice(pageStart, pageStart + EVENT_LOG_PAGE_SIZE)
+  const displayStart = visibleEvents.length === 0 ? 0 : pageStart + 1
+  const displayEnd = pageStart + rows.length
+
+  useEffect(() => {
+    setPage(0)
+  }, [query, eventCount])
 
   if (eventCount === 0) {
     return null
@@ -900,8 +911,11 @@ function EventLog({ output }: { output: SimulationOutput }) {
 
           <input
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="edge:api-db OR status:rejected"
+            onChange={(event) => {
+              setQuery(event.target.value)
+              setPage(0)
+            }}
+            placeholder="type:request-forwarded OR status:rejected"
             className="w-full h-8 px-2 rounded-md bg-nss-surface border border-nss-border text-xs text-nss-text placeholder:text-nss-muted outline-none focus:border-nss-primary"
           />
 
@@ -944,9 +958,33 @@ function EventLog({ output }: { output: SimulationOutput }) {
                 </tbody>
               </table>
             </div>
-            {visibleEvents.length > rows.length && (
-              <div className="px-2 py-1 text-[10px] text-nss-muted border-t border-nss-border">
-                Showing {rows.length.toLocaleString()} of {visibleEvents.length.toLocaleString()}
+            {visibleEvents.length > 0 && (
+              <div className="px-2 py-1 border-t border-nss-border flex items-center justify-between gap-2 text-[10px] text-nss-muted">
+                <span>
+                  Showing {displayStart.toLocaleString()}-{displayEnd.toLocaleString()} of{' '}
+                  {visibleEvents.length.toLocaleString()}
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setPage((current) => Math.max(0, current - 1))}
+                    disabled={clampedPage === 0}
+                    className="px-2 py-0.5 rounded border border-nss-border text-nss-muted hover:text-nss-text hover:bg-nss-bg disabled:opacity-40 disabled:hover:bg-transparent"
+                  >
+                    Prev
+                  </button>
+                  <span className="tabular-nums px-1">
+                    {clampedPage + 1} / {pageCount}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setPage((current) => Math.min(pageCount - 1, current + 1))}
+                    disabled={clampedPage >= pageCount - 1}
+                    className="px-2 py-0.5 rounded border border-nss-border text-nss-muted hover:text-nss-text hover:bg-nss-bg disabled:opacity-40 disabled:hover:bg-transparent"
+                  >
+                    Next
+                  </button>
+                </div>
               </div>
             )}
             {visibleEvents.length === 0 && (
