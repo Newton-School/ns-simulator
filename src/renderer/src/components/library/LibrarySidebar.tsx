@@ -1,9 +1,16 @@
-import { useState } from 'react'
-import { Search } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { FileText, Library as LibraryIcon, Search, type LucideIcon } from 'lucide-react'
 import { CATALOG_CONFIG } from '../../config/catalogConfig'
 import { LibraryItem } from './LibraryItem'
 
 type Filter = 'all' | 'common'
+type SidebarTab = 'question' | 'library'
+
+interface ActivityTab {
+  id: SidebarTab
+  label: string
+  icon: LucideIcon
+}
 
 const COMMON_IDS = new Set([
   'client-user',
@@ -18,91 +25,163 @@ const COMMON_IDS = new Set([
   'read-replica'
 ])
 
+const FILTERS: Filter[] = ['common', 'all']
+const ACTIVITY_TABS: ActivityTab[] = [
+  { id: 'question', label: 'Question Text', icon: FileText },
+  { id: 'library', label: 'Component Library', icon: LibraryIcon }
+]
+
+function ActivityButton({
+  tab,
+  activeTab,
+  onSelect
+}: {
+  tab: ActivityTab
+  activeTab: SidebarTab
+  onSelect: (tab: SidebarTab) => void
+}) {
+  const Icon = tab.icon
+  const isActive = activeTab === tab.id
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(tab.id)}
+      title={tab.label}
+      aria-label={tab.label}
+      aria-pressed={isActive}
+      className={`relative h-10 w-10 rounded-md flex items-center justify-center transition-colors ${
+        isActive
+          ? 'bg-nss-surface text-nss-text'
+          : 'text-nss-muted hover:text-nss-text hover:bg-nss-surface'
+      }`}
+    >
+      {isActive && (
+        <span className="absolute left-0 top-1 bottom-1 w-0.5 rounded-r bg-nss-primary" />
+      )}
+      <Icon size={18} />
+    </button>
+  )
+}
+
 export const LibrarySidebar = () => {
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
-  const trimmed = query.trim().toLowerCase()
+  const [activeTab, setActiveTab] = useState<SidebarTab>('library')
+  const [questionText, setQuestionText] = useState('')
+  const filtered = useMemo(() => {
+    const trimmed = query.trim().toLowerCase()
 
-  const filtered = CATALOG_CONFIG.map((category) => ({
-    ...category,
-    items: category.items.filter((item) => {
-      const matchesFilter = filter === 'all' || COMMON_IDS.has(item.id)
-      const matchesSearch =
-        !trimmed ||
-        item.label.toLowerCase().includes(trimmed) ||
-        item.subLabel.toLowerCase().includes(trimmed)
-      return matchesFilter && matchesSearch
-    })
-  })).filter((category) => category.items.length > 0)
+    return CATALOG_CONFIG.map((category) => ({
+      ...category,
+      items: category.items.filter((item) => {
+        const matchesFilter = filter === 'all' || COMMON_IDS.has(item.id)
+        const matchesSearch =
+          !trimmed ||
+          item.label.toLowerCase().includes(trimmed) ||
+          item.subLabel.toLowerCase().includes(trimmed)
+        return matchesFilter && matchesSearch
+      })
+    })).filter((category) => category.items.length > 0)
+  }, [filter, query])
 
   return (
-    <aside className="h-full w-full bg-nss-panel border-r border-nss-border flex flex-col transition-colors duration-200">
-      {/* Sidebar Header */}
-      <div className="p-4 pb-3 border-b border-nss-border shrink-0 space-y-3">
-        <h2 className="text-xs font-bold text-nss-muted uppercase tracking-widest">
-          Component Library
-        </h2>
-
-        {/* Search */}
-        <div className="relative">
-          <Search
-            size={12}
-            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-nss-muted pointer-events-none"
-          />
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search components…"
-            className="
-              w-full h-7 pl-7 pr-3 rounded-md text-xs font-sans
-              bg-nss-input-bg border border-nss-border text-nss-text
-              placeholder:text-nss-muted outline-none
-              focus:border-nss-primary transition-colors
-            "
-          />
-        </div>
-
-        {/* Filter tabs */}
-        <div className="flex gap-1 bg-nss-bg rounded-md p-0.5">
-          {(['common', 'all'] as Filter[]).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`
-                flex-1 h-6 rounded text-[11px] font-semibold capitalize transition-colors
-                ${
-                  filter === f
-                    ? 'bg-nss-surface text-nss-text shadow-sm'
-                    : 'text-nss-muted hover:text-nss-text'
-                }
-              `}
-            >
-              {f === 'common' ? 'Common' : 'All'}
-            </button>
-          ))}
-        </div>
+    <aside className="h-full w-full bg-nss-panel border-r border-nss-border flex transition-colors duration-200">
+      <div className="w-12 shrink-0 bg-nss-bg border-r border-nss-border flex flex-col items-center py-2 gap-1">
+        {ACTIVITY_TABS.map((tab) => (
+          <ActivityButton key={tab.id} tab={tab} activeTab={activeTab} onSelect={setActiveTab} />
+        ))}
       </div>
 
-      {/* Scrollable Grid */}
-      <div className="flex-1 overflow-y-auto p-2 space-y-4">
-        {filtered.length > 0 ? (
-          filtered.map((category) => (
-            <div key={category.id}>
-              <h3 className="px-2 mb-2 text-[10px] font-bold text-nss-muted uppercase opacity-80">
-                {category.title}
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1">
-                {category.items.map((item) => (
-                  <LibraryItem key={item.id} item={item} />
+      <div className="min-w-0 flex-1 flex flex-col">
+        {activeTab === 'question' ? (
+          <>
+            <div className="p-4 pb-3 border-b border-nss-border shrink-0 space-y-1">
+              <h2 className="text-xs font-bold text-nss-muted uppercase tracking-widest">
+                Question Text
+              </h2>
+            </div>
+
+            <div className="flex-1 min-h-0 p-3">
+              <textarea
+                value={questionText}
+                onChange={(event) => setQuestionText(event.target.value)}
+                placeholder="Paste or type the system design question here..."
+                className="h-full w-full resize-none rounded-md border border-nss-border bg-nss-input-bg p-3 text-xs leading-relaxed text-nss-text placeholder:text-nss-muted outline-none focus:border-nss-primary"
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Sidebar Header */}
+            <div className="p-4 pb-3 border-b border-nss-border shrink-0 space-y-3">
+              <h2 className="text-xs font-bold text-nss-muted uppercase tracking-widest">
+                Component Library
+              </h2>
+
+              {/* Search */}
+              <div className="relative">
+                <Search
+                  size={12}
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 text-nss-muted pointer-events-none"
+                />
+                <input
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search components…"
+                  className="
+                    w-full h-7 pl-7 pr-3 rounded-md text-xs font-sans
+                    bg-nss-input-bg border border-nss-border text-nss-text
+                    placeholder:text-nss-muted outline-none
+                    focus:border-nss-primary transition-colors
+                  "
+                />
+              </div>
+
+              {/* Filter tabs */}
+              <div className="flex gap-1 bg-nss-bg rounded-md p-0.5">
+                {FILTERS.map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setFilter(f)}
+                    className={`
+                      flex-1 h-6 rounded text-[11px] font-semibold capitalize transition-colors
+                      ${
+                        filter === f
+                          ? 'bg-nss-surface text-nss-text shadow-sm'
+                          : 'text-nss-muted hover:text-nss-text'
+                      }
+                    `}
+                  >
+                    {f === 'common' ? 'Common' : 'All'}
+                  </button>
                 ))}
               </div>
             </div>
-          ))
-        ) : (
-          <p className="px-2 pt-4 text-xs text-nss-muted text-center">
-            No components match &quot;{query}&quot;
-          </p>
+
+            {/* Scrollable Grid */}
+            <div className="flex-1 overflow-y-auto p-2 space-y-4">
+              {filtered.length > 0 ? (
+                filtered.map((category) => (
+                  <div key={category.id}>
+                    <h3 className="px-2 mb-2 text-[10px] font-bold text-nss-muted uppercase opacity-80">
+                      {category.title}
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1">
+                      {category.items.map((item) => (
+                        <LibraryItem key={item.id} item={item} />
+                      ))}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="px-2 pt-4 text-xs text-nss-muted text-center">
+                  No components match &quot;{query}&quot;
+                </p>
+              )}
+            </div>
+          </>
         )}
       </div>
     </aside>
