@@ -13,7 +13,11 @@ import { validateTopology } from '../../../../engine/validation/validator'
 import type { ValidationError } from '../../../../engine/validation/validator'
 
 // Organisms
-import { LibrarySidebar } from '../library/LibrarySidebar'
+import {
+  LibraryActivityRail,
+  LibrarySidebarContent,
+  type LibrarySidebarTab
+} from '../library/LibrarySidebar'
 import { PropertiesPanel } from '../properties/PropertiesPanel'
 import { FlowCanvas } from '../canvas/FlowCanvas'
 import { Header } from './Header'
@@ -27,6 +31,10 @@ import type { ScenarioRunContext, SourceNodeOption } from '@renderer/types/ui'
 
 type RunIssueTone = 'warning' | 'error'
 
+const LEFT_LIBRARY_DEFAULT_SIZE = 20
+const LEFT_LIBRARY_MIN_SIZE = 12
+const LEFT_LIBRARY_MAX_SIZE = 25
+
 function formatValidationIssue(error: ValidationError): string {
   if (error.path === 'workload.sourceNodeId') {
     return error.message
@@ -38,6 +46,7 @@ function formatValidationIssue(error: ValidationError): string {
 export const WorkspaceLayout = () => {
   // Sidebar State
   const [isLeftOpen, setIsLeftOpen] = useState(true)
+  const [leftSidebarTab, setLeftSidebarTab] = useState<LibrarySidebarTab>('library')
   const [isRightOpen, setIsRightOpen] = useState(false)
   const [showResults, setShowResults] = useState(false)
   const [runIssues, setRunIssues] = useState<{ messages: string[]; tone: RunIssueTone }>({
@@ -83,6 +92,10 @@ export const WorkspaceLayout = () => {
   const { handleSave, handleOpen } = useFlowPersistence(confirmDiscardChanges)
 
   const selectedNodeId = nodes.find((n) => n.selected)?.id
+  const handleLeftSidebarTabSelect = useCallback((tab: LibrarySidebarTab) => {
+    setLeftSidebarTab(tab)
+    setIsLeftOpen(true)
+  }, [])
 
   useEffect(() => {
     if (!isUnsaved) {
@@ -223,19 +236,25 @@ export const WorkspaceLayout = () => {
       )}
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-hidden relative h-full">
-        <PanelGroup direction="horizontal" autoSaveId="main-layout-horizontal">
-          {/* Left Sidebar — always in DOM, collapsed/expanded via ref */}
+      <div className="flex-1 overflow-hidden relative h-full flex">
+        <LibraryActivityRail activeTab={leftSidebarTab} onSelect={handleLeftSidebarTabSelect} />
+
+        <PanelGroup
+          direction="horizontal"
+          autoSaveId="main-layout-horizontal"
+          className="min-w-0 flex-1"
+        >
+          {/* Left library content — the activity rail stays outside this collapsible panel */}
           <Panel
             ref={leftPanelRef}
             collapsible
-            defaultSize={20}
-            minSize={10}
-            maxSize={30}
+            defaultSize={LEFT_LIBRARY_DEFAULT_SIZE}
+            minSize={LEFT_LIBRARY_MIN_SIZE}
+            maxSize={LEFT_LIBRARY_MAX_SIZE}
             order={1}
             id="left-panel"
           >
-            <LibrarySidebar />
+            <LibrarySidebarContent activeTab={leftSidebarTab} />
           </Panel>
           <ResizeHandle vertical id="resize-left-catalog" />
 
