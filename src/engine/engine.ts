@@ -1,5 +1,11 @@
 import { generateSimulationOutput, SimulationOutput, TimeSeriesSnapshot } from './analysis/output'
 import { createEvent, Request, SimulationEvent } from './core/events'
+import {
+  buildRequestLifecycle,
+  DebugEvent,
+  projectToDebugEvent,
+  RequestLifecycle
+} from './core/debugTypes'
 import { microToMs, msToMicro, secToMicro } from './core/time'
 import { ComponentNode, EdgeDefinition, EventScheduler, TopologyJSON } from './core/types'
 import { MetricsCollector } from './metrics'
@@ -19,6 +25,7 @@ interface SecurityPolicyConfig {
 export class SimulationEngine {
   onProgress?: (percent: number, eventsProcessed: number) => void
   onSnapshot?: (snapshot: TimeSeriesSnapshot) => void
+  onDebugEvent?: (event: DebugEvent) => void
 
   private readonly eventQueue = new MinHeap<SimulationEvent>()
   private readonly distributions: Distributions
@@ -26,6 +33,8 @@ export class SimulationEngine {
   private readonly metrics: MetricsCollector
   private readonly tracer: RequestTracer
   private readonly nodes = new Map<string, GGcKNode>()
+  private readonly nodeConfigs = new Map<string, ComponentNode>()
+  private readonly nodeLabels = new Map<string, string>()
   private readonly nodeErrorRateById = new Map<string, number>()
   private readonly nodeTimeoutUsById = new Map<string, bigint>()
   private readonly securityPolicyByNodeId = new Map<string, SecurityPolicyConfig>()
@@ -42,6 +51,9 @@ export class SimulationEngine {
   private running = false
   private paused = false
   private readonly timeSeries: TimeSeriesSnapshot[] = []
+  private debugTarget: 'all' | string | null = null
+  private forcedTraceRequestId: string | null = null
+  private readonly debugEvents: DebugEvent[] = []
 
   constructor(private readonly topology: TopologyJSON) {
     const rng = createRandom(topology.global.seed)
@@ -65,6 +77,8 @@ export class SimulationEngine {
     for (const node of topology.nodes) {
       const normalized = this.withNodeDefaults(node)
       this.nodes.set(node.id, new GGcKNode(normalized, this.distributions, scheduler))
+      this.nodeConfigs.set(node.id, normalized)
+      this.nodeLabels.set(node.id, normalized.label)
 
       const nodeErrorRate = this.readNodeErrorRate(normalized)
       if (nodeErrorRate !== null && nodeErrorRate > 0) {
@@ -90,9 +104,37 @@ export class SimulationEngine {
     }
   }
 
+  enableDebug(target: 'all' | string = 'all', options: { forceTrace?: boolean } = {}): void {
+    if (this.forcedTraceRequestId) {
+      this.tracer.unforceTrace(this.forcedTraceRequestId)
+      this.forcedTraceRequestId = null
+    }
+
+    this.debugTarget = target
+    this.debugEvents.length = 0
+
+    if (target !== 'all' && options.forceTrace) {
+      this.tracer.forceTrace(target)
+      this.forcedTraceRequestId = target
+    }
+  }
+
+  disableDebug(): void {
+    if (this.forcedTraceRequestId) {
+      this.tracer.unforceTrace(this.forcedTraceRequestId)
+      this.forcedTraceRequestId = null
+    }
+
+    this.debugTarget = null
+    this.debugEvents.length = 0
+  }
+
   run(): SimulationOutput {
     this.running = true
     this.paused = false
+    if (this.debugTarget) {
+      this.debugEvents.length = 0
+    }
 
     this.processEvents()
     return this.generateResults()
@@ -175,6 +217,7 @@ export class SimulationEngine {
       }
 
       this.handleEvent(event)
+      this.emitDebugEvent(event)
       this.eventsProcessed++
       processedInCall++
 
@@ -233,6 +276,8 @@ export class SimulationEngine {
     }
 
     const request = this.workload.generateNext(this.clock)
+    event.requestId = request.id
+    event.data.request = request
     this.requestById.set(request.id, request)
     this.tracer.setRequestCreatedAt(request.id, request.createdAt)
 
@@ -468,6 +513,29 @@ export class SimulationEngine {
     return undefined
   }
 
+  private emitDebugEvent(event: SimulationEvent): void {
+    if (!this.debugTarget) {
+      return
+    }
+
+    const nodeState = this.nodes.get(event.nodeId)?.getState() ?? null
+    const nodeConfig = this.nodeConfigs.get(event.nodeId) ?? null
+    const debugEvent = projectToDebugEvent(
+      event,
+      this.eventsProcessed,
+      nodeState,
+      nodeConfig,
+      this.nodeLabels
+    )
+
+    if (this.debugTarget !== 'all' && debugEvent.requestId !== this.debugTarget) {
+      return
+    }
+
+    this.debugEvents.push(debugEvent)
+    this.onDebugEvent?.(debugEvent)
+  }
+
   private shouldEmitSnapshot(timestamp: bigint): boolean {
     return this.lastSnapshotAt < 0n || timestamp - this.lastSnapshotAt >= this.snapshotIntervalUs
   }
@@ -522,6 +590,12 @@ export class SimulationEngine {
   }
 
   private generateResults(): SimulationOutput {
+    const eventLog = this.debugTarget ? [...this.debugEvents] : null
+    const debuggedLifecycle =
+      this.debugTarget && this.debugTarget !== 'all'
+        ? this.buildDebuggedLifecycle(this.debugTarget, eventLog)
+        : null
+
     return generateSimulationOutput(
       this.metrics,
       this.tracer,
@@ -529,8 +603,25 @@ export class SimulationEngine {
       null,
       [],
       this.topology.global,
-      this.eventsProcessed
+      this.eventsProcessed,
+      {
+        eventLog,
+        debuggedLifecycle
+      }
     )
+  }
+
+  private buildDebuggedLifecycle(
+    requestId: string,
+    eventLog: DebugEvent[] | null
+  ): RequestLifecycle | null {
+    if (!eventLog || eventLog.length === 0) {
+      return null
+    }
+
+    const trace =
+      this.tracer.getTraces().find((candidate) => candidate.requestId === requestId) ?? null
+    return buildRequestLifecycle(requestId, eventLog, trace, this.topology, this.nodeLabels)
   }
 
   private withNodeDefaults(node: ComponentNode): ComponentNode {
@@ -677,7 +768,13 @@ export class SimulationEngine {
     }
 
     this.eventQueue.insert(
-      createEvent('request-arrival', targetNodeId, request.id, { request }, arrivalTime)
+      createEvent(
+        'request-arrival',
+        targetNodeId,
+        request.id,
+        { request, edge, sourceNodeId: edge.source },
+        arrivalTime
+      )
     )
   }
 }
