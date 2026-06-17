@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import type { RequestSpan } from '../core/events'
 import type { GlobalConfig } from '../core/types'
-import type { DebugEvent, RequestLifecycle } from '../core/debugTypes'
+import {
+  createEmptyEventCounts,
+  type CanonicalEventRecord,
+  type DebugEvent,
+  type RequestLifecycle
+} from '../core/event-stream'
 import type { CompletedRequest } from '../metrics'
 import { MetricsCollector } from '../metrics'
 import { RequestTracer } from '../tracer'
@@ -114,37 +119,84 @@ describe('generateSimulationOutput', () => {
 
     const eventLog: DebugEvent[] = [
       {
-        index: 0,
+        sequence: 0,
+        timestampUs: '0',
         timestampMs: 0,
         type: 'request-generated',
         nodeId: 'source',
         requestId: 'req-1',
         status: 'info',
-        reason: null,
-        edgeId: null,
-        message: 'Generated request at source',
-        nodeState: null,
-        priority: 1
+        message: 'request req-1 generated at source',
+        priority: 1,
+        payload: {}
       }
     ]
     const lifecycle: RequestLifecycle = {
       requestId: 'req-1',
-      phases: [],
-      terminalStatus: 'in-flight',
-      terminalNode: null,
-      terminalReason: null,
-      totalLatencyMs: 0,
-      expectedPath: { nodeIds: ['source'], edgeIds: [], deterministic: true },
-      actualPath: []
+      status: 'success',
+      events: eventLog,
+      path: ['source'],
+      startedAtMs: 0,
+      completedAtMs: 0
     }
 
-    const output = generateSimulationOutput(metrics, tracer, [], null, [], config, 0, {
-      eventLog,
-      debuggedLifecycle: lifecycle
-    })
+    const output = generateSimulationOutput(
+      metrics,
+      tracer,
+      [],
+      null,
+      [],
+      config,
+      0,
+      [],
+      createEmptyEventCounts(),
+      {
+        eventLog,
+        debuggedLifecycle: lifecycle
+      }
+    )
 
     expect(output.eventLog).toEqual(eventLog)
     expect(output.debuggedLifecycle).toEqual(lifecycle)
+  })
+
+  it('stores canonical event stream and event counts on the output', () => {
+    const metrics = new MetricsCollector({ warmupDuration: 0 })
+    const tracer = new RequestTracer({ sampleRate: 0 })
+    const config: GlobalConfig = {
+      simulationDuration: 1_000,
+      seed: 'test-seed',
+      warmupDuration: 0,
+      timeResolution: 'microsecond',
+      defaultTimeout: 1_000
+    }
+    const eventStream: CanonicalEventRecord[] = [
+      {
+        sequence: 0,
+        timestampUs: '0',
+        type: 'request-generated',
+        priority: 1,
+        requestId: 'req-1',
+        payload: {}
+      }
+    ]
+    const eventCountsByType = createEmptyEventCounts()
+    eventCountsByType['request-generated'] = 1
+
+    const output = generateSimulationOutput(
+      metrics,
+      tracer,
+      [],
+      null,
+      [],
+      config,
+      1,
+      eventStream,
+      eventCountsByType
+    )
+
+    expect(output.eventStream).toEqual(eventStream)
+    expect(output.eventCountsByType['request-generated']).toBe(1)
   })
 
   it('conservation check flags nodes with large in-flight counts', () => {

@@ -49,6 +49,7 @@ export class RequestTracer {
 
   forceTrace(requestId: string): void {
     this.forcedRequestIds.add(requestId)
+    this.ensureTraceState(requestId)
   }
 
   unforceTrace(requestId: string): void {

@@ -1,5 +1,11 @@
 import { GlobalConfig } from '../core/types'
-import type { DebugEvent, RequestLifecycle } from '../core/debugTypes'
+import type {
+  CanonicalEventRecord,
+  DebugEvent,
+  EventCountsByType,
+  RequestLifecycle
+} from '../core/event-stream'
+import { createEmptyEventCounts } from '../core/event-stream'
 import { MetricsCollector, PerNodeMetrics, SimulationSummary } from '../metrics'
 import { RequestTrace, RequestTracer } from '../tracer'
 
@@ -116,6 +122,8 @@ export interface SimulationOutput {
   seed: string
   reproducible: true
   eventsProcessed: number
+  eventStream: CanonicalEventRecord[]
+  eventCountsByType: EventCountsByType
   /** Total simulation duration in ms (including warmup). */
   simulationDuration: number
   /** Warmup period in ms (excluded from metrics). */
@@ -134,6 +142,8 @@ export function generateSimulationOutput(
   invariantViolations: InvariantViolation[],
   config: GlobalConfig,
   eventsProcessed: number,
+  eventStream: CanonicalEventRecord[] = [],
+  eventCountsByType: EventCountsByType = createEmptyEventCounts(),
   debugData?: {
     eventLog?: DebugEvent[] | null
     debuggedLifecycle?: RequestLifecycle | null
@@ -162,6 +172,8 @@ export function generateSimulationOutput(
     seed: config.seed,
     reproducible: true,
     eventsProcessed,
+    eventStream: [...eventStream],
+    eventCountsByType: { ...eventCountsByType },
     simulationDuration: config.simulationDuration,
     warmupDuration: config.warmupDuration,
     eventLog: debugData?.eventLog ?? null,
