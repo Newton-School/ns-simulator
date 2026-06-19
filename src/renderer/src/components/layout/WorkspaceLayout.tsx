@@ -138,9 +138,7 @@ export const WorkspaceLayout = () => {
   }, [])
 
   useEffect(() => {
-    if (selectedNodeId) {
-      setIsRightOpen(true)
-    } else {
+    if (!selectedNodeId) {
       setIsRightOpen(false)
     }
   }, [selectedNodeId])
@@ -286,7 +284,7 @@ export const WorkspaceLayout = () => {
             <PanelGroup direction="vertical" autoSaveId="main-layout-vertical">
               {/* Canvas */}
               <Panel defaultSize={showResults ? 65 : 100} minSize={10} order={1}>
-                <FlowCanvas />
+                <FlowCanvas onNodeDoubleClick={() => setIsRightOpen(true)} />
               </Panel>
 
               {/* Results Tray */}
