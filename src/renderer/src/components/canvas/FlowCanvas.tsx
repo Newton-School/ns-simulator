@@ -20,6 +20,7 @@ import { EdgePropertiesPanel, EdgePropertiesPanelValue } from '../ui/EdgePropert
 
 import { useFlowStore } from './hooks/useFlowStore'
 import { useFlowDnD } from './hooks/useFlowDnD'
+import { useCopyPaste } from './hooks/useCopyPaste'
 import { useFlowConfig, nodeTypes, GRID_COLOR } from './config/flowConfig'
 import { useMagneticSnap } from './hooks/useMagneticSnap'
 import { useHandleProximity } from './hooks/useHandleProximity'
@@ -46,6 +47,7 @@ const FlowCanvasInternal = () => {
 
   const { onConnectStart, onConnectEnd, onEdgeUpdateStart, onEdgeUpdateEnd } = useMagneticSnap()
   useHandleProximity()
+  useCopyPaste()
 
   const onEdgeUpdate = useCallback(
     (oldEdge: Edge, newConnection: Connection) => {
@@ -147,6 +149,7 @@ const FlowCanvasInternal = () => {
         onNodeDragStop={onNodeDragStop}
         onEdgeClick={onEdgeClick}
         onPaneClick={onPaneClick}
+        multiSelectionKeyCode="Shift"
       >
         <Background variant={BackgroundVariant.Dots} gap={30} size={1.2} color={GRID_COLOR} />
         <Controls className="!bg-nss-surface !border-nss-border" />
