@@ -24,11 +24,11 @@ export const useCopyPaste = () => {
 
   const copy = useCallback(() => {
     const { nodes: currentNodes, edges: currentEdges } = storeRef.current
-    const selectedNodes = currentNodes.filter(n => n.selected)
+    const selectedNodes = currentNodes.filter((n) => n.selected)
     if (selectedNodes.length === 0) return
-    const selectedNodeIds = new Set(selectedNodes.map(n => n.id))
+    const selectedNodeIds = new Set(selectedNodes.map((n) => n.id))
     const selectedEdges = currentEdges.filter(
-      e => selectedNodeIds.has(e.source) && selectedNodeIds.has(e.target)
+      (e) => selectedNodeIds.has(e.source) && selectedNodeIds.has(e.target)
     )
     clipboardRef.current = {
       nodes: JSON.parse(JSON.stringify(selectedNodes)),
@@ -43,7 +43,7 @@ export const useCopyPaste = () => {
     const { nodes: currentNodes, edges: currentEdges } = storeRef.current
     let minX = Infinity
     let minY = Infinity
-    clipboardNodes.forEach(node => {
+    clipboardNodes.forEach((node) => {
       if (node.position.x < minX) minX = node.position.x
       if (node.position.y < minY) minY = node.position.y
     })
@@ -55,11 +55,11 @@ export const useCopyPaste = () => {
     const offsetY = targetFlowPos.y - minY
 
     const idMap = new Map<string, string>()
-    clipboardNodes.forEach(node => {
+    clipboardNodes.forEach((node) => {
       idMap.set(node.id, crypto.randomUUID())
     })
 
-    const pastedNodes = clipboardNodes.map(node => {
+    const pastedNodes = clipboardNodes.map((node) => {
       const newNode = { ...node, id: idMap.get(node.id)! }
       if (newNode.parentNode && idMap.has(newNode.parentNode)) {
         newNode.parentNode = idMap.get(newNode.parentNode)!
@@ -72,7 +72,7 @@ export const useCopyPaste = () => {
       return newNode
     })
 
-    const pastedEdges = clipboardEdges.map(edge => ({
+    const pastedEdges = clipboardEdges.map((edge) => ({
       ...edge,
       id: crypto.randomUUID(),
       source: idMap.get(edge.source)!,
@@ -80,8 +80,14 @@ export const useCopyPaste = () => {
       selected: true
     }))
 
-    const nextNodes = currentNodes.map(n => ({ ...n, selected: false })).concat(pastedNodes)
-    const nextEdges = currentEdges.map(e => ({ ...e, selected: false })).concat(pastedEdges)
+    const nextNodes: Node[] = [
+      ...currentNodes.map((n) => ({ ...n, selected: false })),
+      ...pastedNodes
+    ]
+    const nextEdges: Edge[] = [
+      ...currentEdges.map((e) => ({ ...e, selected: false })),
+      ...pastedEdges
+    ]
 
     setNodes(nextNodes)
     setEdges(nextEdges)
@@ -90,11 +96,7 @@ export const useCopyPaste = () => {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement
-      if (
-        target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.isContentEditable
-      ) {
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
         return
       }
 
