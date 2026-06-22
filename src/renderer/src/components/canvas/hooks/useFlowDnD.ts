@@ -1,16 +1,18 @@
 import { useCallback } from 'react'
 import { ReactFlowInstance, NodeDragHandler, Node, useReactFlow } from 'reactflow'
-import { findTargetVpc, getId } from '../utils/canvasUtils'
+import { findTargetContainer, getId } from '../utils/canvasUtils'
 import { instantiateTemplate } from '../../../../../engine/catalog/paletteTemplates'
+import { validatePlacement } from '../../../config/hierarchyRules'
 
 interface UseFlowDnDProps {
   nodes: Node[]
   addNode: (node: Node) => void
   setNodes: (nodes: Node[]) => void
   instance: ReactFlowInstance | null
+  onError?: (message: string) => void
 }
 
-export const useFlowDnD = ({ nodes, addNode, setNodes, instance }: UseFlowDnDProps) => {
+export const useFlowDnD = ({ nodes, addNode, setNodes, instance, onError }: UseFlowDnDProps) => {
   const { getIntersectingNodes } = useReactFlow()
 
   // 1. Drag Over
@@ -32,8 +34,15 @@ export const useFlowDnD = ({ nodes, addNode, setNodes, instance }: UseFlowDnDPro
         y: event.clientY
       }) || { x: 0, y: 0 }
 
-      // Reusable logic to find target VPC
-      const targetVpc = findTargetVpc(nodes, position)
+      const targetContainer = findTargetContainer(nodes, position)
+
+      const parentTemplateId = targetContainer ? (targetContainer.data?.templateId || null) : null
+      const validation = validatePlacement(templateId, parentTemplateId)
+
+      if (!validation.valid) {
+        if (onError && validation.error) onError(validation.error)
+        return
+      }
 
       const newNode: Node = {
         id: getId(),
@@ -42,19 +51,19 @@ export const useFlowDnD = ({ nodes, addNode, setNodes, instance }: UseFlowDnDPro
         data: instantiateTemplate(templateId)
       }
 
-      if (targetVpc) {
-        newNode.parentNode = targetVpc.id
+      if (targetContainer) {
+        newNode.parentNode = targetContainer.id
         newNode.extent = 'parent'
         newNode.zIndex = 10 // Lift nested items
         newNode.position = {
-          x: position.x - targetVpc.position.x,
-          y: position.y - targetVpc.position.y
+          x: position.x - targetContainer.position.x,
+          y: position.y - targetContainer.position.y
         }
       }
 
       addNode(newNode)
     },
-    [instance, addNode, nodes]
+    [instance, addNode, nodes, onError]
   )
 
   // 3. Drag Stop (Re-parenting / Nesting Logic)
@@ -72,18 +81,29 @@ export const useFlowDnD = ({ nodes, addNode, setNodes, instance }: UseFlowDnDPro
         return areaA - areaB
       })
 
-      const targetVpc = intersections[0]
+      const targetContainer = intersections[0]
 
       // Scenario A: Attach to Parent
-      if (targetVpc) {
+      if (targetContainer) {
         // Prevent cycles
-        if (node.id === targetVpc.parentNode) return
+        if (node.id === targetContainer.parentNode) return
         // Prevent redundant updates
-        if (node.parentNode === targetVpc.id) return
+        if (node.parentNode === targetContainer.id) return
+
+        const childTemplateId = node.data?.templateId
+        const parentTemplateId = targetContainer.data?.templateId || null
+
+        if (childTemplateId) {
+          const validation = validatePlacement(childTemplateId, parentTemplateId)
+          if (!validation.valid) {
+            if (onError && validation.error) onError(validation.error)
+            return
+          }
+        }
 
         const relativePosition = {
-          x: node.position.x - targetVpc.position.x,
-          y: node.position.y - targetVpc.position.y
+          x: node.position.x - targetContainer.position.x,
+          y: node.position.y - targetContainer.position.y
         }
 
         setNodes(
@@ -91,7 +111,7 @@ export const useFlowDnD = ({ nodes, addNode, setNodes, instance }: UseFlowDnDPro
             n.id === node.id
               ? {
                   ...n,
-                  parentNode: targetVpc.id,
+                  parentNode: targetContainer.id,
                   position: relativePosition,
                   extent: 'parent',
                   expandParent: false,
@@ -105,7 +125,7 @@ export const useFlowDnD = ({ nodes, addNode, setNodes, instance }: UseFlowDnDPro
       // Scenario B: Detach is handled by Ungroup Button (Toolbar)
       // We purposefully don't auto-detach on drag to prevent accidental removals.
     },
-    [nodes, setNodes, getIntersectingNodes]
+    [nodes, setNodes, getIntersectingNodes, onError]
   )
 
   return { onDragOver, onDrop, onNodeDragStop }

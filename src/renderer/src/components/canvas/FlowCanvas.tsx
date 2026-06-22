@@ -17,6 +17,7 @@ import { EdgeSimulationData } from '@renderer/types/ui'
 import EmptyFlowState from '../ui/EmptyFlowState'
 // Hooks & Config
 import { EdgePropertiesPanel, EdgePropertiesPanelValue } from '../ui/EdgePropertiesPanel'
+import { RunToast } from '../ui/RunToast'
 
 import { useFlowStore } from './hooks/useFlowStore'
 import { useFlowDnD } from './hooks/useFlowDnD'
@@ -29,6 +30,7 @@ import { MAGNETIC_CONNECTION_RADIUS_PX } from './magneticSnapConfig'
 const FlowCanvasInternal = () => {
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null)
   const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null)
+  const [validationError, setValidationError] = useState<string | null>(null)
 
   const {
     nodes,
@@ -58,7 +60,8 @@ const FlowCanvasInternal = () => {
     nodes,
     addNode,
     setNodes,
-    instance: reactFlowInstance
+    instance: reactFlowInstance,
+    onError: setValidationError
   })
 
   const isEmpty = nodes.length === 0
@@ -154,6 +157,14 @@ const FlowCanvasInternal = () => {
       </ReactFlow>
       {/* Empty State */}
       <EmptyFlowState isEmpty={isEmpty} />
+
+      {validationError && (
+        <RunToast
+          messages={[validationError]}
+          tone="error"
+          onClose={() => setValidationError(null)}
+        />
+      )}
 
       {selectedEdge && (
         <EdgePropertiesPanel
