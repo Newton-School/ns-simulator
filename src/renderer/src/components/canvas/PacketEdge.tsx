@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { BaseEdge, getSmoothStepPath, EdgeProps, EdgeLabelRenderer } from 'reactflow'
 import useStore, { type EdgeFlowRunConfig } from '@renderer/store/useStore'
-import { StatusBadge } from '../ui/StatusBadge'
 
 const EDGE_VISUAL_WINDOW_MS = 3_000
 const FAILED_PULSE_MS = 650
@@ -302,6 +301,17 @@ export const PacketEdge = ({
       : 2
   const failureStroke =
     failureRatio > 0.5 ? FLOW_DANGER_COLOR : failureRatio > 0.05 ? FLOW_WARNING_COLOR : undefined
+  const flowLabelText = isInactiveAfterRun
+    ? 'inactive'
+    : `${fmtRps(displaySuccessRps)}${phaseLabel ? ` - ${phaseLabel}` : ''}${failureRatio > 0 ? ` / ${(failureRatio * 100).toFixed(1)}% fail` : ''}`
+  const flowLabelClassName = [
+    'bg-nss-bg px-2 py-0.5 text-[11px] font-bold leading-none tracking-wide',
+    isInactiveAfterRun
+      ? 'text-nss-muted'
+      : failureRatio > 0.05
+        ? 'text-nss-warning'
+        : 'text-nss-primary'
+  ].join(' ')
 
   const pointForProgress = (progress: number) => {
     if (!pathRef.current || pathLength <= 0) {
@@ -334,6 +344,7 @@ export const PacketEdge = ({
           ...style,
           strokeWidth: trafficStrokeWidth,
           stroke: selected ? FLOW_PRIMARY_COLOR : (failureStroke ?? 'var(--nss-border-high)'),
+          strokeDasharray: 'none',
           opacity: isInactiveAfterRun ? 0.28 : 1
         }}
         interactionWidth={30}
@@ -423,22 +434,13 @@ export const PacketEdge = ({
             className="nodrag nopan"
           >
             <div className="flex flex-col items-center gap-1">
-              {hasLabel && <StatusBadge status={label.toString()} />}
-              {(flowStatus === 'complete' || flow) && (
-                <span
-                  className={[
-                    'rounded border px-1.5 py-0.5 text-[9px] font-semibold shadow-sm',
-                    isInactiveAfterRun
-                      ? 'border-nss-border bg-nss-surface text-nss-muted'
-                      : failureRatio > 0.05
-                        ? 'border-nss-warning/30 bg-nss-warning/10 text-nss-warning'
-                        : 'border-nss-success/25 bg-nss-success/10 text-nss-success'
-                  ].join(' ')}
-                >
-                  {isInactiveAfterRun
-                    ? 'inactive'
-                    : `${fmtRps(displaySuccessRps)}${phaseLabel ? ` - ${phaseLabel}` : ''}${failureRatio > 0 ? ` / ${(failureRatio * 100).toFixed(1)}% fail` : ''}`}
+              {hasLabel && (
+                <span className="bg-nss-bg px-2 py-0.5 text-[11px] font-bold uppercase leading-none tracking-wide text-nss-text">
+                  {label.toString()}
                 </span>
+              )}
+              {(flowStatus === 'complete' || flow) && (
+                <span className={flowLabelClassName}>{flowLabelText}</span>
               )}
             </div>
           </div>
