@@ -4,17 +4,17 @@ let id = 1
 export const getId = () => `node_${id++}`
 
 /**
- * Finds the smallest VPC node that intersects with the given position.
- * Prioritizes innermost nested VPCs by sorting by area.
+ * Finds the smallest container node that intersects with the given position.
+ * Prioritizes innermost nested containers by sorting by area.
  */
-export const findTargetVpc = (
+export const findTargetContainer = (
   nodes: Node[],
   position: XYPosition,
   excludeNodeId?: string
 ): Node | undefined => {
-  const intersectingVpcs = nodes.filter(
+  const intersectingContainers = nodes.filter(
     (n) =>
-      n.type === 'vpcNode' &&
+      n.type === 'vpcNode' && // All containers (VPC, AZ, Subnet) are vpcNode type
       n.id !== excludeNodeId && // Don't match self
       position.x > n.position.x &&
       position.x < n.position.x + (n.width || 0) &&
@@ -23,11 +23,11 @@ export const findTargetVpc = (
   )
 
   // Sort by Area (Width * Height) ascending -> Smallest First
-  intersectingVpcs.sort((a, b) => {
+  intersectingContainers.sort((a, b) => {
     const areaA = (a.width || 0) * (a.height || 0)
     const areaB = (b.width || 0) * (b.height || 0)
     return areaA - areaB
   })
 
-  return intersectingVpcs[0]
+  return intersectingContainers[0]
 }
