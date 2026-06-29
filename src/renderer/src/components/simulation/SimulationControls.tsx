@@ -34,7 +34,6 @@ interface SimulationControlsProps {
   disabled?: boolean
   savedSeeds: string[]
   onSaveSeed: (seed: string) => void
-  onRemoveSeed: (seed: string) => void
 }
 
 function mergeWorkload(
@@ -109,8 +108,7 @@ export function SimulationControls({
   onScenarioChange,
   disabled = false,
   savedSeeds,
-  onSaveSeed,
-  onRemoveSeed
+  onSaveSeed
 }: SimulationControlsProps) {
   const [isOpen, setIsOpen] = useState(false)
   const wrapperRef = useRef<HTMLDivElement>(null)
@@ -404,7 +402,9 @@ export function SimulationControls({
           </div>
 
           <Field label="Seed" className="mb-3">
-            {!isCustomSeed && (scenario.global.seed === 'default-seed' || savedSeeds.includes(scenario.global.seed)) ? (
+            {!isCustomSeed &&
+            (scenario.global.seed === 'default-seed' ||
+              savedSeeds.includes(scenario.global.seed)) ? (
               <select
                 value={scenario.global.seed}
                 onChange={(event) => {
@@ -455,7 +455,11 @@ export function SimulationControls({
                     type="button"
                     onClick={() => {
                       setIsCustomSeed(false)
-                      if (!scenario.global.seed || (!savedSeeds.includes(scenario.global.seed) && scenario.global.seed !== 'default-seed')) {
+                      if (
+                        !scenario.global.seed ||
+                        (!savedSeeds.includes(scenario.global.seed) &&
+                          scenario.global.seed !== 'default-seed')
+                      ) {
                         setGlobalField('seed', 'default-seed')
                       }
                     }}

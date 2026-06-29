@@ -37,6 +37,7 @@ function persistSeeds(seeds: string[]) {
   try {
     localStorage.setItem(SAVED_SEEDS_KEY, JSON.stringify(seeds))
   } catch {
+    // Ignore localStorage errors
   }
 }
 

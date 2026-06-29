@@ -36,7 +36,6 @@ interface HeaderProps {
   simulationDisabled?: boolean
   savedSeeds: string[]
   onSaveSeed: (seed: string) => void
-  onRemoveSeed: (seed: string) => void
 }
 
 export const Header = memo(
@@ -60,8 +59,7 @@ export const Header = memo(
     onScenarioChange,
     simulationDisabled,
     savedSeeds,
-    onSaveSeed,
-    onRemoveSeed
+    onSaveSeed
   }: HeaderProps) => {
     const currentSeed = scenario.global.seed
     const isSeedSaved = currentSeed === 'default-seed' || savedSeeds.includes(currentSeed)
@@ -84,12 +82,15 @@ export const Header = memo(
           <FileStatus fileName={fileName} isUnsaved={isUnsaved} />
           <button
             onClick={() => !isSeedSaved && onSaveSeed(currentSeed)}
-            title={isSeedSaved ? `Seed "${currentSeed}" already saved` : `Save seed "${currentSeed}"`}
+            title={
+              isSeedSaved ? `Seed "${currentSeed}" already saved` : `Save seed "${currentSeed}"`
+            }
             className={`
               h-7 px-2.5 flex items-center gap-1.5 rounded border text-xs font-sans transition-colors select-none
-              ${isSeedSaved
-                ? 'border-nss-primary/40 bg-nss-primary/10 text-nss-primary cursor-default'
-                : 'border-nss-border bg-nss-bg text-nss-muted hover:border-nss-primary hover:text-nss-primary cursor-pointer'
+              ${
+                isSeedSaved
+                  ? 'border-nss-primary/40 bg-nss-primary/10 text-nss-primary cursor-default'
+                  : 'border-nss-border bg-nss-bg text-nss-muted hover:border-nss-primary hover:text-nss-primary cursor-pointer'
               }
             `}
           >
@@ -116,7 +117,6 @@ export const Header = memo(
             disabled={simulationDisabled}
             savedSeeds={savedSeeds}
             onSaveSeed={onSaveSeed}
-            onRemoveSeed={onRemoveSeed}
           />
         </div>
 

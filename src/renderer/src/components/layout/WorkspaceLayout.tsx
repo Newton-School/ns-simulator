@@ -253,7 +253,6 @@ export const WorkspaceLayout = () => {
         onScenarioChange={updateScenario}
         savedSeeds={savedSeeds}
         onSaveSeed={saveSeed}
-        onRemoveSeed={removeSeed}
       />
 
       {runIssues.messages.length > 0 && (
