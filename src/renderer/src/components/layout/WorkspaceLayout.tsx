@@ -95,7 +95,6 @@ export const WorkspaceLayout = () => {
   const clearSimulationMetrics = useStore((s) => s.clearSimulationMetrics)
   const savedSeeds = useStore((s) => s.savedSeeds)
   const saveSeed = useStore((s) => s.saveSeed)
-  const removeSeed = useStore((s) => s.removeSeed)
   const { confirm, dialog } = useConfirmDialog()
   const confirmDiscardChanges = useCallback(
     () =>
