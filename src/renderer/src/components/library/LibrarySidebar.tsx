@@ -71,11 +71,10 @@ const ActivityButton = memo(function ActivityButton({
       title={tab.label}
       aria-label={tab.label}
       aria-pressed={isActive}
-      className={`relative h-10 w-10 rounded-md flex items-center justify-center transition-colors ${
-        isActive
+      className={`relative h-10 w-10 rounded-md flex items-center justify-center transition-colors ${isActive
           ? 'bg-nss-surface text-nss-text'
           : 'text-nss-muted hover:text-nss-text hover:bg-nss-surface'
-      }`}
+        }`}
     >
       {isActive && (
         <span className="absolute left-0 top-1 bottom-1 w-0.5 rounded-r bg-nss-primary" />
@@ -177,10 +176,9 @@ function ComponentLibraryPanel({
               onClick={() => onFilterChange(currentFilter)}
               className={`
                 flex-1 h-6 rounded text-[11px] font-semibold capitalize transition-colors
-                ${
-                  filter === currentFilter
-                    ? 'bg-nss-surface text-nss-text shadow-sm'
-                    : 'text-nss-muted hover:text-nss-text'
+                ${filter === currentFilter
+                  ? 'bg-nss-surface text-nss-text shadow-sm'
+                  : 'text-nss-muted hover:text-nss-text'
                 }
               `}
             >
