@@ -101,10 +101,12 @@ export const useCopyPaste = () => {
       }
 
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'c') {
+        event.preventDefault()
         copy()
       }
 
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'v') {
+        event.preventDefault()
         paste()
       }
     }
