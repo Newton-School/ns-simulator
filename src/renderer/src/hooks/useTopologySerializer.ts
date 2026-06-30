@@ -12,6 +12,7 @@ import type { CanvasNodeDataV2 } from '../../../engine/catalog/nodeSpecTypes'
 import useStore from '../store/useStore'
 import type { ScenarioRunContext, ScenarioState } from '@renderer/types/ui'
 import { normalizeScenarioState } from '@renderer/types/ui'
+import { mergeWorkloadDefaults } from '@renderer/utils/workloadDefaults'
 
 type EdgeRuntimeData = {
   protocol?: EdgeDefinition['protocol']
@@ -108,54 +109,6 @@ function buildScenarioGlobal(global: ScenarioState['global']): GlobalConfig {
     defaultTimeout: global.defaultTimeout,
     traceSampleRate: global.traceSampleRate,
     timeResolution: 'millisecond'
-  }
-}
-
-function mergeWorkload(
-  base: NonNullable<CanvasNodeDataV2['source']>['defaultWorkload'],
-  override: ScenarioState['workloadOverride']
-): Omit<WorkloadProfile, 'sourceNodeId' | 'requestDistribution'> {
-  return {
-    ...base,
-    ...override,
-    ...(base.bursty || override?.bursty
-      ? {
-          bursty: {
-            ...(base.bursty ?? { burstRps: 500, burstDuration: 2000, normalDuration: 8000 }),
-            ...override?.bursty
-          }
-        }
-      : {}),
-    ...(base.spike || override?.spike
-      ? {
-          spike: {
-            ...(base.spike ?? { spikeTime: 30_000, spikeRps: 1000, spikeDuration: 5000 }),
-            ...override?.spike
-          }
-        }
-      : {}),
-    ...(base.sawtooth || override?.sawtooth
-      ? {
-          sawtooth: {
-            ...(base.sawtooth ?? { peakRps: 300, rampDuration: 10_000 }),
-            ...override?.sawtooth
-          }
-        }
-      : {}),
-    ...(base.diurnal || override?.diurnal
-      ? {
-          diurnal: {
-            ...(base.diurnal ?? {
-              peakMultiplier: 1,
-              hourlyMultipliers: [
-                0.6, 0.5, 0.45, 0.4, 0.4, 0.5, 0.7, 0.9, 1.1, 1.2, 1.15, 1.05, 1, 1.05, 1.1, 1.2,
-                1.25, 1.3, 1.2, 1.05, 0.95, 0.85, 0.75, 0.65
-              ]
-            }),
-            ...override?.diurnal
-          }
-        }
-      : {})
   }
 }
 
@@ -309,7 +262,7 @@ export function useTopologySerializer() {
       const workload: WorkloadProfile = {
         sourceNodeId: selectedSourceRfNode.id,
         requestDistribution: selectedSourceData.source.requestDistribution,
-        ...mergeWorkload(
+        ...mergeWorkloadDefaults(
           selectedSourceData.source.defaultWorkload,
           resolvedScenario.workloadOverride
         )
