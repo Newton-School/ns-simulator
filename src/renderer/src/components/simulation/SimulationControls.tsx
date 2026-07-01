@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Pause, Play, Square } from 'lucide-react'
+import { Pause, Play, Square, X } from 'lucide-react'
 import type { WorkloadProfile } from '../../../../engine/core/types'
 import type { ScenarioState, SourceNodeOption } from '@renderer/types/ui'
 
@@ -130,11 +130,11 @@ export function SimulationControls({
       if (event.key === 'Escape') setIsOpen(false)
     }
 
-    document.addEventListener('mousedown', onMouseDown)
-    document.addEventListener('keydown', onKeyDown)
+    document.addEventListener('mousedown', onMouseDown, true)
+    document.addEventListener('keydown', onKeyDown, true)
     return () => {
-      document.removeEventListener('mousedown', onMouseDown)
-      document.removeEventListener('keydown', onKeyDown)
+      document.removeEventListener('mousedown', onMouseDown, true)
+      document.removeEventListener('keydown', onKeyDown, true)
     }
   }, [isOpen])
 
@@ -234,9 +234,17 @@ export function SimulationControls({
 
       {isOpen && (
         <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-50 bg-nss-panel border border-nss-border rounded-lg shadow-2xl p-4 w-80 font-sans">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-nss-muted mb-2">
-            Workload
-          </p>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-nss-muted">
+              Workload
+            </p>
+            <button
+              onClick={() => setIsOpen(false)}
+              className="text-nss-muted hover:text-nss-text transition-colors"
+            >
+              <X size={14} />
+            </button>
+          </div>
 
           <Field label="Source" className="mb-2">
             <select
