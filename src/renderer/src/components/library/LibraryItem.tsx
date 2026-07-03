@@ -33,7 +33,7 @@ export const LibraryItem = ({ item }: LibraryItemProps) => {
         className={`
           w-12 h-12 rounded-lg flex items-center justify-center
           ${bg} bg-opacity-30 group-hover:bg-opacity-40
-          dark:bg-opacity-20 dark:group-hover:bg-opacity-30 transition-all
+          dark:bg-opacity-30 dark:group-hover:bg-opacity-30 transition-all
         `}
       >
         <Icon size={16} className={`${text} dark:!text-nss-bg`} />

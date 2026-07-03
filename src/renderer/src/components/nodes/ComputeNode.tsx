@@ -27,6 +27,7 @@ const ComputeNode = ({ id, data, selected }: NodeProps<ComputeNodeData>) => {
   const { utilization, queueDepth, hasRuntime, active } = useNodeMetrics(id)
   const isInactive = hasRuntime && active === false
   const safeColor = theme.bg || 'bg-nss-primary'
+  const safeText = theme.text || safeColor.replace('bg-', 'text-')
 
   const containerClassName = useMemo(() => {
     const base = 'group relative min-w-[180px] bg-nss-surface rounded-lg border-2'
@@ -49,11 +50,11 @@ const ComputeNode = ({ id, data, selected }: NodeProps<ComputeNodeData>) => {
                 ${
                   isOverloaded
                     ? 'bg-nss-danger/10 border-nss-danger/30 text-nss-danger'
-                    : `bg-opacity-50 ${safeColor}`
+                    : `${safeColor} bg-opacity-30 dark:bg-opacity-30`
                 }
               `}
             >
-              <Icon size={16} />
+              <Icon size={16} className={!isOverloaded ? `${safeText} dark:!text-nss-bg` : ''} />
             </div>
 
             <div className="flex flex-col overflow-hidden w-full">
