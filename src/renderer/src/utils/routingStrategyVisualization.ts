@@ -161,6 +161,39 @@ function decrementLeastConnectionLoad(targets: RoutingVisualizationTarget[], ind
   }
 }
 
+function normalizeRequestCount(value: number): number {
+  if (!Number.isFinite(value) || value <= 0) return 0
+  return Math.round(value)
+}
+
+function scaleCounts(
+  counts: Record<string, number>,
+  ids: string[],
+  sampleCount: number,
+  requestCount: number
+): Record<string, number> {
+  if (sampleCount <= 0 || requestCount === sampleCount) return counts
+
+  const sampleTotal = ids.reduce((sum, id) => sum + (counts[id] ?? 0), 0)
+  if (sampleTotal <= 0) return counts
+
+  const expectedTotal = Math.round((sampleTotal / sampleCount) * requestCount)
+  const scaledEntries = ids.map((id) => {
+    const raw = ((counts[id] ?? 0) / sampleCount) * requestCount
+    const floored = Math.floor(raw)
+    return { id, count: floored, remainder: raw - floored }
+  })
+  let remaining = expectedTotal - scaledEntries.reduce((sum, entry) => sum + entry.count, 0)
+
+  for (const entry of [...scaledEntries].sort((a, b) => b.remainder - a.remainder)) {
+    if (remaining <= 0) break
+    entry.count += 1
+    remaining -= 1
+  }
+
+  return Object.fromEntries(scaledEntries.map((entry) => [entry.id, entry.count]))
+}
+
 export function createRoutingVisualizationState(
   seed = DEFAULT_RNG_STATE
 ): RoutingVisualizationState {
@@ -273,20 +306,28 @@ export function resolveRoutingVisualizationDecision({
 export function createRoutingVisualizationFrames({
   strategy,
   targets,
-  requestCount = 24,
-  seed
+  requestCount = 0,
+  seed,
+  decisionSampleLimit
 }: {
   strategy: RoutingStrategy
   targets: RoutingVisualizationTarget[]
   requestCount?: number
   seed?: number
+  decisionSampleLimit?: number
 }): RoutingVisualizationResult {
+  const normalizedRequestCount = normalizeRequestCount(requestCount)
+  const normalizedSampleLimit =
+    decisionSampleLimit === undefined
+      ? normalizedRequestCount
+      : normalizeRequestCount(decisionSampleLimit)
+  const sampledRequestCount = Math.min(normalizedRequestCount, normalizedSampleLimit)
   const mutableTargets = targets.map((target) => ({ ...target }))
   let state = createRoutingVisualizationState(seed)
   const counts: Record<string, number> = Object.fromEntries(targets.map((target) => [target.id, 0]))
   const frames: RoutingVisualizationFrame[] = []
 
-  for (let index = 0; index < requestCount; index++) {
+  for (let index = 0; index < sampledRequestCount; index++) {
     if (strategy === 'least-conn') {
       decrementLeastConnectionLoad(mutableTargets, index)
     }
@@ -315,9 +356,16 @@ export function createRoutingVisualizationFrames({
     })
   }
 
+  const finalCounts = scaleCounts(
+    counts,
+    targets.map((target) => target.id),
+    sampledRequestCount,
+    normalizedRequestCount
+  )
+
   return {
     targets,
     frames,
-    finalCounts: counts
+    finalCounts
   }
 }

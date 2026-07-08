@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { BaseEdge, getSmoothStepPath, EdgeProps, EdgeLabelRenderer } from 'reactflow'
-import useStore, { type EdgeFlowRunConfig } from '@renderer/store/useStore'
+import useStore, { type EdgeFlowRunConfig, type EdgeFlowState } from '@renderer/store/useStore'
 import { createRoutingVisualizationFrames } from '@renderer/utils/routingStrategyVisualization'
 import { buildRoutingVisualizationTargets } from '@renderer/utils/routingStrategyGraph'
+import type { NodeSimulationMetrics } from '@renderer/types/ui'
 
 const EDGE_VISUAL_WINDOW_MS = 3_000
 const FAILED_PULSE_MS = 650
@@ -13,6 +14,8 @@ const FLOW_SUCCESS_COLOR = 'rgb(var(--nss-success))'
 const FLOW_WARNING_COLOR = 'rgb(var(--nss-warning))'
 const FLOW_DANGER_COLOR = 'rgb(var(--nss-danger))'
 const FLOW_PRIMARY_COLOR = 'rgb(var(--nss-primary))'
+const ROUTING_PREVIEW_DECISION_SAMPLE_LIMIT = 2_000
+const EMPTY_EDGE_FLOW_BY_ID: Record<string, EdgeFlowState> = {}
 
 type PacketEdgeData = {
   packetLossRate?: number
@@ -219,6 +222,39 @@ function packetSpeedJitter(
   return 0.7 + hash01(`${edgeId}:speed:${index}`) * 0.75
 }
 
+function finiteCount(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0
+    ? Math.round(value)
+    : null
+}
+
+function getRoutingPreviewRequestCount({
+  sourceNodeId,
+  targetEdgeIds,
+  metricsByNode,
+  edgeFlowById
+}: {
+  sourceNodeId: string
+  targetEdgeIds: string[]
+  metricsByNode: Record<string, NodeSimulationMetrics>
+  edgeFlowById: Record<string, EdgeFlowState>
+}): number {
+  const sourceMetrics = metricsByNode[sourceNodeId]
+  const processed = finiteCount(sourceMetrics?.postWarmupProcessed)
+  if (processed && processed > 0) return processed
+
+  const outgoingAttempted = targetEdgeIds.reduce(
+    (sum, edgeId) => sum + (edgeFlowById[edgeId]?.totalAttempted ?? 0),
+    0
+  )
+  if (outgoingAttempted > 0) return Math.round(outgoingAttempted)
+
+  const arrived = finiteCount(sourceMetrics?.postWarmupArrived)
+  if (arrived && arrived > 0) return arrived
+
+  return processed ?? arrived ?? 0
+}
+
 export const PacketEdge = ({
   id,
   source,
@@ -250,6 +286,11 @@ export const PacketEdge = ({
   const runConfig = useStore((state) => state.edgeFlowRunConfig)
   const playback = useStore((state) => state.edgeFlowPlayback)
   const routingVisualization = useStore((state) => state.routingStrategyVisualization)
+  const previewEdgeFlowById = useStore((state) =>
+    state.routingStrategyVisualization?.sourceNodeId === source
+      ? state.edgeFlowById
+      : EMPTY_EDGE_FLOW_BY_ID
+  )
   const nodes = useStore((state) => state.nodes)
   const edges = useStore((state) => state.edges)
   const metricsByNode = useStore((state) => state.simulationMetricsByNode)
@@ -262,10 +303,17 @@ export const PacketEdge = ({
       nodes,
       metricsByNode
     })
+    const requestCount = getRoutingPreviewRequestCount({
+      sourceNodeId: routingVisualization.sourceNodeId,
+      targetEdgeIds: targets.map((target) => target.id),
+      metricsByNode,
+      edgeFlowById: previewEdgeFlowById
+    })
     const demo = createRoutingVisualizationFrames({
       strategy: routingVisualization.strategy,
       targets,
-      requestCount: 36
+      requestCount,
+      decisionSampleLimit: ROUTING_PREVIEW_DECISION_SAMPLE_LIMIT
     })
     const selectedCount = demo.finalCounts[id] ?? 0
     const totalCount = Object.values(demo.finalCounts).reduce((sum, count) => sum + count, 0)
@@ -276,10 +324,11 @@ export const PacketEdge = ({
           selectedCount,
           totalCount,
           maxCount,
+          requestCount,
           isSelected: selectedCount > 0
         }
       : null
-  }, [edges, id, metricsByNode, nodes, routingVisualization, source])
+  }, [edges, id, metricsByNode, nodes, previewEdgeFlowById, routingVisualization, source])
   const isRoutingPreviewEdge = routingPreview !== null
   const [now, setNow] = useState(() => Date.now())
   const pathRef = useRef<SVGPathElement | null>(null)

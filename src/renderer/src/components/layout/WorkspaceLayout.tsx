@@ -160,6 +160,10 @@ export const WorkspaceLayout = () => {
         nodeId,
         {
           throughput: Math.round(metrics.throughput * 10) / 10,
+          postWarmupArrived: metrics.postWarmupArrived,
+          postWarmupProcessed: metrics.postWarmupProcessed,
+          postWarmupRejected: metrics.postWarmupRejected,
+          postWarmupTimedOut: metrics.postWarmupTimedOut,
           queueDepth: Math.round(metrics.avgQueueLength * 10) / 10,
           utilization: Math.round(metrics.utilization * 1000) / 10,
           errorRate: Math.round(metrics.errorRate * 10000) / 100,
