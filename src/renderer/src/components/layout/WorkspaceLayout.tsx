@@ -167,7 +167,19 @@ export const WorkspaceLayout = () => {
           queueDepth: Math.round(metrics.avgQueueLength * 10) / 10,
           utilization: Math.round(metrics.utilization * 1000) / 10,
           errorRate: Math.round(metrics.errorRate * 10000) / 100,
-          active: metrics.postWarmupArrived > 0
+          active: metrics.postWarmupArrived > 0,
+          avgServiceTime: Math.round(metrics.avgServiceTime * 100) / 100,
+          latencyP50: Math.round(metrics.latencyP50 * 100) / 100,
+          latencyP95: Math.round(metrics.latencyP95 * 100) / 100,
+          latencyP99: Math.round(metrics.latencyP99 * 100) / 100,
+          availability: Math.round(metrics.availability * 1000) / 10,
+          cacheHits: metrics.cacheHits,
+          cacheMisses: metrics.cacheMisses,
+          cacheHitRatio: Math.round(metrics.cacheHitRatio * 1000) / 10,
+          rejectionsByReason: metrics.rejectionsByReason,
+          traitCounters: metrics.traitCounters,
+          totalArrived: metrics.totalArrived,
+          totalRejected: metrics.totalRejected
         }
       ])
     )

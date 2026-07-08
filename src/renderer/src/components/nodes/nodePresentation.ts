@@ -1,4 +1,4 @@
-import type { AnyNodeData, NodeSimulationMetrics } from '@renderer/types/ui'
+import type { AnyNodeData, MetricLens, NodeSimulationMetrics } from '@renderer/types/ui'
 
 export type NodeHealthStatus = 'healthy' | 'degraded' | 'critical'
 
@@ -33,13 +33,6 @@ export const NODE_HEALTH_STYLES = {
     dot: 'bg-nss-danger shadow-[0_0_8px_rgba(239,68,68,0.4)]'
   }
 } satisfies Record<NodeHealthStatus, NodeHealthStyle>
-
-export interface SummaryMetric {
-  label: string
-  value?: string | number
-  unit?: string
-  textColor?: string
-}
 
 export function getNodeStatus(data: AnyNodeData): NodeHealthStatus {
   return data.ui?.overloadPreview ? 'critical' : 'healthy'
@@ -79,75 +72,158 @@ export function isRuntimeNodeInactive(hasRuntime: boolean, active?: boolean): bo
   return hasRuntime && active === false
 }
 
-export function getPreRunSummary(data: AnyNodeData): SummaryMetric[] {
+export interface IdentityChip {
+  label: string
+  value: string
+}
+
+/**
+ * The one config fact worth showing pre-run when a node's behavior actually
+ * depends on it — everything else lives in the properties panel (with
+ * provenance), never echoed as a bare number on the card.
+ */
+export function getIdentityChip(data: AnyNodeData): IdentityChip | null {
   if (data.profile === 'source') {
-    return [
-      {
-        label: 'Pattern',
-        value: data.source?.defaultWorkload.pattern
-      },
-      {
-        label: 'Base RPS',
-        value: data.source?.defaultWorkload.baseRps?.toFixed(1),
-        unit: 'req/s'
-      }
-    ]
-  }
-
-  if (data.profile === 'security-filter') {
-    return [
-      {
-        label: 'Block Rate',
-        value:
-          typeof data.sim?.securityPolicy?.blockRate === 'number'
-            ? (data.sim.securityPolicy.blockRate * 100).toFixed(1)
-            : undefined,
-        unit: '%',
-        textColor: 'text-nss-warning'
-      },
-      {
-        label: 'Dropped Pkts',
-        value:
-          typeof data.sim?.securityPolicy?.droppedPackets === 'number'
-            ? (data.sim.securityPolicy.droppedPackets * 100).toFixed(1)
-            : undefined,
-        unit: '%',
-        textColor: 'text-nss-danger'
-      },
-      {
-        label: 'Timeout',
-        value:
-          typeof data.sim?.processing?.timeout === 'number'
-            ? data.sim.processing.timeout
-            : undefined,
-        unit: 'ms'
-      }
-    ]
-  }
-
-  const metrics: SummaryMetric[] = [
-    {
-      label: 'Workers',
-      value: data.sim?.queue?.workers
-    },
-    {
-      label: 'Capacity',
-      value: data.sim?.queue?.capacity,
-      unit: 'req'
-    },
-    {
-      label: 'Timeout',
-      value: data.sim?.processing?.timeout,
-      unit: 'ms'
+    const pattern = data.source?.defaultWorkload.pattern
+    const baseRps = data.source?.defaultWorkload.baseRps
+    if (!pattern || baseRps === undefined) {
+      return null
     }
-  ]
-
-  if (data.profile === 'router') {
-    metrics.unshift({
-      label: 'Routing',
-      value: data.routingStrategy ?? 'passthrough'
-    })
+    return { label: 'Workload', value: `${pattern} · ${baseRps.toFixed(1)} rps` }
   }
+  if (typeof data.sim?.cacheHitRate === 'number') {
+    return { label: 'Cache', value: `hit ${Math.round(data.sim.cacheHitRate * 100)}%` }
+  }
+  // replicationRole is only resolved onto data.sim at serialize/run time
+  // (componentSpecs.ts derives it from templateId) — check templateId too so
+  // the identity chip is honest before the first run, not just after.
+  if (data.sim?.replicationRole === 'replica' || data.templateId === 'read-replica') {
+    return { label: 'Role', value: 'read-only replica' }
+  }
+  if (typeof data.sim?.refillRatePerSecond === 'number') {
+    return { label: 'Rate limit', value: `${data.sim.refillRatePerSecond} rps` }
+  }
+  if (data.sim?.healthCheckEnabled === false) {
+    return { label: 'Health checks', value: 'off' }
+  }
+  if (
+    typeof data.sim?.securityPolicy?.blockRate === 'number' &&
+    data.sim.securityPolicy.blockRate > 0
+  ) {
+    return { label: 'Block rate', value: `${Math.round(data.sim.securityPolicy.blockRate * 100)}%` }
+  }
+  return null
+}
 
-  return metrics
+export interface LensCardData {
+  value: string
+  limit: string
+  glyph: '✓' | '⚠' | '✕'
+  why: string
+  tone: NodeHealthStatus
+}
+
+const GLYPH_BY_TONE: Record<NodeHealthStatus, LensCardData['glyph']> = {
+  healthy: '✓',
+  degraded: '⚠',
+  critical: '✕'
+}
+
+/**
+ * One metric family, driven by the active lens — the value/limit card. Never
+ * shows more than one family at once; deep detail lives behind selection.
+ */
+export function getLensCard(
+  lens: MetricLens,
+  data: AnyNodeData,
+  metrics: NodeSimulationMetrics
+): LensCardData | null {
+  switch (lens) {
+    case 'saturation': {
+      const workers = data.sim?.queue?.workers
+      if (!workers || metrics.utilization === undefined) {
+        return null
+      }
+      const utilization = metrics.utilization
+      const activeWorkers = Math.min(workers, (utilization / 100) * workers)
+      const tone = getRuntimeNodeStatus(
+        'healthy',
+        { utilization, errorRate: metrics.errorRate, queueDepth: metrics.queueDepth },
+        true
+      )
+      const verdict =
+        tone === 'critical'
+          ? 'saturated'
+          : tone === 'degraded'
+            ? 'approaching saturation'
+            : 'healthy'
+      return {
+        value: activeWorkers.toFixed(1),
+        limit: `/ ${workers} workers`,
+        glyph: GLYPH_BY_TONE[tone],
+        why: `${utilization.toFixed(0)}% utilized — ${verdict} · click for detail`,
+        tone
+      }
+    }
+    case 'latency': {
+      if (metrics.latencyP95 === undefined) {
+        return null
+      }
+      const sloP99 = data.sim?.slo?.latencyP99
+      let tone: NodeHealthStatus = 'healthy'
+      let sloText = 'no SLO set'
+      if (typeof sloP99 === 'number' && sloP99 > 0 && metrics.latencyP99 !== undefined) {
+        if (metrics.latencyP99 > sloP99 * 1.5) {
+          tone = 'critical'
+        } else if (metrics.latencyP99 > sloP99) {
+          tone = 'degraded'
+        }
+        sloText = tone === 'healthy' ? `within ${sloP99}ms p99 SLO` : `above ${sloP99}ms p99 SLO`
+      }
+      return {
+        value: `${metrics.latencyP95.toFixed(1)}ms`,
+        limit: 'p95',
+        glyph: GLYPH_BY_TONE[tone],
+        why: `p50 ${(metrics.latencyP50 ?? 0).toFixed(1)}ms · ${sloText} · click for detail`,
+        tone
+      }
+    }
+    case 'errors': {
+      if (metrics.errorRate === undefined) {
+        return null
+      }
+      const tone: NodeHealthStatus =
+        metrics.errorRate >= 50 ? 'critical' : metrics.errorRate > 0 ? 'degraded' : 'healthy'
+      const reasons = Object.entries(metrics.rejectionsByReason ?? {}).sort((a, b) => b[1] - a[1])
+      const why =
+        reasons.length > 0
+          ? `${reasons[0][1]} rejected: ${reasons[0][0]} · click for detail`
+          : 'no rejections'
+      return {
+        value: `${metrics.errorRate.toFixed(1)}%`,
+        limit: `${metrics.totalRejected ?? 0} rejected`,
+        glyph: GLYPH_BY_TONE[tone],
+        why,
+        tone
+      }
+    }
+    case 'throughput': {
+      if (metrics.throughput === undefined) {
+        return null
+      }
+      const why =
+        metrics.cacheHitRatio !== undefined && metrics.cacheHitRatio > 0
+          ? `${metrics.cacheHitRatio.toFixed(0)}% served from cache`
+          : 'click for detail'
+      return {
+        value: metrics.throughput.toFixed(1),
+        limit: 'req/s',
+        glyph: '✓',
+        why,
+        tone: 'healthy'
+      }
+    }
+    default:
+      return null
+  }
 }

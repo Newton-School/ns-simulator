@@ -15,6 +15,7 @@ import 'reactflow/dist/style.css'
 import { EdgeSimulationData } from '@renderer/types/ui'
 
 import EmptyFlowState from '../ui/EmptyFlowState'
+import { MetricLensSwitcher } from './MetricLensSwitcher'
 // Hooks & Config
 import { EdgePropertiesPanel, EdgePropertiesPanelValue } from '../ui/EdgePropertiesPanel'
 
@@ -152,6 +153,8 @@ const FlowCanvasInternal = () => {
         <Controls className="!bg-nss-surface !border-nss-border" />
         <MiniMap className="!bg-nss-surface !border-nss-border" />
       </ReactFlow>
+      {!isEmpty && <MetricLensSwitcher />}
+
       {/* Empty State */}
       <EmptyFlowState isEmpty={isEmpty} />
 

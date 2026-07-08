@@ -16,7 +16,8 @@ import type {
   NodeSimulationMetrics,
   AnyNodeData,
   EdgeSimulationData,
-  ScenarioState
+  ScenarioState,
+  MetricLens
 } from '@renderer/types/ui'
 import { DEFAULT_SCENARIO_STATE } from '@renderer/types/ui'
 import type { EdgeFlowEvent } from '../../../engine/core/events'
@@ -106,6 +107,7 @@ type RFState = {
   nodes: Node[]
   edges: Edge[]
   simulationMetricsByNode: Record<string, NodeSimulationMetrics>
+  metricLens: MetricLens
   edgeFlowById: Record<string, EdgeFlowState>
   edgeFlowPlayback: { wallStartMs: number; simStartMs: number } | null
   edgeFlowStatus: EdgeFlowStatus
@@ -129,6 +131,7 @@ type RFState = {
   ) => void
   setSimulationMetrics: (metrics: Record<string, NodeSimulationMetrics>) => void
   clearSimulationMetrics: () => void
+  setMetricLens: (lens: MetricLens) => void
   recordEdgeFlowEvent: (event: EdgeFlowEvent) => void
   setEdgeFlowStatus: (status: EdgeFlowStatus) => void
   setEdgeFlowRunConfig: (config: EdgeFlowRunConfig) => void
@@ -149,6 +152,7 @@ const useStore = create<RFState>((set, get) => ({
   nodes: [],
   edges: [],
   simulationMetricsByNode: {},
+  metricLens: 'saturation',
   edgeFlowById: {},
   edgeFlowPlayback: null,
   edgeFlowStatus: 'idle',
@@ -271,6 +275,10 @@ const useStore = create<RFState>((set, get) => ({
 
   setSimulationMetrics: (simulationMetricsByNode) => {
     set({ simulationMetricsByNode })
+  },
+
+  setMetricLens: (metricLens) => {
+    set({ metricLens })
   },
 
   clearSimulationMetrics: () => {
