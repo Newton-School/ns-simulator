@@ -7,7 +7,18 @@ import {
   type FieldPath
 } from '@renderer/config/fieldConfig'
 import useStore from '@renderer/store/useStore'
+import { Input } from '../ui/Input'
+import { Label } from '../ui/Label'
+import { Select } from '../ui/Select'
 import { FormField } from './FormField'
+import {
+  HEALTH_PRESET_ERROR_RATE,
+  clamp,
+  formatErrorRatePercent,
+  getHealthPreset,
+  normalizeErrorRate,
+  type HealthPreset
+} from './nodeHealth'
 
 interface PropertiesFormProps {
   nodeId: string
@@ -54,6 +65,53 @@ function getRoutingStrategy(data: AnyNodeData): RoutingStrategy {
 }
 
 export const PropertiesForm = ({ nodeId, data, onUpdate }: PropertiesFormProps) => {
+function NodeHealthField({
+  value,
+  onChange
+}: {
+  value: unknown
+  onChange: (value: unknown) => void
+}) {
+  const errorRate = normalizeErrorRate(value)
+  const preset = getHealthPreset(errorRate)
+
+  return (
+    <div className="mb-5" data-field-path="sim.nodeErrorRate">
+      <Label>Node Health</Label>
+
+      <div className="grid grid-cols-[minmax(0,1fr)_5.75rem] gap-2">
+        <Select
+          value={preset}
+          onChange={(event) => {
+            const nextPreset = event.target.value as HealthPreset
+            onChange(HEALTH_PRESET_ERROR_RATE[nextPreset])
+          }}
+        >
+          <option value="healthy">Healthy</option>
+          <option value="degraded">Degraded</option>
+          <option value="critical">Critical</option>
+          <option value="down">Down</option>
+        </Select>
+
+        <Input
+          type="number"
+          min={0}
+          max={100}
+          step={1}
+          value={formatErrorRatePercent(errorRate)}
+          rightElement="%"
+          className="pr-8"
+          onChange={(event) => {
+            const parsed = Number(event.target.value)
+            onChange(Number.isNaN(parsed) ? 0 : clamp(parsed, 0, 100) / 100)
+          }}
+        />
+      </div>
+    </div>
+  )
+}
+
+export const PropertiesForm = ({ data, onUpdate }: PropertiesFormProps) => {
   const groups = PROFILE_FIELD_GROUPS[data.profile]
   const routingVisualization = useStore((state) => state.routingStrategyVisualization)
   const setRoutingStrategyVisualization = useStore((state) => state.setRoutingStrategyVisualization)
@@ -124,8 +182,15 @@ export const PropertiesForm = ({ nodeId, data, onUpdate }: PropertiesFormProps) 
                     const config = FIELD_DEFINITIONS[path]
                     if (!config) return null
 
-                    return (
-                      <FormField
+                  return (
+                    <div key={path}>
+                      {path === 'sim.nodeErrorRate' ? (
+                        <NodeHealthField
+                          value={getPathValue(data, path)}
+                          onChange={(value) => onUpdate(path, value)}
+                        />
+                      ) : (
+                        <FormField
                         key={path}
                         fieldPath={path}
                         config={config}
@@ -148,13 +213,14 @@ export const PropertiesForm = ({ nodeId, data, onUpdate }: PropertiesFormProps) 
                           ) : undefined
                         }
                       />
-                    )
-                  })}
-                </div>
-              </section>
-            )
-          })}
-        </>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+          )
+        })
       )}
     </div>
   )
