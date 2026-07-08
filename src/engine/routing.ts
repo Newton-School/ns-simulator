@@ -1,6 +1,6 @@
 import type { Request } from './core/events'
 import type { ComponentNode, EdgeDefinition, RandomGenerator } from './core/types'
-import { isObservabilityComponentType } from './traits/asyncOnly'
+import { isAsyncBoundaryComponentType } from './traits/asyncOnly'
 import { resolveTraits } from './traits/resolveTraits'
 import type {
   FilterRoutesDecision,
@@ -89,7 +89,7 @@ export class RoutingTable {
     for (const edge of edges) {
       const targetType = this.nodeById.get(edge.target)?.type
       const resolvedEdge =
-        targetType && isObservabilityComponentType(targetType) && edge.mode !== 'asynchronous'
+        targetType && isAsyncBoundaryComponentType(targetType) && edge.mode !== 'asynchronous'
           ? { ...edge, mode: 'asynchronous' as const }
           : edge
 
