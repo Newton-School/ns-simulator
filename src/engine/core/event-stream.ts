@@ -6,6 +6,7 @@ export const CANONICAL_EVENT_TYPES = [
   'request-queued',
   'processing-started',
   'processing-completed',
+  'trait-evaluated',
   'request-forwarded',
   'request-completed',
   'request-timed-out',
@@ -282,6 +283,14 @@ function buildDebugMessage(record: CanonicalEventRecord): string {
       return `${subject} started processing${nodeSuffix}`
     case 'processing-completed':
       return `${subject} completed processing${nodeSuffix}`
+    case 'trait-evaluated': {
+      const traitName =
+        typeof record.payload.traitName === 'string' ? record.payload.traitName : 'unknown-trait'
+      const hook = typeof record.payload.hook === 'string' ? record.payload.hook : 'unknown-hook'
+      const decision =
+        typeof record.payload.decision === 'string' ? record.payload.decision : 'unknown-decision'
+      return `${traitName} ${hook} decided ${decision}${nodeSuffix}`
+    }
     case 'request-forwarded':
       return `${subject} forwarded${nodeSuffix}`
     case 'request-completed':

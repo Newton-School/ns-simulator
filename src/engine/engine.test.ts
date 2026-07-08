@@ -4,6 +4,7 @@ import { msToMicro } from './core/time'
 import type { ComponentNode, EdgeDefinition, TopologyJSON } from './core/types'
 import type { AdmissionDecision, DebugEvent } from './core/event-stream'
 import { SimulationEngine } from './engine'
+import type { NodeBehaviourTrait, TraitResolver } from './traits/types'
 
 function makeNode(id: string): ComponentNode {
   return {
@@ -179,6 +180,77 @@ describe('SimulationEngine', () => {
     })
     expect(decisions.some((decision) => decision.decision === 'rejected')).toBe(true)
     expect(engine.getEventCountsByType()['request-rejected']).toBeGreaterThan(0)
+  })
+
+  it('records trait decisions and rejects requests when a beforeArrival trait rejects them', () => {
+    const rejectAllTrait: NodeBehaviourTrait = {
+      name: 'test.reject-all',
+      beforeArrival: () => ({ action: 'rejected', reason: 'test_reject' })
+    }
+    const traitResolver: TraitResolver = (node) =>
+      node.id === 'worker' ? [rejectAllTrait] : []
+
+    const topology = makeTopology({
+      global: { simulationDuration: 20, defaultTimeout: 1_000, traceSampleRate: 1 },
+      nodes: [makeNode('source'), makeNode('worker')],
+      edges: [makeEdge('source-to-worker', 'source', 'worker')],
+      workload: {
+        sourceNodeId: 'source',
+        pattern: 'constant',
+        baseRps: 1,
+        requestDistribution: [{ type: 'GET', weight: 1, sizeBytes: 100 }]
+      }
+    })
+
+    const output = new SimulationEngine(topology, { resolveTraits: traitResolver }).run()
+    const traitEvent = output.eventStream.find((event) => event.type === 'trait-evaluated')
+
+    expect(traitEvent).toMatchObject({
+      nodeId: 'worker',
+      payload: {
+        traitName: 'test.reject-all',
+        hook: 'beforeArrival',
+        decision: 'rejected',
+        reason: 'test_reject'
+      }
+    })
+    expect(traitEvent?.requestId).toMatch(/^req-/)
+    expect(output.eventCountsByType['trait-evaluated']).toBe(1)
+    expect(output.eventStream.map((event) => event.type)).toEqual([
+      'request-generated',
+      'request-forwarded',
+      'request-arrived',
+      'trait-evaluated',
+      'request-rejected'
+    ])
+    expect(output.summary.rejectedRequests).toBe(1)
+  })
+
+  it('keeps baseline behavior unchanged when the trait resolver returns no traits', () => {
+    const noTraits: TraitResolver = () => []
+    const topology = makeTopology({
+      global: { simulationDuration: 20, defaultTimeout: 1_000, traceSampleRate: 1 },
+      nodes: [makeNode('source'), makeNode('worker')],
+      edges: [makeEdge('source-to-worker', 'source', 'worker')],
+      workload: {
+        sourceNodeId: 'source',
+        pattern: 'constant',
+        baseRps: 1,
+        requestDistribution: [{ type: 'GET', weight: 1, sizeBytes: 100 }]
+      }
+    })
+
+    const output = new SimulationEngine(topology, { resolveTraits: noTraits }).run()
+
+    expect(output.eventStream.map((event) => event.type)).toEqual([
+      'request-generated',
+      'request-forwarded',
+      'request-arrived',
+      'processing-started',
+      'processing-completed',
+      'request-completed'
+    ])
+    expect(output.eventCountsByType['trait-evaluated']).toBe(0)
   })
 
   it('emits node failure and recovery events with snapshots', () => {

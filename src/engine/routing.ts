@@ -1,5 +1,7 @@
 import type { Request } from './core/events'
 import type { ComponentNode, EdgeDefinition, RandomGenerator } from './core/types'
+import { resolveTraits } from './traits/resolveTraits'
+import type { FilterRoutesDecision, NodeBehaviourTrait, TraitResolver } from './traits/types'
 
 /**
  * Normalized output for a single routing choice.
@@ -16,11 +18,19 @@ export interface ResolveRoute {
   edge: EdgeDefinition
 }
 
-export type RouteRejectionReason = 'no_healthy_targets'
+export type RouteRejectionReason = 'no_healthy_targets' | 'trait_invalid_reroute'
 
 export interface ResolveTargetOptions {
+  clock?: bigint
   isTargetHealthy?: (nodeId: string) => boolean
   isEdgeHealthy?: (edge: EdgeDefinition) => boolean
+  onTraitDecision?: (decision: {
+    traitName: string
+    nodeId: string
+    hook: 'filterRoutes'
+    decision: string
+    payload?: Record<string, unknown>
+  }) => void
 }
 
 export interface ResolveTargetResult {
@@ -56,6 +66,8 @@ export class RoutingTable {
    */
   private readonly roundRobinSourceIds: Set<string>
   private readonly healthAwareSourceIds: Set<string>
+  private readonly nodeById = new Map<string, ComponentNode>()
+  private readonly traitsBySourceId = new Map<string, readonly NodeBehaviourTrait[]>()
 
   /**
    * @param edges Topology edges used to build routing lookup tables.
@@ -66,7 +78,8 @@ export class RoutingTable {
   constructor(
     edges: EdgeDefinition[],
     private readonly rng: RandomGenerator,
-    nodes: ComponentNode[] = []
+    nodes: ComponentNode[] = [],
+    traitResolver: TraitResolver = resolveTraits
   ) {
     for (const edge of edges) {
       const list = this.outgoingBySource.get(edge.source)
@@ -77,12 +90,19 @@ export class RoutingTable {
       }
     }
 
+    for (const node of nodes) {
+      this.nodeById.set(node.id, node)
+      this.traitsBySourceId.set(node.id, traitResolver(node))
+    }
+
     this.roundRobinSourceIds = new Set(
       nodes
         .filter(
           (node) =>
             node.config?.['routingStrategy'] === 'round-robin' ||
-            HEALTH_AWARE_ROUTER_TYPES.has(node.type)
+            (this.traitsBySourceId.get(node.id) ?? []).some(
+              (trait) => trait.routingStrategyHint === 'round-robin'
+            )
         )
         .map((node) => node.id)
     )
@@ -138,15 +158,26 @@ export class RoutingTable {
       return { routes: [], rejectionReason: 'no_healthy_targets' }
     }
 
-    const asyncEdges = healthEligible.filter((edge) => edge.mode === 'asynchronous')
-    const syncEdges = healthEligible.filter((edge) => edge.mode !== 'asynchronous')
+    const traitFiltered = this.applyTraitRouteFilters(
+      sourceNodeId,
+      healthEligible.map((edge) => this.toResolved(edge)),
+      request,
+      options
+    )
 
-    const results: ResolveRoute[] = asyncEdges.map((edge) => this.toResolved(edge))
+    if (traitFiltered.length === 0) {
+      return { routes: [] }
+    }
 
-    if (syncEdges.length === 1) {
-      results.push(this.toResolved(syncEdges[0]))
-    } else if (syncEdges.length > 1) {
-      results.push(this.toResolved(this.pickSyncRoute(sourceNodeId, syncEdges)))
+    const asyncRoutes = traitFiltered.filter((route) => route.edge.mode === 'asynchronous')
+    const syncRoutes = traitFiltered.filter((route) => route.edge.mode !== 'asynchronous')
+
+    const results: ResolveRoute[] = [...asyncRoutes]
+
+    if (syncRoutes.length === 1) {
+      results.push(syncRoutes[0])
+    } else if (syncRoutes.length > 1) {
+      results.push(this.pickSyncRoute(sourceNodeId, syncRoutes))
     }
 
     return { routes: results }
@@ -156,20 +187,20 @@ export class RoutingTable {
    * Selects one edge from synchronous candidates using round-robin,
    * weighted, or uniform random strategy.
    */
-  private pickSyncRoute(sourceNodeId: string, edges: EdgeDefinition[]): EdgeDefinition {
+  private pickSyncRoute(sourceNodeId: string, routes: ResolveRoute[]): ResolveRoute {
     if (this.isRoundRobinSource(sourceNodeId)) {
       const current = this.roundRobinIndexBySource.get(sourceNodeId) ?? 0
-      const safeIndex = current % edges.length
-      const edge = edges[safeIndex]
-      this.roundRobinIndexBySource.set(sourceNodeId, (safeIndex + 1) % edges.length)
-      return edge
+      const safeIndex = current % routes.length
+      const route = routes[safeIndex]
+      this.roundRobinIndexBySource.set(sourceNodeId, (safeIndex + 1) % routes.length)
+      return route
     }
 
-    if (edges.some((edge) => edge.weight !== undefined)) {
-      return this.pickByWeight(edges)
+    if (routes.some((route) => route.edge.weight !== undefined)) {
+      return this.pickByWeight(routes)
     }
 
-    return edges[this.rng.integer(0, edges.length - 1)]
+    return routes[this.rng.integer(0, routes.length - 1)]
   }
 
   /**
@@ -218,12 +249,12 @@ export class RoutingTable {
   /**
    * Picks one edge from a candidate set using relative weight values.
    */
-  private pickByWeight(edges: EdgeDefinition[]): EdgeDefinition {
+  private pickByWeight(routes: ResolveRoute[]): ResolveRoute {
     let total = 0
     const weights: number[] = []
 
-    for (const edge of edges) {
-      const weight = edge.weight ?? 1
+    for (const route of routes) {
+      const weight = route.edge.weight ?? 1
       const normalized = Number.isFinite(weight) && weight > 0 ? weight : 0
       weights.push(normalized)
       total += normalized
@@ -231,20 +262,20 @@ export class RoutingTable {
 
     // If configured weights are unusable, fall back to uniform random
     if (total <= 0) {
-      return edges[this.rng.integer(0, edges.length - 1)]
+      return routes[this.rng.integer(0, routes.length - 1)]
     }
 
     const target = this.rng.next() * total
     let cumulative = 0
 
-    for (let i = 0; i < edges.length; i++) {
+    for (let i = 0; i < routes.length; i++) {
       cumulative += weights[i]
       if (target < cumulative) {
-        return edges[i]
+        return routes[i]
       }
     }
 
-    return edges[edges.length - 1]
+    return routes[routes.length - 1]
   }
 
   private filterHealthyTargets(
@@ -269,25 +300,11 @@ export class RoutingTable {
    * heuristic for legacy topology JSON that predates routingStrategy.
    */
   private isRoundRobinSource(sourceNodeId: string): boolean {
-    if (this.roundRobinSourceIds.size > 0) {
-      return this.roundRobinSourceIds.has(sourceNodeId)
-    }
-    const id = sourceNodeId.toLowerCase()
-    return (
-      id.includes('load-balancer') ||
-      id.includes('lb') ||
-      id.includes('ingress') ||
-      id.includes('reverse-proxy')
-    )
+    return this.roundRobinSourceIds.has(sourceNodeId)
   }
 
   private isHealthAwareSource(sourceNodeId: string): boolean {
-    if (this.healthAwareSourceIds.size > 0) {
-      return this.healthAwareSourceIds.has(sourceNodeId)
-    }
-
-    const id = sourceNodeId.toLowerCase()
-    return id.includes('load-balancer') || id.includes('lb')
+    return this.healthAwareSourceIds.has(sourceNodeId)
   }
 
   /**
@@ -295,5 +312,74 @@ export class RoutingTable {
    */
   private toResolved(edge: EdgeDefinition): ResolveRoute {
     return { targetNodeId: edge.target, edge }
+  }
+
+  private applyTraitRouteFilters(
+    sourceNodeId: string,
+    candidates: ResolveRoute[],
+    request: Request,
+    options: ResolveTargetOptions
+  ): ResolveRoute[] {
+    const node = this.nodeById.get(sourceNodeId)
+    if (!node) {
+      return candidates
+    }
+
+    let filtered = candidates
+    for (const trait of this.traitsBySourceId.get(sourceNodeId) ?? []) {
+      if (!trait.filterRoutes) {
+        continue
+      }
+
+      const result = trait.filterRoutes({
+        node,
+        request,
+        clock: options.clock ?? 0n,
+        candidates: filtered
+      })
+      const normalized = this.normalizeFilterRoutesDecision(filtered, result)
+      options.onTraitDecision?.({
+        traitName: trait.name,
+        nodeId: sourceNodeId,
+        hook: 'filterRoutes',
+        decision: normalized.decision,
+        payload: normalized.payload
+      })
+      filtered = normalized.routes
+    }
+
+    return filtered
+  }
+
+  private normalizeFilterRoutesDecision(
+    previousRoutes: ResolveRoute[],
+    decision: FilterRoutesDecision
+  ): {
+    routes: ResolveRoute[]
+    decision: string
+    payload: Record<string, unknown>
+  } {
+    if (Array.isArray(decision)) {
+      return {
+        routes: decision,
+        decision: decision.length === previousRoutes.length ? 'continue' : 'filtered',
+        payload: {
+          beforeCandidateCount: previousRoutes.length,
+          afterCandidateCount: decision.length
+        }
+      }
+    }
+
+    return {
+      routes: decision.routes,
+      decision:
+        decision.decision ??
+        (decision.routes.length === previousRoutes.length ? 'continue' : 'filtered'),
+      payload: {
+        beforeCandidateCount: previousRoutes.length,
+        afterCandidateCount: decision.routes.length,
+        ...(decision.payload ?? {})
+      }
+    }
   }
 }

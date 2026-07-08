@@ -3,6 +3,7 @@ import { Request } from './core/events'
 import { ComponentNode, EdgeDefinition } from './core/types'
 import { RoutingTable } from './routing'
 import { createRandom } from './stochastic/random'
+import type { NodeBehaviourTrait, TraitResolver } from './traits/types'
 
 function makeRequest(type = 'GET'): Request {
   return {
@@ -120,20 +121,20 @@ describe('RoutingTable', () => {
     expect(resolved.map((r) => r.targetNodeId).sort()).toEqual(['node-b', 'node-c', 'node-d'])
   })
 
-  it('round-robin cycles through targets using node type metadata', () => {
+  it('round-robin cycles through targets using type-derived routing hints', () => {
     const edges = [
-      makeEdge('e1', 'load-balancer-1', 'a'),
-      makeEdge('e2', 'load-balancer-1', 'b'),
-      makeEdge('e3', 'load-balancer-1', 'c')
+      makeEdge('e1', 'my-router-1', 'a'),
+      makeEdge('e2', 'my-router-1', 'b'),
+      makeEdge('e3', 'my-router-1', 'c')
     ]
-    const nodes = [makeNode('load-balancer-1', 'load-balancer')]
+    const nodes = [makeNode('my-router-1', 'load-balancer')]
 
     const routing = new RoutingTable(edges, createRandom('rr'), nodes)
     const request = makeRequest()
 
     const picks = Array.from(
       { length: 7 },
-      () => routing.resolveTarget('load-balancer-1', request)[0]
+      () => routing.resolveTarget('my-router-1', request)[0]
     )
     expect(picks.map((r) => r.targetNodeId)).toEqual(['a', 'b', 'c', 'a', 'b', 'c', 'a'])
   })
@@ -160,15 +161,21 @@ describe('RoutingTable', () => {
     expect(picks.map((route) => route.targetNodeId)).toEqual(['a', 'b', 'c', 'a', 'b', 'c'])
   })
 
-  it('round-robin falls back to id heuristic when no nodes provided', () => {
-    const edges = [makeEdge('e1', 'load-balancer-1', 'a'), makeEdge('e2', 'load-balancer-1', 'b')]
+  it('plain services do not round-robin just because their id looks like a load balancer', () => {
+    const edges = [
+      makeEdge('e1', 'lb-ish-thing', 'a'),
+      makeEdge('e2', 'lb-ish-thing', 'b'),
+      makeEdge('e3', 'lb-ish-thing', 'c')
+    ]
+    const nodes = [makeNode('lb-ish-thing', 'microservice')]
 
-    const routing = new RoutingTable(edges, createRandom('rr-fallback'))
+    const routing = new RoutingTable(edges, createRandom('not-rr'), nodes)
     const picks = Array.from(
-      { length: 4 },
-      () => routing.resolveTarget('load-balancer-1', makeRequest())[0]
+      { length: 6 },
+      () => routing.resolveTarget('lb-ish-thing', makeRequest())[0]
     )
-    expect(picks.map((r) => r.targetNodeId)).toEqual(['a', 'b', 'a', 'b'])
+
+    expect(picks.map((r) => r.targetNodeId)).not.toEqual(['a', 'b', 'c', 'a', 'b', 'c'])
   })
 
   it('conditional routing includes only edges whose condition matches request context', () => {
@@ -232,5 +239,28 @@ describe('RoutingTable', () => {
     const edges = [makeEdge('e1', 'a', 'b')]
     const routing = new RoutingTable(edges, createRandom('sink'))
     expect(routing.resolveTarget('no-outgoing', makeRequest())).toEqual([])
+  })
+
+  it('applies trait-provided route filters before selecting a sync target', () => {
+    const edges = [
+      makeEdge('e1', 'router', 'a'),
+      makeEdge('e2', 'router', 'b'),
+      makeEdge('e3', 'router', 'c')
+    ]
+    const filterTrait: NodeBehaviourTrait = {
+      name: 'test.only-b',
+      filterRoutes: ({ candidates }) => ({
+        routes: candidates.filter((candidate) => candidate.targetNodeId === 'b'),
+        decision: 'filtered-to-b'
+      })
+    }
+    const traitResolver: TraitResolver = (node) =>
+      node.id === 'router' ? [filterTrait] : []
+
+    const routing = new RoutingTable(edges, createRandom('trait-filter'), [makeNode('router')], traitResolver)
+
+    const resolved = routing.resolveTarget('router', makeRequest())
+    expect(resolved).toHaveLength(1)
+    expect(resolved[0].targetNodeId).toBe('b')
   })
 })

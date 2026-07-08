@@ -31,6 +31,14 @@ import { MinHeap } from './scheduler/min-heap'
 import { Distributions } from './stochastic/distribution'
 import { createRandom } from './stochastic/random'
 import { RequestTracer } from './tracer'
+import { resolveTraits } from './traits/resolveTraits'
+import type {
+  BeforeArrivalDecision,
+  BeforeRoutingDecision,
+  NodeBehaviourTrait,
+  TraitHookName,
+  TraitResolver
+} from './traits/types'
 import { WorkloadGenerator } from './workload'
 
 interface SecurityPolicyConfig {
@@ -40,6 +48,10 @@ interface SecurityPolicyConfig {
 
 const DEFAULT_MAX_RETAINED_EVENT_STREAM_EVENTS = 25_000
 const LOAD_BALANCER_UNHEALTHY_COOLDOWN_US = msToMicro(5_000)
+
+interface SimulationEngineOptions {
+  resolveTraits?: TraitResolver
+}
 
 export class SimulationEngine {
   onProgress?: (percent: number, eventsProcessed: number) => void
@@ -58,6 +70,8 @@ export class SimulationEngine {
   private readonly metrics: MetricsCollector
   private readonly tracer: RequestTracer
   private readonly nodes = new Map<string, GGcKNode>()
+  private readonly nodeDefinitionsById = new Map<string, ComponentNode>()
+  private readonly traitsByNodeId = new Map<string, readonly NodeBehaviourTrait[]>()
   private readonly nodeErrorRateById = new Map<string, number>()
   private readonly nodeTimeoutUsById = new Map<string, bigint>()
   private readonly securityPolicyByNodeId = new Map<string, SecurityPolicyConfig>()
@@ -82,10 +96,14 @@ export class SimulationEngine {
   private forcedTraceRequestId: string | null = null
   private readonly debugEvents: DebugEvent[] = []
 
-  constructor(private readonly topology: TopologyJSON) {
+  constructor(
+    private readonly topology: TopologyJSON,
+    options: SimulationEngineOptions = {}
+  ) {
     const rng = createRandom(topology.global.seed)
+    const traitResolver = options.resolveTraits ?? resolveTraits
     this.distributions = new Distributions(rng)
-    this.routing = new RoutingTable(topology.edges, rng, topology.nodes)
+    this.routing = new RoutingTable(topology.edges, rng, topology.nodes, traitResolver)
     this.metrics = new MetricsCollector({
       warmupDuration: topology.global.warmupDuration,
       nodes: topology.nodes.map((node) => ({
@@ -103,6 +121,8 @@ export class SimulationEngine {
 
     for (const node of topology.nodes) {
       const normalized = this.withNodeDefaults(node)
+      this.nodeDefinitionsById.set(node.id, normalized)
+      this.traitsByNodeId.set(node.id, traitResolver(normalized))
       this.nodes.set(node.id, new GGcKNode(normalized, this.distributions, scheduler))
       this.nodeLimitsById.set(node.id, {
         workers: normalized.queue?.workers ?? 1,
@@ -460,6 +480,44 @@ export class SimulationEngine {
       return
     }
 
+    const arrivalTraitDecision = this.runBeforeArrivalTraits(event.nodeId, request)
+    if (arrivalTraitDecision.action === 'rejected') {
+      this.eventQueue.insert(
+        createEvent(
+          'request-rejected',
+          event.nodeId,
+          request.id,
+          {
+            request,
+            reason: arrivalTraitDecision.reason,
+            nodeArrivalTime: this.clock
+          },
+          this.clock
+        )
+      )
+      return
+    }
+
+    if (arrivalTraitDecision.action === 'handled') {
+      const completionTime = this.clock + arrivalTraitDecision.latencyUs
+      if (request.deadline <= completionTime) {
+        this.eventQueue.insert(
+          createEvent(
+            'request-timeout',
+            event.nodeId,
+            request.id,
+            { request, nodeArrivalTime: this.clock, scope: 'trait' },
+            request.deadline
+          )
+        )
+      } else {
+        this.eventQueue.insert(
+          createEvent('request-complete', event.nodeId, request.id, { request }, completionTime)
+        )
+      }
+      return
+    }
+
     const result = node.handleArrival(request, this.clock)
     const nodeSnapshot = this.createNodeSnapshot(event.nodeId)
     if (result.status === 'rejected') {
@@ -563,7 +621,18 @@ export class SimulationEngine {
       return
     }
 
-    const routeResult = this.resolveRoutes(event.nodeId, request)
+    const routingTraitDecision = this.runBeforeRoutingTraits(event.nodeId, request)
+    if (routingTraitDecision.action === 'complete') {
+      this.eventQueue.insert(
+        createEvent('request-complete', event.nodeId, request.id, { request }, this.clock)
+      )
+      return
+    }
+
+    const routeResult =
+      routingTraitDecision.action === 'reroute'
+        ? this.resolveReroutedTarget(event.nodeId, routingTraitDecision.targetNodeId)
+        : this.resolveRoutes(event.nodeId, request)
     if (routeResult.rejectionReason) {
       this.rejectRequestAtNode(
         event.nodeId,
@@ -970,9 +1039,29 @@ export class SimulationEngine {
 
   private resolveRoutes(sourceNodeId: string, request: Request) {
     return this.routing.resolveTargetResult(sourceNodeId, request, {
+      clock: this.clock,
       isTargetHealthy: (nodeId) => this.isNodeHealthy(nodeId),
-      isEdgeHealthy: (edge) => this.isEdgeHealthy(edge)
+      isEdgeHealthy: (edge) => this.isEdgeHealthy(edge),
+      onTraitDecision: (decision) =>
+        this.recordTraitDecision(decision.nodeId, request.id, decision.traitName, decision.hook, {
+          decision: decision.decision,
+          ...(decision.payload ?? {})
+        })
     })
+  }
+
+  private resolveReroutedTarget(sourceNodeId: string, targetNodeId: string) {
+    const edge = this.routing.getOutgoingEdges(sourceNodeId).find((candidate) => {
+      return candidate.target === targetNodeId
+    })
+
+    if (!edge) {
+      return { routes: [], rejectionReason: 'trait_invalid_reroute' as const }
+    }
+
+    return {
+      routes: [{ targetNodeId, edge }]
+    }
   }
 
   private markNodeUnhealthyForReason(nodeId: string, reason: string): void {
@@ -1120,5 +1209,87 @@ export class SimulationEngine {
         arrivalTime
       )
     )
+  }
+
+  private runBeforeArrivalTraits(nodeId: string, request: Request): BeforeArrivalDecision {
+    const node = this.nodeDefinitionsById.get(nodeId)
+    if (!node) {
+      return { action: 'continue' }
+    }
+
+    for (const trait of this.traitsByNodeId.get(nodeId) ?? []) {
+      if (!trait.beforeArrival) {
+        continue
+      }
+
+      const decision = trait.beforeArrival({ node, request, clock: this.clock })
+      this.recordTraitDecision(nodeId, request.id, trait.name, 'beforeArrival', {
+        decision: decision.action,
+        ...(decision.action === 'handled' ? { latencyUs: decision.latencyUs.toString() } : {}),
+        ...(decision.action === 'rejected' ? { reason: decision.reason } : {}),
+        ...(decision.payload ?? {})
+      })
+
+      if (decision.action !== 'continue') {
+        return decision
+      }
+    }
+
+    return { action: 'continue' }
+  }
+
+  private runBeforeRoutingTraits(nodeId: string, request: Request): BeforeRoutingDecision {
+    const node = this.nodeDefinitionsById.get(nodeId)
+    if (!node) {
+      return { action: 'route' }
+    }
+
+    for (const trait of this.traitsByNodeId.get(nodeId) ?? []) {
+      if (!trait.beforeRouting) {
+        continue
+      }
+
+      const decision = trait.beforeRouting({ node, request, clock: this.clock })
+      this.recordTraitDecision(nodeId, request.id, trait.name, 'beforeRouting', {
+        decision: decision.action,
+        ...(decision.action === 'reroute' ? { targetNodeId: decision.targetNodeId } : {}),
+        ...(decision.payload ?? {})
+      })
+
+      if (decision.action !== 'route') {
+        return decision
+      }
+    }
+
+    return { action: 'route' }
+  }
+
+  private recordTraitDecision(
+    nodeId: string,
+    requestId: string,
+    traitName: string,
+    hook: TraitHookName,
+    payload: Record<string, unknown>
+  ): void {
+    const priority =
+      hook === 'beforeArrival'
+        ? EventPriority.ARRIVAL
+        : hook === 'filterRoutes'
+          ? EventPriority.DEPARTURE
+          : EventPriority.PROCESSING
+
+    this.recordCanonicalEvent({
+      timestampUs: this.clock,
+      type: 'trait-evaluated',
+      priority,
+      requestId,
+      nodeId,
+      payload: {
+        traitName,
+        hook,
+        ...payload
+      },
+      nodeSnapshot: this.createNodeSnapshot(nodeId)
+    })
   }
 }
