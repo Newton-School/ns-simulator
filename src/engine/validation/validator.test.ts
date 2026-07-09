@@ -149,6 +149,39 @@ describe('validateTopology workload fields', () => {
     expect(result.valid).toBe(true)
     expect(result.data?.global.traceSampleRate).toBe(0.25)
   })
+
+  it('accepts a node with only a latency SLO target', () => {
+    const topology = cloneMockArchitecture()
+    topology.nodes[0] = {
+      ...topology.nodes[0],
+      slo: { latencyP99: 99 }
+    }
+
+    const result = validateTopology(topology)
+
+    expect(result.valid).toBe(true)
+    expect(result.data?.nodes[0].slo).toEqual({ latencyP99: 99 })
+  })
+
+  it('rejects an empty SLO object', () => {
+    const topology = cloneMockArchitecture()
+    topology.nodes[0] = {
+      ...topology.nodes[0],
+      slo: {}
+    }
+
+    const result = validateTopology(topology)
+
+    expect(result.valid).toBe(false)
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: 'nodes.0.slo',
+          message: 'At least one SLO target must be set.'
+        })
+      ])
+    )
+  })
 })
 
 describe('validateTopology active-source validation', () => {

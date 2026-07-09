@@ -275,11 +275,21 @@ const ResilienceConfigSchema = z.object({
     .optional()
 })
 
-const SLOConfigSchema = z.object({
-  latencyP99: z.number().nonnegative(),
-  availabilityTarget: z.number().min(0).max(1),
-  errorBudget: z.number().min(0).max(1)
-})
+const SLOConfigSchema = z
+  .object({
+    latencyP99: z.number().nonnegative().optional(),
+    availabilityTarget: z.number().min(0).max(1).optional(),
+    errorBudget: z.number().min(0).max(1).optional()
+  })
+  .refine(
+    (value) =>
+      value.latencyP99 !== undefined ||
+      value.availabilityTarget !== undefined ||
+      value.errorBudget !== undefined,
+    {
+      message: 'At least one SLO target must be set.'
+    }
+  )
 
 const FailureTriggerSchema = z.object({
   metric: z.string(),

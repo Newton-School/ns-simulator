@@ -259,9 +259,9 @@ export interface ResilienceConfig {
 }
 
 export interface SLOConfig {
-  latencyP99: number //ms
-  availabilityTarget: number //fraction between 0 and 1.
-  errorBudget: number //fraction between 0 and 1.
+  latencyP99?: number // ms
+  availabilityTarget?: number // fraction between 0 and 1
+  errorBudget?: number // fraction between 0 and 1
 }
 
 export interface FailureMode {

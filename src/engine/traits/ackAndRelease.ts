@@ -1,5 +1,5 @@
 import type { ComponentType } from '../core/types'
-import type { NodeBehaviourTrait } from './types'
+import type { NodeBehaviourTrait, NodeCapabilityModule } from './types'
 
 export const ACK_AND_RELEASE_COMPONENT_TYPES = ['queue'] as const satisfies readonly ComponentType[]
 
@@ -18,4 +18,26 @@ export const ackAndReleaseTrait: NodeBehaviourTrait = {
     latencyUs: 0n,
     payload: { forkConsumerRequest: true }
   })
+}
+
+export const ackAndReleaseCapabilityModule: NodeCapabilityModule = {
+  name: 'queue.ack-and-release',
+  appliesTo: ACK_AND_RELEASE_COMPONENT_TYPES,
+  hooks: ackAndReleaseTrait,
+  config: {
+    sections: [
+      {
+        id: 'delivery',
+        title: 'Delivery',
+        fields: [],
+        note: 'This queue acknowledges producers at enqueue time and processes consumers asynchronously.',
+        noteTone: 'info'
+      }
+    ]
+  },
+  defaults: [],
+  honesty: {
+    simulates: ['producer ack at enqueue and async consumer processing'],
+    notModeled: ['visibility timeout, DLQ routing, delivery guarantees']
+  }
 }

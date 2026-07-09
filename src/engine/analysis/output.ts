@@ -198,7 +198,7 @@ function detectSLOBreaches(
 
     const nodeLabel = metadata?.label ?? nodeMetrics.nodeLabel ?? nodeId
 
-    if (nodeMetrics.latencyP99 > slo.latencyP99) {
+    if (typeof slo.latencyP99 === 'number' && nodeMetrics.latencyP99 > slo.latencyP99) {
       breaches.push({
         nodeId,
         nodeLabel,
@@ -209,7 +209,10 @@ function detectSLOBreaches(
       })
     }
 
-    if (nodeMetrics.availability < slo.availabilityTarget) {
+    if (
+      typeof slo.availabilityTarget === 'number' &&
+      nodeMetrics.availability < slo.availabilityTarget
+    ) {
       breaches.push({
         nodeId,
         nodeLabel,

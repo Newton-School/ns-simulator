@@ -59,6 +59,13 @@ export interface NodeSimulationConfig {
   replicationRole?: 'primary' | 'replica'
   readLatency?: DistributionConfig
   writeLatency?: DistributionConfig
+  /**
+   * Canvas-simple mean-latency inputs for ReadWriteSplitTrait - serialized
+   * into readLatency/writeLatency as exponential distributions. JSON-authored
+   * topologies can still set the full DistributionConfig directly.
+   */
+  readLatencyMs?: number
+  writeLatencyMs?: number
   slo?: SLOConfig
 }
 

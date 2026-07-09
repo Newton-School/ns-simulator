@@ -1,4 +1,4 @@
-import type { ComponentNode, ComponentType } from '../core/types'
+import type { ComponentNode, ComponentType, SLOConfig } from '../core/types'
 import type {
   CanvasNodeDataV2,
   ComponentSpec,
@@ -117,6 +117,39 @@ function asNonNegativeInt(value: unknown): number | null {
 function asPositiveInt(value: unknown): number | null {
   const num = asNonNegativeInt(value)
   return num !== null && num > 0 ? num : null
+}
+
+function normalizeSLOConfig(slo: SLOConfig | undefined): SLOConfig | undefined {
+  if (!slo) {
+    return undefined
+  }
+
+  const normalized: SLOConfig = {}
+
+  if (typeof slo.latencyP99 === 'number') {
+    normalized.latencyP99 = slo.latencyP99
+  }
+
+  if (typeof slo.availabilityTarget === 'number') {
+    normalized.availabilityTarget = slo.availabilityTarget
+  }
+
+  if (typeof slo.errorBudget === 'number') {
+    normalized.errorBudget = slo.errorBudget
+  }
+
+  if (
+    normalized.availabilityTarget === undefined &&
+    typeof normalized.errorBudget === 'number'
+  ) {
+    normalized.availabilityTarget = clamp(1 - normalized.errorBudget, 0, 1)
+  }
+
+  if (normalized.errorBudget === undefined && typeof normalized.availabilityTarget === 'number') {
+    normalized.errorBudget = clamp(1 - normalized.availabilityTarget, 0, 1)
+  }
+
+  return Object.keys(normalized).length > 0 ? normalized : undefined
 }
 
 function asProbability(value: unknown): number | null {
@@ -309,10 +342,14 @@ function buildRuntimeNode(
 
   if (data.sim?.readLatency) {
     config.readLatency = data.sim.readLatency
+  } else if (typeof data.sim?.readLatencyMs === 'number' && data.sim.readLatencyMs > 0) {
+    config.readLatency = { type: 'exponential', lambda: 1 / data.sim.readLatencyMs }
   }
 
   if (data.sim?.writeLatency) {
     config.writeLatency = data.sim.writeLatency
+  } else if (typeof data.sim?.writeLatencyMs === 'number' && data.sim.writeLatencyMs > 0) {
+    config.writeLatency = { type: 'exponential', lambda: 1 / data.sim.writeLatencyMs }
   }
 
   return {
@@ -324,7 +361,7 @@ function buildRuntimeNode(
     position: ctx.position,
     queue: data.sim?.queue,
     processing: data.sim?.processing,
-    slo: data.sim?.slo,
+    slo: normalizeSLOConfig(data.sim?.slo),
     config: Object.keys(config).length > 0 ? config : undefined
   }
 }
@@ -404,6 +441,14 @@ function validateSimulationNode(data: CanvasNodeDataV2): string[] {
 
   if (data.sim?.writeLatency !== undefined && !asDistributionConfig(data.sim.writeLatency)) {
     errors.push('writeLatency must be a valid distribution config.')
+  }
+
+  if (data.sim?.readLatencyMs !== undefined && (!Number.isFinite(data.sim.readLatencyMs) || data.sim.readLatencyMs <= 0)) {
+    errors.push('readLatencyMs must be greater than 0.')
+  }
+
+  if (data.sim?.writeLatencyMs !== undefined && (!Number.isFinite(data.sim.writeLatencyMs) || data.sim.writeLatencyMs <= 0)) {
+    errors.push('writeLatencyMs must be greater than 0.')
   }
 
   if (

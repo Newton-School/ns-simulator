@@ -1,5 +1,5 @@
 import type { ComponentType } from '../core/types'
-import type { NodeBehaviourTrait } from './types'
+import type { NodeBehaviourTrait, NodeCapabilityModule } from './types'
 
 export const CACHE_COMPONENT_TYPES = [
   'cdn',
@@ -74,5 +74,100 @@ export const cacheTrait: NodeBehaviourTrait = {
         cacheHitLatencyMs: hitLatencyMs
       }
     }
+  }
+}
+
+export const cacheCapabilityModule: NodeCapabilityModule = {
+  name: 'cache',
+  appliesTo: CACHE_COMPONENT_TYPES,
+  hooks: cacheTrait,
+  config: {
+    sections: [
+      {
+        id: 'caching',
+        title: 'Caching',
+        fields: [
+          {
+            path: 'sim.cacheHitRate',
+            type: 'input',
+            label: 'Cache hit rate',
+            step: 0.01,
+            unit: 'ratio',
+            why: 'Controls how much traffic this node serves locally instead of forwarding.'
+          },
+          {
+            path: 'sim.cacheHitLatencyMs',
+            type: 'input',
+            label: 'Cache hit latency',
+            step: 0.1,
+            unit: 'ms',
+            why: 'Sets the latency cost of a cache hit.'
+          },
+          {
+            path: 'sim.ttlSeconds',
+            type: 'input',
+            label: 'TTL',
+            step: 1,
+            unit: 's',
+            why: 'Controls how long cached responses remain reusable.'
+          }
+        ]
+      }
+    ]
+  },
+  defaults: (componentType) => {
+    if (componentType === 'cdn') {
+      return [
+        {
+          path: 'sim.cacheHitRate',
+          value: 0.9,
+          rationale: 'CDNs are primarily edge caches, so most requests should hit.'
+        },
+        {
+          path: 'sim.cacheHitLatencyMs',
+          value: 1,
+          rationale: 'Edge cache hits should be much faster than origin fetches.'
+        }
+      ]
+    }
+
+    if (componentType === 'in-memory-cache') {
+      return [
+        {
+          path: 'sim.cacheHitRate',
+          value: 0.8,
+          rationale: 'A warm in-memory cache should absorb most repeat reads.'
+        },
+        {
+          path: 'sim.cacheHitLatencyMs',
+          value: 0.1,
+          rationale: 'In-memory hits should be near-immediate relative to a backing store.'
+        }
+      ]
+    }
+
+    if (componentType === 'reverse-proxy') {
+      return [
+        {
+          path: 'sim.cacheHitRate',
+          value: 0,
+          rationale: 'Reverse-proxy caching is optional, so it starts effectively off.'
+        },
+        {
+          path: 'sim.cacheHitLatencyMs',
+          value: 1,
+          rationale: 'When enabled, proxy cache hits should still be much cheaper than origin work.'
+        }
+      ]
+    }
+
+    return []
+  },
+  metrics: {
+    counters: ['cacheHits', 'cacheMisses']
+  },
+  honesty: {
+    simulates: ['hit/miss decisions and faster hit latency'],
+    notModeled: ['eviction pressure, origin shield behavior, stale reads']
   }
 }

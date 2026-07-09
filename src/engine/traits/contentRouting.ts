@@ -1,6 +1,6 @@
 import type { ComponentType } from '../core/types'
 import type { TraitContext } from './types'
-import type { NodeBehaviourTrait } from './types'
+import type { NodeBehaviourTrait, NodeCapabilityModule } from './types'
 
 export const CONTENT_ROUTING_COMPONENT_TYPES = [
   'load-balancer-l7',
@@ -94,5 +94,38 @@ export const contentRoutingTrait: NodeBehaviourTrait = {
         targetNodeId: matchedRule.targetNodeId
       }
     }
+  }
+}
+
+export const contentRoutingCapabilityModule: NodeCapabilityModule = {
+  name: 'routing.content',
+  appliesTo: CONTENT_ROUTING_COMPONENT_TYPES,
+  forbiddenOn: {
+    types: ['load-balancer-l4'],
+    sectionTitle: 'Content Routing',
+    lockedNote: L4_CONTENT_ROUTING_FORBIDDEN_MESSAGE
+  },
+  hooks: contentRoutingTrait,
+  config: {
+    sections: [
+      {
+        id: 'content-routing',
+        title: 'Content Routing',
+        fields: [
+          {
+            path: 'sim.routingRules',
+            type: 'input',
+            label: 'Routing rules',
+            renderer: 'routing-rules',
+            why: 'Routes requests by request content instead of only by generic balancing strategy.'
+          }
+        ]
+      }
+    ]
+  },
+  defaults: [],
+  honesty: {
+    simulates: ['request matching by type, path, or host'],
+    notModeled: ['header transforms, regex matching, SSL termination overhead']
   }
 }

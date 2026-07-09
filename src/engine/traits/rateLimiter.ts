@@ -1,5 +1,5 @@
 import type { ComponentType } from '../core/types'
-import type { NodeBehaviourTrait } from './types'
+import type { NodeBehaviourTrait, NodeCapabilityModule } from './types'
 
 export const RATE_LIMITER_COMPONENT_TYPES = [
   'api-gateway',
@@ -57,5 +57,45 @@ export const rateLimiterTrait: NodeBehaviourTrait = {
       action: 'continue',
       payload: { tokensAvailable: available - 1, maxTokens, refillRatePerSecond }
     }
+  }
+}
+
+export const rateLimiterCapabilityModule: NodeCapabilityModule = {
+  name: 'rate-limiter',
+  appliesTo: RATE_LIMITER_COMPONENT_TYPES,
+  hooks: rateLimiterTrait,
+  config: {
+    sections: [
+      {
+        id: 'rate-limiting',
+        title: 'Rate Limiting',
+        fields: [
+          {
+            path: 'sim.maxTokens',
+            type: 'input',
+            label: 'Bucket size',
+            step: 1,
+            unit: 'tokens',
+            why: 'Sets the burst size this node allows before it starts rejecting requests.'
+          },
+          {
+            path: 'sim.refillRatePerSecond',
+            type: 'input',
+            label: 'Refill rate',
+            step: 1,
+            unit: 'tokens/s',
+            why: 'Sets the steady-state request rate the bucket replenishes.'
+          }
+        ]
+      }
+    ]
+  },
+  defaults: [],
+  metrics: {
+    rejectionReasons: ['rate_limited']
+  },
+  honesty: {
+    simulates: ['token-bucket admission control'],
+    notModeled: ['per-tenant quotas, distributed bucket coordination']
   }
 }

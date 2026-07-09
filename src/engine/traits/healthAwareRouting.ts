@@ -1,5 +1,5 @@
 import type { ComponentType } from '../core/types'
-import type { NodeBehaviourTrait } from './types'
+import type { NodeBehaviourTrait, NodeCapabilityModule } from './types'
 
 export const HEALTH_AWARE_COMPONENT_TYPES = [
   'load-balancer',
@@ -58,5 +58,42 @@ export const healthAwareRoutingTrait: NodeBehaviourTrait = {
         afterCandidateCount: filtered.length
       }
     }
+  }
+}
+
+export const healthAwareRoutingCapabilityModule: NodeCapabilityModule = {
+  name: 'routing.health-aware',
+  appliesTo: HEALTH_AWARE_COMPONENT_TYPES,
+  hooks: healthAwareRoutingTrait,
+  config: {
+    sections: [
+      {
+        id: 'routing',
+        title: 'Routing',
+        fields: [
+          {
+            path: 'sim.healthCheckEnabled',
+            type: 'boolean',
+            label: 'Health checks',
+            defaultValue: true,
+            why: 'Filters out unhealthy downstream targets before the routing strategy picks one.'
+          }
+        ]
+      }
+    ]
+  },
+  defaults: [
+    {
+      path: 'sim.healthCheckEnabled',
+      value: true,
+      rationale: 'Health-aware routers should default to avoiding unhealthy backends.'
+    }
+  ],
+  metrics: {
+    rejectionReasons: ['no_healthy_targets']
+  },
+  honesty: {
+    simulates: ['healthy-target filtering before route selection'],
+    notModeled: ['probe intervals, unhealthy thresholds, recovery hysteresis']
   }
 }

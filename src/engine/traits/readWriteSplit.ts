@@ -1,6 +1,7 @@
+import type { CanvasNodeDataV2 } from '../catalog/nodeSpecTypes'
 import type { ComponentType } from '../core/types'
 import { asDistributionConfig, SERVICE_TIME_DISTRIBUTION_OVERRIDE_KEY } from './serviceTimeOverride'
-import type { NodeBehaviourTrait } from './types'
+import type { NodeBehaviourTrait, NodeCapabilityModule } from './types'
 
 export const READ_WRITE_SPLIT_COMPONENT_TYPES = [
   'relational-db'
@@ -8,6 +9,10 @@ export const READ_WRITE_SPLIT_COMPONENT_TYPES = [
 
 function isReadReplica(config: Record<string, unknown> | undefined): boolean {
   return config?.['replicationRole'] === 'replica'
+}
+
+function isReadReplicaNode(data: CanvasNodeDataV2): boolean {
+  return data.sim?.replicationRole === 'replica' || data.templateId === 'read-replica'
 }
 
 /**
@@ -35,5 +40,44 @@ export const readWriteSplitTrait: NodeBehaviourTrait = {
 
     request.metadata[SERVICE_TIME_DISTRIBUTION_OVERRIDE_KEY] = override
     return { action: 'continue', payload: { serviceTimeOverrideFor: request.type } }
+  }
+}
+
+export const readWriteSplitCapabilityModule: NodeCapabilityModule = {
+  name: 'db.read-write-split',
+  appliesTo: READ_WRITE_SPLIT_COMPONENT_TYPES,
+  hooks: readWriteSplitTrait,
+  config: {
+    sections: [
+      {
+        id: 'read-write',
+        title: 'Read/Write',
+        fields: [
+          {
+            path: 'sim.readLatencyMs',
+            type: 'input',
+            label: 'Read latency',
+            step: 0.1,
+            unit: 'ms',
+            visible: (data) => !isReadReplicaNode(data),
+            why: 'Overrides read requests with a separate mean service time.'
+          },
+          {
+            path: 'sim.writeLatencyMs',
+            type: 'input',
+            label: 'Write latency',
+            step: 0.1,
+            unit: 'ms',
+            visible: (data) => !isReadReplicaNode(data),
+            why: 'Overrides write requests with a separate mean service time.'
+          }
+        ]
+      }
+    ]
+  },
+  defaults: [],
+  honesty: {
+    simulates: ['different service-time distributions for reads and writes'],
+    notModeled: ['replication lag, lock contention, WAL/fsync internals']
   }
 }
