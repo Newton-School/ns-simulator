@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Pause, Play, Square } from 'lucide-react'
+import { Pause, Play, Square, X } from 'lucide-react'
 import type { WorkloadProfile } from '../../../../engine/core/types'
 import type { ScenarioState, SourceNodeOption } from '@renderer/types/ui'
+import { mergeWorkloadDefaults } from '@renderer/utils/workloadDefaults'
 
 type WorkloadOverride = NonNullable<ScenarioState['workloadOverride']>
 type WorkloadPattern = WorkloadProfile['pattern']
@@ -34,56 +35,6 @@ interface SimulationControlsProps {
   disabled?: boolean
 }
 
-function mergeWorkload(
-  base: SourceNodeOption['workload'] | undefined,
-  override: ScenarioState['workloadOverride']
-): SourceNodeOption['workload'] | undefined {
-  if (!base) return undefined
-
-  return {
-    ...base,
-    ...override,
-    ...(base.bursty || override?.bursty
-      ? {
-          bursty: {
-            ...(base.bursty ?? { burstRps: 500, burstDuration: 2000, normalDuration: 8000 }),
-            ...override?.bursty
-          }
-        }
-      : {}),
-    ...(base.spike || override?.spike
-      ? {
-          spike: {
-            ...(base.spike ?? { spikeTime: 30_000, spikeRps: 1000, spikeDuration: 5000 }),
-            ...override?.spike
-          }
-        }
-      : {}),
-    ...(base.sawtooth || override?.sawtooth
-      ? {
-          sawtooth: {
-            ...(base.sawtooth ?? { peakRps: 300, rampDuration: 10_000 }),
-            ...override?.sawtooth
-          }
-        }
-      : {}),
-    ...(base.diurnal || override?.diurnal
-      ? {
-          diurnal: {
-            ...(base.diurnal ?? {
-              peakMultiplier: 1,
-              hourlyMultipliers: [
-                0.6, 0.5, 0.45, 0.4, 0.4, 0.5, 0.7, 0.9, 1.1, 1.2, 1.15, 1.05, 1, 1.05, 1.1, 1.2,
-                1.25, 1.3, 1.2, 1.05, 0.95, 0.85, 0.75, 0.65
-              ]
-            }),
-            ...override?.diurnal
-          }
-        }
-      : {})
-  }
-}
-
 function updateWorkloadOverride(
   current: ScenarioState,
   updater: (override: WorkloadOverride) => WorkloadOverride
@@ -113,7 +64,10 @@ export function SimulationControls({
     sourceNodes.find((node) => node.id === scenario.selectedSourceNodeId) ?? sourceNodes[0]
 
   const effectiveWorkload = useMemo(
-    () => mergeWorkload(selectedSource?.workload, scenario.workloadOverride),
+    () =>
+      selectedSource?.workload
+        ? mergeWorkloadDefaults(selectedSource.workload, scenario.workloadOverride)
+        : undefined,
     [selectedSource, scenario.workloadOverride]
   )
 
@@ -130,11 +84,11 @@ export function SimulationControls({
       if (event.key === 'Escape') setIsOpen(false)
     }
 
-    document.addEventListener('mousedown', onMouseDown)
-    document.addEventListener('keydown', onKeyDown)
+    document.addEventListener('mousedown', onMouseDown, true)
+    document.addEventListener('keydown', onKeyDown, true)
     return () => {
-      document.removeEventListener('mousedown', onMouseDown)
-      document.removeEventListener('keydown', onKeyDown)
+      document.removeEventListener('mousedown', onMouseDown, true)
+      document.removeEventListener('keydown', onKeyDown, true)
     }
   }, [isOpen])
 
@@ -234,9 +188,20 @@ export function SimulationControls({
 
       {isOpen && (
         <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-50 bg-nss-panel border border-nss-border rounded-lg shadow-2xl p-4 w-80 font-sans">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-nss-muted mb-2">
-            Workload
-          </p>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-nss-muted">
+              Workload
+            </p>
+            <button
+              type="button"
+              onClick={() => setIsOpen(false)}
+              aria-label="Close workload tray"
+              title="Close"
+              className="text-nss-muted hover:text-nss-text transition-colors"
+            >
+              <X size={14} />
+            </button>
+          </div>
 
           <Field label="Source" className="mb-2">
             <select
