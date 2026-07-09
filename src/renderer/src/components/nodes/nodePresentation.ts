@@ -1,4 +1,5 @@
 import type { AnyNodeData, MetricLens, NodeSimulationMetrics } from '@renderer/types/ui'
+import { failureRateLevelFromPercent } from '@renderer/utils/failureRatePresentation'
 import { ACK_AND_RELEASE_COMPONENT_TYPES } from '../../../../engine/traits/ackAndRelease'
 import { HEALTH_AWARE_COMPONENT_TYPES } from '../../../../engine/traits/healthAwareRouting'
 
@@ -39,6 +40,13 @@ export const NODE_HEALTH_STYLES = {
   }
 } satisfies Record<NodeHealthStatus, NodeHealthStyle>
 
+export interface SummaryMetric {
+  label: string
+  value?: string | number
+  unit?: string
+  textColor?: string
+}
+
 export function getNodeStatus(data: AnyNodeData): NodeHealthStatus {
   return data.ui?.overloadPreview ? 'critical' : 'healthy'
 }
@@ -51,14 +59,14 @@ export function getRuntimeNodeStatus(
   if (!hasRuntime) return fallbackStatus
 
   const utilization = metrics.utilization ?? 0
-  const errorRate = metrics.errorRate ?? 0
   const queueDepth = metrics.queueDepth ?? 0
+  const failureLevel = failureRateLevelFromPercent(metrics.errorRate)
 
-  if (errorRate >= 50 || utilization >= 90) {
+  if (failureLevel === 'crit' || utilization >= 90) {
     return 'critical'
   }
 
-  if (errorRate > 0 || utilization >= 75 || queueDepth >= 1) {
+  if (failureLevel === 'warn' || utilization >= 75 || queueDepth >= 1) {
     return 'degraded'
   }
 
@@ -108,7 +116,10 @@ export function getIdentityChip(data: AnyNodeData): IdentityChip | null {
   // AckAndReleaseTrait has no config knob - it's unconditionally active on
   // every Message Queue - so it needs an explicit declaration or it never
   // shows up as anything at all, despite being real, defining behavior.
-  if (typeof data.componentType === 'string' && ACK_AND_RELEASE_COMPONENT_TYPE_SET.has(data.componentType)) {
+  if (
+    typeof data.componentType === 'string' &&
+    ACK_AND_RELEASE_COMPONENT_TYPE_SET.has(data.componentType)
+  ) {
     return { label: 'Async', value: 'acks at enqueue' }
   }
   if (typeof data.sim?.refillRatePerSecond === 'number') {
@@ -117,7 +128,10 @@ export function getIdentityChip(data: AnyNodeData): IdentityChip | null {
   // Shown even at the true default: health-aware routing not visibly stating
   // itself is exactly the "LB routes to dead servers" trust gap this trait
   // exists to close, so its state is worth declaring either way.
-  if (typeof data.componentType === 'string' && HEALTH_AWARE_COMPONENT_TYPE_SET.has(data.componentType)) {
+  if (
+    typeof data.componentType === 'string' &&
+    HEALTH_AWARE_COMPONENT_TYPE_SET.has(data.componentType)
+  ) {
     return {
       label: 'Health checks',
       value: data.sim?.healthCheckEnabled === false ? 'off' : 'on'
@@ -130,6 +144,79 @@ export function getIdentityChip(data: AnyNodeData): IdentityChip | null {
     return { label: 'Block rate', value: `${Math.round(data.sim.securityPolicy.blockRate * 100)}%` }
   }
   return null
+}
+
+export function getPreRunSummary(data: AnyNodeData): SummaryMetric[] {
+  if (data.profile === 'source') {
+    return [
+      {
+        label: 'Pattern',
+        value: data.source?.defaultWorkload.pattern
+      },
+      {
+        label: 'Base RPS',
+        value: data.source?.defaultWorkload.baseRps?.toFixed(1),
+        unit: 'req/s'
+      }
+    ]
+  }
+
+  if (data.profile === 'security-filter') {
+    return [
+      {
+        label: 'Block Rate',
+        value:
+          typeof data.sim?.securityPolicy?.blockRate === 'number'
+            ? (data.sim.securityPolicy.blockRate * 100).toFixed(1)
+            : undefined,
+        unit: '%',
+        textColor: 'text-nss-warning'
+      },
+      {
+        label: 'Dropped Pkts',
+        value:
+          typeof data.sim?.securityPolicy?.droppedPackets === 'number'
+            ? (data.sim.securityPolicy.droppedPackets * 100).toFixed(1)
+            : undefined,
+        unit: '%',
+        textColor: 'text-nss-danger'
+      },
+      {
+        label: 'Timeout',
+        value:
+          typeof data.sim?.processing?.timeout === 'number'
+            ? data.sim.processing.timeout
+            : undefined,
+        unit: 'ms'
+      }
+    ]
+  }
+
+  const metrics: SummaryMetric[] = [
+    {
+      label: 'Workers',
+      value: data.sim?.queue?.workers
+    },
+    {
+      label: 'Capacity',
+      value: data.sim?.queue?.capacity,
+      unit: 'req'
+    },
+    {
+      label: 'Timeout',
+      value: data.sim?.processing?.timeout,
+      unit: 'ms'
+    }
+  ]
+
+  if (data.profile === 'router') {
+    metrics.unshift({
+      label: 'Routing',
+      value: data.routingStrategy ?? 'passthrough'
+    })
+  }
+
+  return metrics
 }
 
 export interface LensCardData {

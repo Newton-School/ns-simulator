@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { BaseEdge, getSmoothStepPath, EdgeProps, EdgeLabelRenderer } from 'reactflow'
 import useStore, { type EdgeFlowRunConfig, type EdgeFlowState } from '@renderer/store/useStore'
 import { getRoutingPreviewSnapshot } from '@renderer/utils/routingStrategyPreview'
+import { failureRateLevelFromRatio } from '@renderer/utils/failureRatePresentation'
 
 const EDGE_VISUAL_WINDOW_MS = 3_000
 const FAILED_PULSE_MS = 650
@@ -341,8 +342,13 @@ export const PacketEdge = ({
       : selected
         ? 3
         : 2
+  const failureLevel = failureRateLevelFromRatio(failureRatio)
   const failureStroke =
-    failureRatio > 0.5 ? FLOW_DANGER_COLOR : failureRatio > 0.05 ? FLOW_WARNING_COLOR : undefined
+    failureLevel === 'crit'
+      ? FLOW_DANGER_COLOR
+      : failureLevel === 'warn'
+        ? FLOW_WARNING_COLOR
+        : undefined
   const flowLabelText = isRoutingPreviewEdge
     ? routingPreview?.isSelected
       ? `${routingPreview.selectedCount}/${routingPreview.totalCount} preview`
@@ -358,7 +364,9 @@ export const PacketEdge = ({
         : 'text-nss-muted'
       : isInactiveAfterRun
         ? 'text-nss-muted'
-        : failureRatio > 0.05
+        : failureLevel === 'crit'
+          ? 'text-nss-danger'
+          : failureLevel === 'warn'
           ? 'text-nss-warning'
           : 'text-nss-primary'
   ].join(' ')

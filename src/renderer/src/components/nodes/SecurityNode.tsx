@@ -2,17 +2,20 @@ import { memo, useCallback } from 'react'
 import { NodeProps } from 'reactflow'
 import { NodeHeader } from '@renderer/components/nodes/NodeHeader'
 import { NodeSettingsMenu } from '@renderer/components/nodes/NodeSettingsMenu'
+import { MetricItem } from '@renderer/components/properties/MetricItem'
 import { SecurityNodeData } from '@renderer/types/ui'
 import { resolveNodeConfig } from '@renderer/config/nodeRegistry'
 import { useNodeMetrics } from '@renderer/hooks/useNodeMetrics'
 import { useMetricLens } from '@renderer/hooks/useMetricLens'
 import BaseNode from '@renderer/components/nodes/BaseNode'
+import { RuntimeNodeMetrics } from '@renderer/components/nodes/RuntimeNodeMetrics'
 import { useFlowStore } from '@renderer/components/canvas/hooks/useFlowStore'
 import { LensMetricCard } from './LensMetricCard'
 import {
   getEffectiveNodeStatus,
   getIdentityChip,
   getLensCard,
+  getPreRunSummary,
   isRuntimeNodeInactive
 } from './nodePresentation'
 
@@ -20,6 +23,7 @@ const SecurityNode = ({ id, data, selected }: NodeProps<SecurityNodeData>) => {
   const { updateNodeData } = useFlowStore()
   const { icon: IconComponent, theme } = resolveNodeConfig(data.templateId || data.iconKey)
   const identityChip = getIdentityChip(data)
+  const summaryMetrics = getPreRunSummary(data)
 
   const handleLabelChange = useCallback(
     (newLabel: string) => {
@@ -29,7 +33,7 @@ const SecurityNode = ({ id, data, selected }: NodeProps<SecurityNodeData>) => {
   )
 
   const metrics = useNodeMetrics(id)
-  const { errorRate, queueDepth, utilization, hasRuntime, active } = metrics
+  const { arrived, completed, errorRate, queueDepth, utilization, hasRuntime, active } = metrics
   const lens = useMetricLens()
   const lensCard = hasRuntime ? getLensCard(lens, data, metrics) : null
   const status = getEffectiveNodeStatus(data, { utilization, errorRate, queueDepth }, hasRuntime)
@@ -66,14 +70,31 @@ const SecurityNode = ({ id, data, selected }: NodeProps<SecurityNodeData>) => {
               </p>
             ) : lensCard ? (
               <LensMetricCard card={lensCard} />
-            ) : identityChip ? (
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-[10px] text-nss-muted uppercase tracking-wider font-semibold">
-                  {identityChip.label}
-                </span>
-                <span className="font-mono text-xs text-nss-text">{identityChip.value}</span>
-              </div>
-            ) : null}
+            ) : hasRuntime ? (
+              <RuntimeNodeMetrics arrived={arrived} completed={completed} failureRate={errorRate} />
+            ) : (
+              <>
+                {identityChip ? (
+                  <div className="flex items-baseline gap-1.5 mb-3">
+                    <span className="text-[10px] text-nss-muted uppercase tracking-wider font-semibold">
+                      {identityChip.label}
+                    </span>
+                    <span className="font-mono text-xs text-nss-text">{identityChip.value}</span>
+                  </div>
+                ) : null}
+                <div className="grid grid-cols-2 gap-4">
+                  {summaryMetrics.map((metric) => (
+                    <MetricItem
+                      key={metric.label}
+                      label={metric.label}
+                      value={metric.value}
+                      unit={metric.unit}
+                      textColor={metric.textColor}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

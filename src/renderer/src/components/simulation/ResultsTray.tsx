@@ -7,6 +7,7 @@ import { projectToDebugEvent } from '../../../../engine/core/event-stream'
 import type { SimulationStatus } from '../../hooks/useSimulation'
 import useStore from '../../store/useStore'
 import type { EdgeSimulationData, ScenarioRunContext } from '@renderer/types/ui'
+import { failureRateLevelFromRatio } from '@renderer/utils/failureRatePresentation'
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -348,9 +349,7 @@ function SummaryPanel({ output }: { output: SimulationOutput }) {
   const windowEnd = output.simulationDuration / 1000
   const windowLen = windowEnd - windowStart
 
-  // Correct threshold order: >5% is critical, >1% is warning
-  const errorHighlight: 'ok' | 'warn' | 'crit' =
-    summary.errorRate > 0.05 ? 'crit' : summary.errorRate > 0.01 ? 'warn' : 'ok'
+  const errorHighlight: 'ok' | 'warn' | 'crit' = failureRateLevelFromRatio(summary.errorRate)
 
   return (
     <div className="space-y-3">
@@ -501,12 +500,13 @@ function SimulationHealth({ output }: { output: SimulationOutput }) {
       ([, a], [, b]) =>
         b.postWarmupRejected + b.postWarmupTimedOut - (a.postWarmupRejected + a.postWarmupTimedOut)
     )
+  const summaryFailureLevel = failureRateLevelFromRatio(output.summary.errorRate)
   const errorLevel: HealthLevel =
-    output.summary.errorRate === 0
-      ? 'healthy'
-      : output.summary.errorRate > 0.05
-        ? 'breaches'
-        : 'warnings'
+    summaryFailureLevel === 'crit'
+      ? 'breaches'
+      : summaryFailureLevel === 'warn'
+        ? 'warnings'
+        : 'healthy'
 
   const overall = worstLevel([sloLevel, llLevel, conservationLevel, warmupLevel, errorLevel])
 
