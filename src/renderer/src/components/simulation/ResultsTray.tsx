@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useState } from 'react'
-import type { KeyboardEvent } from 'react'
+import type { CSSProperties, KeyboardEvent } from 'react'
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
 import type { SimulationOutput } from '../../../../engine/analysis/output'
 import type { DebugEvent } from '../../../../engine/core/event-stream'
@@ -846,6 +846,8 @@ function ReplayPreview({
   }
 
   const currentEdge = edgeDisplay(debugEvent, graphLookup)
+  const replayProgress =
+    maxSequence > 0 ? Math.round((clampSequence(sequence, maxSequence) / maxSequence) * 100) : 0
 
   const buttonClass =
     'h-7 w-7 inline-flex items-center justify-center rounded border border-nss-border text-nss-muted hover:text-nss-text hover:bg-nss-surface transition-colors disabled:opacity-40 disabled:hover:bg-transparent'
@@ -885,7 +887,8 @@ function ReplayPreview({
             max={maxSequence}
             value={sequence}
             onChange={(event) => setSequence(Number(event.target.value))}
-            className="min-w-0 flex-1 accent-nss-primary"
+            className="nss-range min-w-0 flex-1"
+            style={{ '--range-progress': `${replayProgress}%` } as CSSProperties}
             aria-label="Replay sequence"
           />
           <button

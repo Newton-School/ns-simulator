@@ -1,3 +1,5 @@
+import type { CSSProperties, ChangeEvent } from 'react'
+
 export const Slider = ({
   value,
   min = 0,
@@ -11,7 +13,7 @@ export const Slider = ({
   unit?: string
   onChange: (val: number) => void
 }) => {
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     let newValue = Number(e.target.value)
 
     // Safety check to keep values within bounds while typing
@@ -22,6 +24,7 @@ export const Slider = ({
   }
 
   const dynamicWidth = `${Math.max(3, String(value).length + 2)}ch`
+  const sliderProgress = max > min ? ((value - min) / (max - min)) * 100 : 0
 
   return (
     <div className="bg-nss-surface border border-nss-border rounded p-3 group hover:border-nss-border-high transition-colors">
@@ -54,7 +57,8 @@ export const Slider = ({
         max={max}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full h-1 bg-nss-border-high rounded-lg appearance-none cursor-pointer accent-nss-primary hover:accent-nss-primary-hover"
+        className="nss-range w-full"
+        style={{ '--range-progress': `${sliderProgress}%` } as CSSProperties}
       />
     </div>
   )

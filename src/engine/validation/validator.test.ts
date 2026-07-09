@@ -323,7 +323,7 @@ describe('validateTopology active-source validation', () => {
     expect(result.valid).toBe(true)
     expect(result.warnings).toEqual(
       expect.arrayContaining([
-        expect.stringContaining(`Node '${disconnected.id}' (${disconnected.label}) is disconnected`)
+        expect.stringContaining(`Node '${disconnected.label}' is disconnected`)
       ])
     )
   })

@@ -580,6 +580,11 @@ function collectReachableNodeIds(
   return visited
 }
 
+function displayNodeLabel(node: TopologyJSON['nodes'][number]): string {
+  const trimmedLabel = node.label.trim()
+  return trimmedLabel.length > 0 ? trimmedLabel : node.id
+}
+
 export const validateTopology = (input: unknown): ValidationResult => {
   const warnings: string[] = []
   const errors: ValidationError[] = []
@@ -624,18 +629,19 @@ export const validateTopology = (input: unknown): ValidationResult => {
     }
 
     const role = resolvedRole(node)
+    const nodeLabel = displayNodeLabel(node)
 
     if (role !== 'source') {
       if (!node.queue) {
         warnings.push(
-          `Node '${node.label}' is missing queue config; applying legacy default queue settings.`
+          `Node '${nodeLabel}' is missing queue config; applying legacy default queue settings.`
         )
         node.queue = { workers: 1, capacity: 100, discipline: 'fifo' }
       }
 
       if (!node.processing) {
         warnings.push(
-          `Node '${node.label}' is missing processing config; applying legacy default processing settings.`
+          `Node '${nodeLabel}' is missing processing config; applying legacy default processing settings.`
         )
         node.processing = {
           distribution: { type: 'constant', value: 1 },
@@ -985,25 +991,24 @@ export const validateTopology = (input: unknown): ValidationResult => {
     const role = resolvedRole(node)
     const incoming = incomingCount.get(node.id) ?? 0
     const outgoing = outgoingCount.get(node.id) ?? 0
+    const nodeLabel = displayNodeLabel(node)
 
     if (role === 'source' && incoming > 0) {
-      warnings.push(`Source node '${node.label}' has ${incoming} incoming edge(s).`)
+      warnings.push(`Source node '${nodeLabel}' has ${incoming} incoming edge(s).`)
     }
 
     if (role === 'sink' && outgoing > 0) {
-      warnings.push(`Sink node '${node.label}' has ${outgoing} outgoing edge(s).`)
+      warnings.push(`Sink node '${nodeLabel}' has ${outgoing} outgoing edge(s).`)
     }
 
     if (role === 'router' && outgoing <= 1 && node.config?.['routingStrategy'] !== undefined) {
       warnings.push(
-        `Router node '${node.label}' exposes routing strategy but has ${outgoing} outgoing edge(s).`
+        `Router node '${nodeLabel}' exposes routing strategy but has ${outgoing} outgoing edge(s).`
       )
     }
 
     if (!visited.has(node.id)) {
-      warnings.push(
-        `Node '${node.id}' (${node.label}) is disconnected and unreachable from any source node.`
-      )
+      warnings.push(`Node '${nodeLabel}' is disconnected and unreachable from any source node.`)
     }
   })
 
