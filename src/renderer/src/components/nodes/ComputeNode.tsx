@@ -2,14 +2,12 @@ import { memo, useCallback, useMemo } from 'react'
 import { NodeProps } from 'reactflow'
 import { ComputeNodeData } from '@renderer/types/ui'
 import { resolveNodeConfig } from '@renderer/config/nodeRegistry'
-import { MetricItem } from '@renderer/components/properties/MetricItem'
 import { useNodeMetrics } from '@renderer/hooks/useNodeMetrics'
 import { useMetricLens } from '@renderer/hooks/useMetricLens'
 import BaseNode from '@renderer/components/nodes/BaseNode'
-import { RuntimeNodeMetrics } from '@renderer/components/nodes/RuntimeNodeMetrics'
 import { InlineEditableLabel } from '@renderer/components/properties/InlineEditable'
 import { useFlowStore } from '@renderer/components/canvas/hooks/useFlowStore'
-import { LensMetricCard } from './LensMetricCard'
+import { NodeMetricContent } from './NodeMetricContent'
 import {
   NODE_HEALTH_STYLES,
   getEffectiveNodeStatus,
@@ -85,42 +83,21 @@ const ComputeNode = ({ id, data, selected }: NodeProps<ComputeNodeData>) => {
           </div>
 
           <div className="p-3 space-y-3">
-            {isInactive ? (
-              <p className="text-[10px] text-nss-muted italic text-center py-1">
-                No post-warmup traffic
-              </p>
-            ) : lens === 'results' && hasRuntime ? (
-              <RuntimeNodeMetrics
-                arrived={arrived}
-                completed={completed}
-                failureRate={errorRate}
-                className="grid grid-cols-2 gap-3"
-              />
-            ) : lensCard ? (
-              <LensMetricCard card={lensCard} />
-            ) : hasRuntime ? null : (
-              <>
-                {identityChip ? (
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-[10px] text-nss-muted uppercase tracking-wider font-semibold">
-                      {identityChip.label}
-                    </span>
-                    <span className="font-mono text-xs text-nss-text">{identityChip.value}</span>
-                  </div>
-                ) : null}
-                <div className="grid grid-cols-2 gap-3">
-                  {summaryMetrics.map((metric) => (
-                    <MetricItem
-                      key={metric.label}
-                      label={metric.label}
-                      value={metric.value}
-                      unit={metric.unit}
-                      textColor={metric.textColor}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
+            <NodeMetricContent
+              isInactive={isInactive}
+              hasRuntime={hasRuntime}
+              lens={lens}
+              arrived={arrived}
+              completed={completed}
+              failureRate={errorRate}
+              lensCard={lensCard}
+              identityChip={identityChip}
+              summaryMetrics={summaryMetrics}
+              inactiveClassName="text-[10px] text-nss-muted italic text-center py-1"
+              identityClassName="flex items-baseline gap-1.5"
+              runtimeClassName="grid grid-cols-2 gap-3"
+              summaryClassName="grid grid-cols-2 gap-3"
+            />
           </div>
         </>
       )}
