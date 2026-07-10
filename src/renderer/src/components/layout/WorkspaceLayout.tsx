@@ -24,6 +24,7 @@ import { Header } from './Header'
 // Atoms
 import { ResizeHandle } from '../ui/ResizeHandle'
 import { RunToast } from '../ui/RunToast'
+import { RoutingVisualizationToast } from '../ui/RoutingVisualizationToast'
 import type { CanvasNodeDataV2 } from '../../../../engine/catalog/nodeSpecTypes'
 import type { ScenarioRunContext, SourceNodeOption } from '@renderer/types/ui'
 
@@ -93,6 +94,9 @@ export const WorkspaceLayout = () => {
   const updateScenario = useStore((s) => s.updateScenario)
   const setSimulationMetrics = useStore((s) => s.setSimulationMetrics)
   const clearSimulationMetrics = useStore((s) => s.clearSimulationMetrics)
+  const selectGraphElements = useStore((s) => s.selectGraphElements)
+  const routingVisualization = useStore((s) => s.routingStrategyVisualization)
+  const setRoutingVisualization = useStore((s) => s.setRoutingStrategyVisualization)
   const { confirm, dialog } = useConfirmDialog()
   const confirmDiscardChanges = useCallback(
     () =>
@@ -138,9 +142,7 @@ export const WorkspaceLayout = () => {
   }, [])
 
   useEffect(() => {
-    if (selectedNodeId) {
-      setIsRightOpen(true)
-    } else {
+    if (!selectedNodeId) {
       setIsRightOpen(false)
     }
   }, [selectedNodeId])
@@ -157,6 +159,10 @@ export const WorkspaceLayout = () => {
         nodeId,
         {
           throughput: Math.round(metrics.throughput * 10) / 10,
+          postWarmupArrived: metrics.postWarmupArrived,
+          postWarmupProcessed: metrics.postWarmupProcessed,
+          postWarmupRejected: metrics.postWarmupRejected,
+          postWarmupTimedOut: metrics.postWarmupTimedOut,
           queueDepth: Math.round(metrics.avgQueueLength * 10) / 10,
           utilization: Math.round(metrics.utilization * 1000) / 10,
           errorRate: Math.round(metrics.errorRate * 10000) / 100,
@@ -177,7 +183,7 @@ export const WorkspaceLayout = () => {
   function startSimulation() {
     const { topology, errors, runContext } = serialize()
 
-    if (!topology || errors.length > 0) {
+    if (!topology || !runContext || errors.length > 0) {
       setRunIssues({
         messages: errors.length > 0 ? errors : ['Unable to serialize topology.'],
         tone: 'error'
@@ -198,6 +204,13 @@ export const WorkspaceLayout = () => {
     setShowResults(true)
     setLastRunContext(runContext)
     clearSimulationMetrics()
+    const flowStore = useStore.getState()
+    flowStore.clearEdgeFlow()
+    flowStore.setEdgeFlowRunConfig({
+      workload: runContext.workload,
+      simulationDurationMs: runContext.global.simulationDuration
+    })
+    flowStore.setEdgeFlowStatus('running')
     sim.run(topology)
   }
 
@@ -258,6 +271,13 @@ export const WorkspaceLayout = () => {
         />
       )}
 
+      {routingVisualization && (
+        <RoutingVisualizationToast
+          state={routingVisualization}
+          onClose={() => setRoutingVisualization(null)}
+        />
+      )}
+
       {/* Main Content Area */}
       <div className="flex-1 overflow-hidden relative h-full flex">
         <LibraryActivityRail activeTab={leftSidebarTab} onSelect={handleLeftSidebarTabSelect} />
@@ -286,7 +306,12 @@ export const WorkspaceLayout = () => {
             <PanelGroup direction="vertical" autoSaveId="main-layout-vertical">
               {/* Canvas */}
               <Panel defaultSize={showResults ? 65 : 100} minSize={10} order={1}>
-                <FlowCanvas />
+                <FlowCanvas
+                  onNodeDoubleClick={(_, node) => {
+                    selectGraphElements({ nodeId: node.id })
+                    setIsRightOpen(true)
+                  }}
+                />
               </Panel>
 
               {/* Results Tray */}
