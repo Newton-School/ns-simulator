@@ -13,7 +13,8 @@ import {
   getEffectiveNodeStatus,
   getIdentityChip,
   getLensCard,
-  getPreRunSummary,
+  getPreRunMetric,
+  isPreRunMetricLens,
   isRuntimeNodeInactive
 } from './nodePresentation'
 
@@ -21,7 +22,6 @@ const SecurityNode = ({ id, data, selected }: NodeProps<SecurityNodeData>) => {
   const { updateNodeData } = useFlowStore()
   const { icon: IconComponent, theme } = resolveNodeConfig(data.templateId || data.iconKey)
   const identityChip = getIdentityChip(data)
-  const summaryMetrics = getPreRunSummary(data)
 
   const handleLabelChange = useCallback(
     (newLabel: string) => {
@@ -34,6 +34,7 @@ const SecurityNode = ({ id, data, selected }: NodeProps<SecurityNodeData>) => {
   const { arrived, completed, errorRate, queueDepth, utilization, hasRuntime, active } = metrics
   const lens = useMetricLens()
   const lensCard = hasRuntime && lens !== 'results' ? getLensCard(lens, data, metrics) : null
+  const preRunMetric = isPreRunMetricLens(lens) ? getPreRunMetric(lens, data) : null
   const status = getEffectiveNodeStatus(data, { utilization, errorRate, queueDepth }, hasRuntime)
   const isInactive = isRuntimeNodeInactive(hasRuntime, active)
 
@@ -71,7 +72,7 @@ const SecurityNode = ({ id, data, selected }: NodeProps<SecurityNodeData>) => {
               failureRate={errorRate}
               lensCard={lensCard}
               identityChip={identityChip}
-              summaryMetrics={summaryMetrics}
+              preRunMetric={preRunMetric}
             />
           </div>
         </div>

@@ -13,11 +13,11 @@ type NodeMetricContentProps = {
   failureRate?: number
   lensCard: LensCardData | null
   identityChip: IdentityChip | null
-  summaryMetrics: SummaryMetric[]
+  preRunMetric: SummaryMetric | null
   inactiveClassName?: string
   identityClassName?: string
   runtimeClassName?: string
-  summaryClassName?: string
+  preRunClassName?: string
 }
 
 export function NodeMetricContent({
@@ -29,11 +29,11 @@ export function NodeMetricContent({
   failureRate,
   lensCard,
   identityChip,
-  summaryMetrics,
+  preRunMetric,
   inactiveClassName = 'text-[10px] text-nss-muted italic text-center py-2',
   identityClassName = 'flex items-baseline gap-1.5 mb-3',
   runtimeClassName,
-  summaryClassName = 'grid grid-cols-2 gap-4'
+  preRunClassName = 'grid grid-cols-1 gap-4'
 }: NodeMetricContentProps) {
   if (isInactive) {
     return <p className={inactiveClassName}>No post-warmup traffic</p>
@@ -58,6 +58,10 @@ export function NodeMetricContent({
     return null
   }
 
+  if (!identityChip && !preRunMetric) {
+    return null
+  }
+
   return (
     <>
       {identityChip ? (
@@ -68,17 +72,16 @@ export function NodeMetricContent({
           <span className="font-mono text-xs text-nss-text">{identityChip.value}</span>
         </div>
       ) : null}
-      <div className={summaryClassName}>
-        {summaryMetrics.map((metric) => (
+      {preRunMetric ? (
+        <div className={preRunClassName}>
           <MetricItem
-            key={metric.label}
-            label={metric.label}
-            value={metric.value}
-            unit={metric.unit}
-            textColor={metric.textColor}
+            label={preRunMetric.label}
+            value={preRunMetric.value}
+            unit={preRunMetric.unit}
+            textColor={preRunMetric.textColor}
           />
-        ))}
-      </div>
+        </div>
+      ) : null}
     </>
   )
 }

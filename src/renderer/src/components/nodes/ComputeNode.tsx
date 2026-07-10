@@ -13,7 +13,8 @@ import {
   getEffectiveNodeStatus,
   getIdentityChip,
   getLensCard,
-  getPreRunSummary,
+  getPreRunMetric,
+  isPreRunMetricLens,
   isRuntimeNodeInactive
 } from './nodePresentation'
 
@@ -21,7 +22,6 @@ const ComputeNode = ({ id, data, selected }: NodeProps<ComputeNodeData>) => {
   const { updateNodeData } = useFlowStore()
   const { icon: Icon, theme } = resolveNodeConfig(data.templateId || data.iconKey)
   const identityChip = getIdentityChip(data)
-  const summaryMetrics = getPreRunSummary(data)
 
   const handleLabelChange = useCallback(
     (newLabel: string) => {
@@ -34,6 +34,7 @@ const ComputeNode = ({ id, data, selected }: NodeProps<ComputeNodeData>) => {
   const { arrived, completed, utilization, queueDepth, errorRate, hasRuntime, active } = metrics
   const lens = useMetricLens()
   const lensCard = hasRuntime && lens !== 'results' ? getLensCard(lens, data, metrics) : null
+  const preRunMetric = isPreRunMetricLens(lens) ? getPreRunMetric(lens, data) : null
   const status = getEffectiveNodeStatus(data, { utilization, errorRate, queueDepth }, hasRuntime)
   const isOverloaded = status === 'critical'
   const isInactive = isRuntimeNodeInactive(hasRuntime, active)
@@ -92,11 +93,11 @@ const ComputeNode = ({ id, data, selected }: NodeProps<ComputeNodeData>) => {
               failureRate={errorRate}
               lensCard={lensCard}
               identityChip={identityChip}
-              summaryMetrics={summaryMetrics}
+              preRunMetric={preRunMetric}
               inactiveClassName="text-[10px] text-nss-muted italic text-center py-1"
               identityClassName="flex items-baseline gap-1.5"
               runtimeClassName="grid grid-cols-2 gap-3"
-              summaryClassName="grid grid-cols-2 gap-3"
+              preRunClassName="grid grid-cols-1 gap-3"
             />
           </div>
         </>

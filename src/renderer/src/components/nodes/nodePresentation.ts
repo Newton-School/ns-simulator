@@ -1,4 +1,9 @@
-import type { AnyNodeData, MetricLens, NodeSimulationMetrics } from '@renderer/types/ui'
+import type {
+  AnyNodeData,
+  MetricLens,
+  NodeSimulationMetrics,
+  PreRunMetricLens
+} from '@renderer/types/ui'
 import { failureRateLevelFromPercent } from '@renderer/utils/failureRatePresentation'
 import { ACK_AND_RELEASE_COMPONENT_TYPES } from '../../../../engine/traits/ackAndRelease'
 import { HEALTH_AWARE_COMPONENT_TYPES } from '../../../../engine/traits/healthAwareRouting'
@@ -146,77 +151,30 @@ export function getIdentityChip(data: AnyNodeData): IdentityChip | null {
   return null
 }
 
-export function getPreRunSummary(data: AnyNodeData): SummaryMetric[] {
-  if (data.profile === 'source') {
-    return [
-      {
-        label: 'Pattern',
-        value: data.source?.defaultWorkload.pattern
-      },
-      {
-        label: 'Base RPS',
-        value: data.source?.defaultWorkload.baseRps?.toFixed(1),
-        unit: 'req/s'
-      }
-    ]
-  }
+export function isPreRunMetricLens(lens: MetricLens): lens is PreRunMetricLens {
+  return lens === 'workers' || lens === 'capacity' || lens === 'timeout'
+}
 
-  if (data.profile === 'security-filter') {
-    return [
-      {
-        label: 'Block Rate',
-        value:
-          typeof data.sim?.securityPolicy?.blockRate === 'number'
-            ? (data.sim.securityPolicy.blockRate * 100).toFixed(1)
-            : undefined,
-        unit: '%',
-        textColor: 'text-nss-warning'
-      },
-      {
-        label: 'Dropped Pkts',
-        value:
-          typeof data.sim?.securityPolicy?.droppedPackets === 'number'
-            ? (data.sim.securityPolicy.droppedPackets * 100).toFixed(1)
-            : undefined,
-        unit: '%',
-        textColor: 'text-nss-danger'
-      },
-      {
+export function getPreRunMetric(lens: PreRunMetricLens, data: AnyNodeData): SummaryMetric {
+  switch (lens) {
+    case 'workers':
+      return {
+        label: 'Workers',
+        value: data.sim?.queue?.workers ?? '-'
+      }
+    case 'capacity':
+      return {
+        label: 'Capacity',
+        value: data.sim?.queue?.capacity ?? '-',
+        unit: data.sim?.queue?.capacity === undefined ? undefined : 'req'
+      }
+    case 'timeout':
+      return {
         label: 'Timeout',
-        value:
-          typeof data.sim?.processing?.timeout === 'number'
-            ? data.sim.processing.timeout
-            : undefined,
-        unit: 'ms'
+        value: data.sim?.processing?.timeout ?? '-',
+        unit: data.sim?.processing?.timeout === undefined ? undefined : 'ms'
       }
-    ]
   }
-
-  const metrics: SummaryMetric[] = [
-    {
-      label: 'Workers',
-      value: data.sim?.queue?.workers
-    },
-    {
-      label: 'Capacity',
-      value: data.sim?.queue?.capacity,
-      unit: 'req'
-    },
-    {
-      label: 'Timeout',
-      value: data.sim?.processing?.timeout,
-      unit: 'ms'
-    }
-  ]
-
-  if (data.profile === 'router') {
-    metrics.unshift({
-      label: 'Routing',
-      value: data.routingStrategy ?? 'passthrough'
-    })
-  }
-
-  return metrics
 }
 
 export interface LensCardData {
