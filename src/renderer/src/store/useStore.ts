@@ -185,7 +185,7 @@ const useStore = create<RFState>((set, get) => ({
   nodes: [],
   edges: [],
   simulationMetricsByNode: {},
-  metricLens: 'workers',
+  metricLens: 'concurrency',
   edgeFlowById: {},
   edgeFlowPlayback: null,
   edgeFlowStatus: 'idle',
@@ -307,7 +307,7 @@ const useStore = create<RFState>((set, get) => ({
   },
 
   setSimulationMetrics: (simulationMetricsByNode) => {
-    set({ simulationMetricsByNode, metricLens: 'results' })
+    set({ simulationMetricsByNode, metricLens: 'traffic' })
   },
 
   setMetricLens: (metricLens) => {
@@ -315,7 +315,7 @@ const useStore = create<RFState>((set, get) => ({
   },
 
   clearSimulationMetrics: () => {
-    set({ simulationMetricsByNode: {}, metricLens: 'workers' })
+    set({ simulationMetricsByNode: {}, metricLens: 'concurrency' })
   },
 
   recordEdgeFlowEvent: (event) => {
