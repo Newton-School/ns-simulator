@@ -20,6 +20,12 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value))
 }
 
+function fmtRps(value: number): string {
+  if (value >= 100) return `${Math.round(value)} rps`
+  if (value >= 10) return `${value.toFixed(1)} rps`
+  return `${value.toFixed(2)} rps`
+}
+
 function fmtRequestCount(value: number): string {
   return Math.round(value).toLocaleString()
 }
@@ -291,22 +297,19 @@ export const PacketEdge = ({
     .filter((event) => event.status !== 'success' && now - event.displayAtMs <= FAILED_PULSE_MS)
     .slice(-12)
 
-  const isRunning = flowStatus === 'running'
   const isComplete = flowStatus === 'complete'
   const liveIncomingRate = Math.max(flow?.attemptedPerSecond ?? 0, flow?.avgAttemptedPerSecond ?? 0)
+  const liveSuccessRate = Math.max(flow?.successPerSecond ?? 0, flow?.avgSuccessPerSecond ?? 0)
   const postRunPacketRate = flow?.avgPostWarmupSuccessPerSecond ?? 0
   const arrivedRequestCount = flow?.totalPostWarmupSuccess ?? 0
   const liveFailedRate = Math.max(flow?.failedPerSecond ?? 0, flow?.avgFailedPerSecond ?? 0)
   const liveFailureRatio = liveIncomingRate > 0 ? liveFailedRate / liveIncomingRate : 0
   const postWarmupAttemptedCount = flow?.totalPostWarmupAttempted ?? 0
   const postRunFailureRatio =
-    postWarmupAttemptedCount > 0
-      ? (flow?.totalPostWarmupFailed ?? 0) / postWarmupAttemptedCount
-      : 0
+    postWarmupAttemptedCount > 0 ? (flow?.totalPostWarmupFailed ?? 0) / postWarmupAttemptedCount : 0
   const failureRatio = isComplete ? postRunFailureRatio : liveFailureRatio
   const visualMultiplier = patternMultiplier(runConfig, playback, now, id)
-  const hasObservedLiveTraffic = !isComplete && (flow?.totalAttempted ?? 0) > 0
-  const effectiveLiveRate = Math.max(liveIncomingRate, hasObservedLiveTraffic ? 1 : 0)
+  const steadyRequestRate = isComplete ? postRunPacketRate : liveSuccessRate
   const previewShare =
     routingPreview && routingPreview.totalCount > 0
       ? routingPreview.selectedCount / routingPreview.maxCount
@@ -315,24 +318,20 @@ export const PacketEdge = ({
     ? routingPreview?.isSelected
       ? 40 + previewShare * 140
       : 0
-    : isComplete
-      ? postRunPacketRate
-      : effectiveLiveRate * visualMultiplier
-  const basePacketCount = compressedPacketCount(
-    isComplete ? postRunPacketRate : effectiveLiveRate
-  )
+    : steadyRequestRate * visualMultiplier
+  const basePacketCount = compressedPacketCount(steadyRequestRate)
   const streamPacketCount = isRoutingPreviewEdge
     ? routingPreview?.isSelected
       ? clamp(Math.round(2 + previewShare * 6), 2, 8)
       : 0
-    : patternPacketCount(basePacketCount, isComplete ? 1 : visualMultiplier)
+    : patternPacketCount(basePacketCount, visualMultiplier)
   const phaseLabel = patternPhaseLabel(runConfig, playback, now)
   const isInactiveAfterRun = flowStatus === 'complete' && !flow
   const hasFlow = isRoutingPreviewEdge
     ? Boolean(routingPreview?.isSelected)
     : isComplete
       ? arrivedRequestCount > 0
-      : effectiveLiveRate > 0
+      : liveIncomingRate > 0
   const trafficStrokeWidth = isRoutingPreviewEdge
     ? hasFlow
       ? clamp(2.5 + previewShare * 1.2, 2.5, 3.7)
@@ -355,7 +354,12 @@ export const PacketEdge = ({
       : 'not selected'
     : isInactiveAfterRun
       ? 'inactive'
-      : `${fmtRequestCount(arrivedRequestCount)} arrived / ${fmtFailureRate(failureRatio)}${isRunning && phaseLabel ? ` - ${phaseLabel}` : ''}`
+      : [
+          fmtRps(steadyRequestRate),
+          phaseLabel ? ` - ${phaseLabel}` : '',
+          isComplete ? ` / ${fmtRequestCount(arrivedRequestCount)} arrived` : '',
+          failureRatio > 0 ? ` / ${fmtFailureRate(failureRatio)}` : ''
+        ].join('')
   const flowLabelClassName = [
     'bg-nss-bg px-2 py-0.5 text-[18px] font-bold leading-none tracking-wide',
     isRoutingPreviewEdge
@@ -367,8 +371,8 @@ export const PacketEdge = ({
         : failureLevel === 'crit'
           ? 'text-nss-danger'
           : failureLevel === 'warn'
-          ? 'text-nss-warning'
-          : 'text-nss-primary'
+            ? 'text-nss-warning'
+            : 'text-nss-primary'
   ].join(' ')
 
   const pointForProgress = (progress: number) => {
