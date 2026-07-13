@@ -1,4 +1,10 @@
-import type { AnyNodeData, MetricLens, NodeSimulationMetrics } from '@renderer/types/ui'
+import type {
+  AnyNodeData,
+  MetricLens,
+  NodeSimulationMetrics,
+  PreRunMetricLens
+} from '@renderer/types/ui'
+import { failureRateLevelFromPercent } from '@renderer/utils/failureRatePresentation'
 import { ACK_AND_RELEASE_COMPONENT_TYPES } from '../../../../engine/traits/ackAndRelease'
 import { HEALTH_AWARE_COMPONENT_TYPES } from '../../../../engine/traits/healthAwareRouting'
 
@@ -39,6 +45,13 @@ export const NODE_HEALTH_STYLES = {
   }
 } satisfies Record<NodeHealthStatus, NodeHealthStyle>
 
+export interface SummaryMetric {
+  label: string
+  value?: string | number
+  unit?: string
+  textColor?: string
+}
+
 export function getNodeStatus(data: AnyNodeData): NodeHealthStatus {
   return data.ui?.overloadPreview ? 'critical' : 'healthy'
 }
@@ -51,14 +64,14 @@ export function getRuntimeNodeStatus(
   if (!hasRuntime) return fallbackStatus
 
   const utilization = metrics.utilization ?? 0
-  const errorRate = metrics.errorRate ?? 0
   const queueDepth = metrics.queueDepth ?? 0
+  const failureLevel = failureRateLevelFromPercent(metrics.errorRate)
 
-  if (errorRate >= 50 || utilization >= 90) {
+  if (failureLevel === 'crit' || utilization >= 90) {
     return 'critical'
   }
 
-  if (errorRate > 0 || utilization >= 75 || queueDepth >= 1) {
+  if (failureLevel === 'warn' || utilization >= 75 || queueDepth >= 1) {
     return 'degraded'
   }
 
@@ -136,6 +149,32 @@ export function getIdentityChip(data: AnyNodeData): IdentityChip | null {
     return { label: 'Block rate', value: `${Math.round(data.sim.securityPolicy.blockRate * 100)}%` }
   }
   return null
+}
+
+export function isPreRunMetricLens(lens: MetricLens): lens is PreRunMetricLens {
+  return lens === 'workers' || lens === 'capacity' || lens === 'timeout'
+}
+
+export function getPreRunMetric(lens: PreRunMetricLens, data: AnyNodeData): SummaryMetric {
+  switch (lens) {
+    case 'workers':
+      return {
+        label: 'Workers',
+        value: data.sim?.queue?.workers ?? '-'
+      }
+    case 'capacity':
+      return {
+        label: 'Capacity',
+        value: data.sim?.queue?.capacity ?? '-',
+        unit: data.sim?.queue?.capacity === undefined ? undefined : 'req'
+      }
+    case 'timeout':
+      return {
+        label: 'Timeout',
+        value: data.sim?.processing?.timeout ?? '-',
+        unit: data.sim?.processing?.timeout === undefined ? undefined : 'ms'
+      }
+  }
 }
 
 export interface LensCardData {

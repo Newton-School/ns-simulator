@@ -7,6 +7,8 @@ export function useNodeMetrics(id: string) {
 
   return {
     throughput: runtime?.throughput,
+    arrived: runtime?.postWarmupArrived,
+    completed: runtime?.postWarmupProcessed,
     errorRate: runtime?.errorRate,
     queueDepth: runtime?.queueDepth,
     utilization: runtime?.utilization,

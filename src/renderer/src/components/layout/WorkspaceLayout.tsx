@@ -307,7 +307,8 @@ export const WorkspaceLayout = () => {
     flowStore.clearEdgeFlow()
     flowStore.setEdgeFlowRunConfig({
       workload: runContext.workload,
-      simulationDurationMs: runContext.global.simulationDuration
+      simulationDurationMs: runContext.global.simulationDuration,
+      warmupDurationMs: runContext.global.warmupDuration
     })
     flowStore.setEdgeFlowStatus('running')
     sim.run(topology)
@@ -406,7 +407,7 @@ export const WorkspaceLayout = () => {
               {/* Canvas */}
               <Panel defaultSize={showResults ? 65 : 100} minSize={10} order={1}>
                 <FlowCanvas
-                  showMetricLens={showResults}
+                  showMetricLens
                   onNodeDoubleClick={(_, node) => {
                     selectGraphElements({ nodeId: node.id })
                     setIsRightOpen(true)

@@ -7,12 +7,14 @@ import { useMetricLens } from '@renderer/hooks/useMetricLens'
 import BaseNode from '@renderer/components/nodes/BaseNode'
 import { InlineEditableLabel } from '@renderer/components/properties/InlineEditable'
 import { useFlowStore } from '@renderer/components/canvas/hooks/useFlowStore'
-import { LensMetricCard } from './LensMetricCard'
+import { NodeMetricContent } from './NodeMetricContent'
 import {
   NODE_HEALTH_STYLES,
   getEffectiveNodeStatus,
   getIdentityChip,
   getLensCard,
+  getPreRunMetric,
+  isPreRunMetricLens,
   isRuntimeNodeInactive
 } from './nodePresentation'
 
@@ -29,9 +31,10 @@ const ComputeNode = ({ id, data, selected }: NodeProps<ComputeNodeData>) => {
   )
 
   const metrics = useNodeMetrics(id)
-  const { utilization, queueDepth, errorRate, hasRuntime, active } = metrics
+  const { arrived, completed, utilization, queueDepth, errorRate, hasRuntime, active } = metrics
   const lens = useMetricLens()
-  const lensCard = hasRuntime ? getLensCard(lens, data, metrics) : null
+  const lensCard = hasRuntime && lens !== 'results' ? getLensCard(lens, data, metrics) : null
+  const preRunMetric = isPreRunMetricLens(lens) ? getPreRunMetric(lens, data) : null
   const status = getEffectiveNodeStatus(data, { utilization, errorRate, queueDepth }, hasRuntime)
   const isOverloaded = status === 'critical'
   const isInactive = isRuntimeNodeInactive(hasRuntime, active)
@@ -81,20 +84,21 @@ const ComputeNode = ({ id, data, selected }: NodeProps<ComputeNodeData>) => {
           </div>
 
           <div className="p-3 space-y-3">
-            {isInactive ? (
-              <p className="text-[10px] text-nss-muted italic text-center py-1">
-                No post-warmup traffic
-              </p>
-            ) : lensCard ? (
-              <LensMetricCard card={lensCard} />
-            ) : identityChip ? (
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-[10px] text-nss-muted uppercase tracking-wider font-semibold">
-                  {identityChip.label}
-                </span>
-                <span className="font-mono text-xs text-nss-text">{identityChip.value}</span>
-              </div>
-            ) : null}
+            <NodeMetricContent
+              isInactive={isInactive}
+              hasRuntime={hasRuntime}
+              lens={lens}
+              arrived={arrived}
+              completed={completed}
+              failureRate={errorRate}
+              lensCard={lensCard}
+              identityChip={identityChip}
+              preRunMetric={preRunMetric}
+              inactiveClassName="text-[10px] text-nss-muted italic text-center py-1"
+              identityClassName="flex items-baseline gap-1.5"
+              runtimeClassName="grid grid-cols-2 gap-3"
+              preRunClassName="grid grid-cols-1 gap-3"
+            />
           </div>
         </>
       )}

@@ -8,11 +8,13 @@ import { useNodeMetrics } from '@renderer/hooks/useNodeMetrics'
 import { useMetricLens } from '@renderer/hooks/useMetricLens'
 import BaseNode from '@renderer/components/nodes/BaseNode'
 import { useFlowStore } from '@renderer/components/canvas/hooks/useFlowStore'
-import { LensMetricCard } from './LensMetricCard'
+import { NodeMetricContent } from './NodeMetricContent'
 import {
   getEffectiveNodeStatus,
   getIdentityChip,
   getLensCard,
+  getPreRunMetric,
+  isPreRunMetricLens,
   isRuntimeNodeInactive
 } from './nodePresentation'
 
@@ -29,9 +31,10 @@ const SecurityNode = ({ id, data, selected }: NodeProps<SecurityNodeData>) => {
   )
 
   const metrics = useNodeMetrics(id)
-  const { errorRate, queueDepth, utilization, hasRuntime, active } = metrics
+  const { arrived, completed, errorRate, queueDepth, utilization, hasRuntime, active } = metrics
   const lens = useMetricLens()
-  const lensCard = hasRuntime ? getLensCard(lens, data, metrics) : null
+  const lensCard = hasRuntime && lens !== 'results' ? getLensCard(lens, data, metrics) : null
+  const preRunMetric = isPreRunMetricLens(lens) ? getPreRunMetric(lens, data) : null
   const status = getEffectiveNodeStatus(data, { utilization, errorRate, queueDepth }, hasRuntime)
   const isInactive = isRuntimeNodeInactive(hasRuntime, active)
 
@@ -60,20 +63,17 @@ const SecurityNode = ({ id, data, selected }: NodeProps<SecurityNodeData>) => {
           </NodeHeader>
 
           <div className="p-4">
-            {isInactive ? (
-              <p className="text-[10px] text-nss-muted italic text-center py-2">
-                No post-warmup traffic
-              </p>
-            ) : lensCard ? (
-              <LensMetricCard card={lensCard} />
-            ) : identityChip ? (
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-[10px] text-nss-muted uppercase tracking-wider font-semibold">
-                  {identityChip.label}
-                </span>
-                <span className="font-mono text-xs text-nss-text">{identityChip.value}</span>
-              </div>
-            ) : null}
+            <NodeMetricContent
+              isInactive={isInactive}
+              hasRuntime={hasRuntime}
+              lens={lens}
+              arrived={arrived}
+              completed={completed}
+              failureRate={errorRate}
+              lensCard={lensCard}
+              identityChip={identityChip}
+              preRunMetric={preRunMetric}
+            />
           </div>
         </div>
       )}
