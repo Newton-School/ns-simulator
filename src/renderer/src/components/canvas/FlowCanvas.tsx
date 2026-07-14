@@ -14,8 +14,10 @@ import ReactFlow, {
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 import { EdgeSimulationData } from '@renderer/types/ui'
+import type { CanvasNodeDataV2 } from '../../../../engine/catalog/nodeSpecTypes'
 
 import EmptyFlowState from '../ui/EmptyFlowState'
+import { MetricLensSwitcher } from './MetricLensSwitcher'
 // Hooks & Config
 import { EdgePropertiesPanel, EdgePropertiesPanelValue } from '../ui/EdgePropertiesPanel'
 
@@ -28,10 +30,11 @@ import MagneticConnectionLine from './MagneticConnectionLine'
 import { MAGNETIC_CONNECTION_RADIUS_PX } from './magneticSnapConfig'
 
 interface FlowCanvasProps {
+  showMetricLens?: boolean
   onNodeDoubleClick?: (event: React.MouseEvent, node: Node) => void
 }
 
-const FlowCanvasInternal = ({ onNodeDoubleClick }: FlowCanvasProps) => {
+const FlowCanvasInternal = ({ showMetricLens = false, onNodeDoubleClick }: FlowCanvasProps) => {
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null)
   const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null)
 
@@ -158,11 +161,23 @@ const FlowCanvasInternal = ({ onNodeDoubleClick }: FlowCanvasProps) => {
         <Controls className="!bg-nss-surface !border-nss-border" />
         <MiniMap className="!bg-nss-surface !border-nss-border" />
       </ReactFlow>
+      {!isEmpty && showMetricLens && <MetricLensSwitcher />}
+
       {/* Empty State */}
       <EmptyFlowState isEmpty={isEmpty} />
 
       {selectedEdge && (
         <EdgePropertiesPanel
+          sourceNodeData={
+            nodes.find((node) => node.id === selectedEdge.source)?.data as
+              | CanvasNodeDataV2
+              | undefined
+          }
+          targetNodeData={
+            nodes.find((node) => node.id === selectedEdge.target)?.data as
+              | CanvasNodeDataV2
+              | undefined
+          }
           value={{
             label: (selectedEdge.label as string) || '',
             ...(((selectedEdge.data as EdgeSimulationData | undefined) ?? {}) as EdgeSimulationData)

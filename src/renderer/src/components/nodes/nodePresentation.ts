@@ -1,4 +1,15 @@
-import type { AnyNodeData, NodeSimulationMetrics } from '@renderer/types/ui'
+import type {
+  AnyNodeData,
+  MetricLens,
+  NodeSimulationMetrics,
+  PreRunMetricLens
+} from '@renderer/types/ui'
+import { failureRateLevelFromPercent } from '@renderer/utils/failureRatePresentation'
+import { ACK_AND_RELEASE_COMPONENT_TYPES } from '../../../../engine/traits/ackAndRelease'
+import { HEALTH_AWARE_COMPONENT_TYPES } from '../../../../engine/traits/healthAwareRouting'
+
+const ACK_AND_RELEASE_COMPONENT_TYPE_SET = new Set<string>(ACK_AND_RELEASE_COMPONENT_TYPES)
+const HEALTH_AWARE_COMPONENT_TYPE_SET = new Set<string>(HEALTH_AWARE_COMPONENT_TYPES)
 
 export type NodeHealthStatus = 'healthy' | 'degraded' | 'critical'
 
@@ -41,6 +52,18 @@ export interface SummaryMetric {
   textColor?: string
 }
 
+type CountNoun = {
+  singular: string
+  plural: string
+}
+
+type PreRunMetricVocabulary = {
+  concurrencyLabel: string
+  concurrencyUnit: CountNoun | string
+  queueLabel: string
+  queueUnit: CountNoun | string
+}
+
 export function getNodeStatus(data: AnyNodeData): NodeHealthStatus {
   return data.ui?.overloadPreview ? 'critical' : 'healthy'
 }
@@ -53,14 +76,14 @@ export function getRuntimeNodeStatus(
   if (!hasRuntime) return fallbackStatus
 
   const utilization = metrics.utilization ?? 0
-  const errorRate = metrics.errorRate ?? 0
   const queueDepth = metrics.queueDepth ?? 0
+  const failureLevel = failureRateLevelFromPercent(metrics.errorRate)
 
-  if (errorRate >= 50 || utilization >= 90) {
+  if (failureLevel === 'crit' || utilization >= 90) {
     return 'critical'
   }
 
-  if (errorRate > 0 || utilization >= 75 || queueDepth >= 1) {
+  if (failureLevel === 'warn' || utilization >= 75 || queueDepth >= 1) {
     return 'degraded'
   }
 
@@ -79,75 +102,303 @@ export function isRuntimeNodeInactive(hasRuntime: boolean, active?: boolean): bo
   return hasRuntime && active === false
 }
 
-export function getPreRunSummary(data: AnyNodeData): SummaryMetric[] {
+export interface IdentityChip {
+  label: string
+  value: string
+}
+
+/**
+ * The one config fact worth showing pre-run when a node's behavior actually
+ * depends on it — everything else lives in the properties panel (with
+ * provenance), never echoed as a bare number on the card.
+ */
+export function getIdentityChip(data: AnyNodeData): IdentityChip | null {
   if (data.profile === 'source') {
-    return [
-      {
-        label: 'Pattern',
-        value: data.source?.defaultWorkload.pattern
-      },
-      {
-        label: 'Base RPS',
-        value: data.source?.defaultWorkload.baseRps?.toFixed(1),
-        unit: 'req/s'
-      }
-    ]
-  }
-
-  if (data.profile === 'security-filter') {
-    return [
-      {
-        label: 'Block Rate',
-        value:
-          typeof data.sim?.securityPolicy?.blockRate === 'number'
-            ? (data.sim.securityPolicy.blockRate * 100).toFixed(1)
-            : undefined,
-        unit: '%',
-        textColor: 'text-nss-warning'
-      },
-      {
-        label: 'Dropped Pkts',
-        value:
-          typeof data.sim?.securityPolicy?.droppedPackets === 'number'
-            ? (data.sim.securityPolicy.droppedPackets * 100).toFixed(1)
-            : undefined,
-        unit: '%',
-        textColor: 'text-nss-danger'
-      },
-      {
-        label: 'Timeout',
-        value:
-          typeof data.sim?.processing?.timeout === 'number'
-            ? data.sim.processing.timeout
-            : undefined,
-        unit: 'ms'
-      }
-    ]
-  }
-
-  const metrics: SummaryMetric[] = [
-    {
-      label: 'Workers',
-      value: data.sim?.queue?.workers
-    },
-    {
-      label: 'Capacity',
-      value: data.sim?.queue?.capacity,
-      unit: 'req'
-    },
-    {
-      label: 'Timeout',
-      value: data.sim?.processing?.timeout,
-      unit: 'ms'
+    const pattern = data.source?.defaultWorkload.pattern
+    const baseRps = data.source?.defaultWorkload.baseRps
+    if (!pattern || baseRps === undefined) {
+      return null
     }
-  ]
+    return { label: 'Workload', value: `${pattern} · ${baseRps.toFixed(1)} rps` }
+  }
+  if (typeof data.sim?.cacheHitRate === 'number') {
+    return { label: 'Cache', value: `hit ${Math.round(data.sim.cacheHitRate * 100)}%` }
+  }
+  // replicationRole is only resolved onto data.sim at serialize/run time
+  // (componentSpecs.ts derives it from templateId) — check templateId too so
+  // the identity chip is honest before the first run, not just after.
+  if (data.sim?.replicationRole === 'replica' || data.templateId === 'read-replica') {
+    return { label: 'Role', value: 'read-only replica' }
+  }
+  // AckAndReleaseTrait has no config knob - it's unconditionally active on
+  // every Message Queue - so it needs an explicit declaration or it never
+  // shows up as anything at all, despite being real, defining behavior.
+  if (
+    typeof data.componentType === 'string' &&
+    ACK_AND_RELEASE_COMPONENT_TYPE_SET.has(data.componentType)
+  ) {
+    return { label: 'Async', value: 'acks at enqueue' }
+  }
+  if (typeof data.sim?.refillRatePerSecond === 'number') {
+    return { label: 'Rate limit', value: `${data.sim.refillRatePerSecond} rps` }
+  }
+  // Shown even at the true default: health-aware routing not visibly stating
+  // itself is exactly the "LB routes to dead servers" trust gap this trait
+  // exists to close, so its state is worth declaring either way.
+  if (
+    typeof data.componentType === 'string' &&
+    HEALTH_AWARE_COMPONENT_TYPE_SET.has(data.componentType)
+  ) {
+    return {
+      label: 'Health checks',
+      value: data.sim?.healthCheckEnabled === false ? 'off' : 'on'
+    }
+  }
+  if (
+    typeof data.sim?.securityPolicy?.blockRate === 'number' &&
+    data.sim.securityPolicy.blockRate > 0
+  ) {
+    return { label: 'Block rate', value: `${Math.round(data.sim.securityPolicy.blockRate * 100)}%` }
+  }
+  return null
+}
 
-  if (data.profile === 'router') {
-    metrics.unshift({
-      label: 'Routing',
-      value: data.routingStrategy ?? 'passthrough'
-    })
+function formatInteger(value: number): string {
+  return Math.max(0, Math.round(value)).toLocaleString()
+}
+
+function formatCount(value: number, unit: CountNoun | string): string {
+  const amount = formatInteger(value)
+  if (typeof unit === 'string') {
+    return `${amount} ${unit}`
   }
 
-  return metrics
+  return `${amount} ${value === 1 ? unit.singular : unit.plural}`
+}
+
+function getPreRunMetricVocabulary(data: AnyNodeData): PreRunMetricVocabulary {
+  const componentKey = data.componentType ?? data.templateId
+
+  switch (componentKey) {
+    case 'load-balancer':
+    case 'load-balancer-l4':
+    case 'load-balancer-l7':
+      return {
+        concurrencyLabel: 'Connections',
+        concurrencyUnit: { singular: 'connection', plural: 'connections' },
+        queueLabel: 'Connection Queue',
+        queueUnit: { singular: 'connection', plural: 'connections' }
+      }
+    case 'api-gateway':
+    case 'ingress-controller':
+    case 'reverse-proxy':
+      return {
+        concurrencyLabel: 'Request Slots',
+        concurrencyUnit: 'req',
+        queueLabel: 'Request Queue',
+        queueUnit: 'req'
+      }
+    case 'relational-db':
+    case 'primary-db':
+    case 'read-replica':
+      return {
+        concurrencyLabel: 'Connections',
+        concurrencyUnit: { singular: 'connection', plural: 'connections' },
+        queueLabel: 'Query Queue',
+        queueUnit: { singular: 'query', plural: 'queries' }
+      }
+    case 'in-memory-cache':
+    case 'redis-cache':
+      return {
+        concurrencyLabel: 'Operations',
+        concurrencyUnit: 'ops',
+        queueLabel: 'Operation Queue',
+        queueUnit: 'ops'
+      }
+    case 'queue':
+    case 'message-queue':
+      return {
+        concurrencyLabel: 'Consumers',
+        concurrencyUnit: { singular: 'consumer', plural: 'consumers' },
+        queueLabel: 'Backlog',
+        queueUnit: 'msg'
+      }
+    case 'service-registry':
+    case 'dns-server':
+      return {
+        concurrencyLabel: 'Lookups',
+        concurrencyUnit: { singular: 'lookup', plural: 'lookups' },
+        queueLabel: 'Lookup Queue',
+        queueUnit: { singular: 'lookup', plural: 'lookups' }
+      }
+    default:
+      return {
+        concurrencyLabel: 'Workers',
+        concurrencyUnit: { singular: 'worker', plural: 'workers' },
+        queueLabel: 'Queue',
+        queueUnit: 'req'
+      }
+  }
+}
+
+export function isPreRunMetricLens(lens: MetricLens): lens is PreRunMetricLens {
+  return lens === 'concurrency' || lens === 'queueCapacity' || lens === 'timeout'
+}
+
+export function getPreRunMetric(lens: PreRunMetricLens, data: AnyNodeData): SummaryMetric | null {
+  if (data.profile === 'source') {
+    return null
+  }
+
+  const vocabulary = getPreRunMetricVocabulary(data)
+
+  switch (lens) {
+    case 'concurrency': {
+      const workers = data.sim?.queue?.workers
+      if (workers === undefined) {
+        return null
+      }
+      return {
+        label: vocabulary.concurrencyLabel,
+        value: formatCount(workers, vocabulary.concurrencyUnit)
+      }
+    }
+    case 'queueCapacity': {
+      const capacity = data.sim?.queue?.capacity
+      if (capacity === undefined) {
+        return null
+      }
+      return {
+        label: vocabulary.queueLabel,
+        value: formatCount(capacity, vocabulary.queueUnit)
+      }
+    }
+    case 'timeout': {
+      const timeout = data.sim?.processing?.timeout
+      if (timeout === undefined) {
+        return null
+      }
+      return {
+        label: 'Timeout',
+        value: `${formatInteger(timeout)} ms`
+      }
+    }
+  }
+}
+
+export interface LensCardData {
+  value: string
+  limit: string
+  glyph: '✓' | '⚠' | '✕'
+  why: string
+  tone: NodeHealthStatus
+}
+
+const GLYPH_BY_TONE: Record<NodeHealthStatus, LensCardData['glyph']> = {
+  healthy: '✓',
+  degraded: '⚠',
+  critical: '✕'
+}
+
+/**
+ * One metric family, driven by the active lens — the value/limit card. Never
+ * shows more than one family at once; deep detail lives behind selection.
+ */
+export function getLensCard(
+  lens: MetricLens,
+  data: AnyNodeData,
+  metrics: NodeSimulationMetrics
+): LensCardData | null {
+  switch (lens) {
+    case 'saturation': {
+      const workers = data.sim?.queue?.workers
+      if (!workers || metrics.utilization === undefined) {
+        return null
+      }
+      const utilization = metrics.utilization
+      const activeWorkers = Math.min(workers, (utilization / 100) * workers)
+      const tone = getRuntimeNodeStatus(
+        'healthy',
+        { utilization, errorRate: metrics.errorRate, queueDepth: metrics.queueDepth },
+        true
+      )
+      const verdict =
+        tone === 'critical'
+          ? 'saturated'
+          : tone === 'degraded'
+            ? 'approaching saturation'
+            : 'healthy'
+      return {
+        value: activeWorkers.toFixed(1),
+        limit: `/ ${workers} workers`,
+        glyph: GLYPH_BY_TONE[tone],
+        why: `${utilization.toFixed(0)}% utilized — ${verdict} · click for detail`,
+        tone
+      }
+    }
+    case 'latency': {
+      if (metrics.latencyP95 === undefined) {
+        return null
+      }
+      const sloP99 = data.sim?.slo?.latencyP99
+      let tone: NodeHealthStatus = 'healthy'
+      let sloText = 'no SLO set'
+      if (typeof sloP99 === 'number' && sloP99 > 0 && metrics.latencyP99 !== undefined) {
+        if (metrics.latencyP99 > sloP99 * 1.5) {
+          tone = 'critical'
+        } else if (metrics.latencyP99 > sloP99) {
+          tone = 'degraded'
+        }
+        sloText = tone === 'healthy' ? `within ${sloP99}ms p99 SLO` : `above ${sloP99}ms p99 SLO`
+      }
+      return {
+        value: `${metrics.latencyP95.toFixed(1)}ms`,
+        limit: 'p95',
+        glyph: GLYPH_BY_TONE[tone],
+        why: `p50 ${(metrics.latencyP50 ?? 0).toFixed(1)}ms · ${sloText} · click for detail`,
+        tone
+      }
+    }
+    case 'errors': {
+      if (metrics.errorRate === undefined) {
+        return null
+      }
+      const tone: NodeHealthStatus =
+        metrics.errorRate >= 50 ? 'critical' : metrics.errorRate > 0 ? 'degraded' : 'healthy'
+      const reasons = Object.entries(metrics.rejectionsByReason ?? {}).sort((a, b) => b[1] - a[1])
+      const why =
+        reasons.length > 0
+          ? `${reasons[0][1]} rejected: ${reasons[0][0]} · click for detail`
+          : 'no rejections'
+      return {
+        value: `${metrics.errorRate.toFixed(1)}%`,
+        limit: `${metrics.totalRejected ?? 0} rejected`,
+        glyph: GLYPH_BY_TONE[tone],
+        why,
+        tone
+      }
+    }
+    case 'throughput': {
+      if (metrics.throughput === undefined) {
+        return null
+      }
+      const why =
+        data.componentType === 'stream' &&
+        metrics.finalInSystem !== undefined &&
+        metrics.peakInSystem !== undefined
+          ? `${metrics.finalInSystem.toFixed(0)} lag at end · peak ${metrics.peakInSystem.toFixed(0)}`
+          : metrics.cacheHitRatio !== undefined && metrics.cacheHitRatio > 0
+            ? `${metrics.cacheHitRatio.toFixed(0)}% served from cache`
+            : 'click for detail'
+      return {
+        value: metrics.throughput.toFixed(1),
+        limit: 'req/s',
+        glyph: '✓',
+        why,
+        tone: 'healthy'
+      }
+    }
+    default:
+      return null
+  }
 }

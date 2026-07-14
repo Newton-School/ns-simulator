@@ -24,6 +24,12 @@ import {
 } from './core/events'
 import { microToMs, msToMicro, secToMicro } from './core/time'
 import { ComponentNode, EdgeDefinition, EventScheduler, TopologyJSON } from './core/types'
+import {
+  getPathTypeLatencyProfile,
+  getProtocolLatencyOverheadMs,
+  isReliableProtocol,
+  protocolSupportsConnectionLimits
+} from './defaults/edgeDefaults'
 import { MetricsCollector } from './metrics'
 import { GGcKNode } from './nodes/GGcKNode'
 import { RoutingTable } from './routing'
@@ -31,6 +37,29 @@ import { MinHeap } from './scheduler/min-heap'
 import { Distributions } from './stochastic/distribution'
 import { createRandom } from './stochastic/random'
 import { RequestTracer } from './tracer'
+import {
+  attachCircuitBreakerTracking,
+  clearCircuitBreakerTracking,
+  readCircuitBreakerConfig,
+  readCircuitBreakerTracking,
+  recordCircuitBreakerOutcome
+} from './traits/circuitBreaker'
+import {
+  createInitialProbeState,
+  evaluateProbe,
+  parseHealthCheckManagerConfig,
+  type HealthCheckManagerConfig,
+  type ProbeState
+} from './traits/healthProber'
+import { resolveTraits } from './traits/resolveTraits'
+import type {
+  BeforeArrivalDecision,
+  BeforeRoutingDecision,
+  NodeBehaviourTrait,
+  TraitHookName,
+  TraitResolver,
+  TraitStateStore
+} from './traits/types'
 import { WorkloadGenerator } from './workload'
 
 interface SecurityPolicyConfig {
@@ -40,6 +69,10 @@ interface SecurityPolicyConfig {
 
 const DEFAULT_MAX_RETAINED_EVENT_STREAM_EVENTS = 25_000
 const LOAD_BALANCER_UNHEALTHY_COOLDOWN_US = msToMicro(5_000)
+
+interface SimulationEngineOptions {
+  resolveTraits?: TraitResolver
+}
 
 export class SimulationEngine {
   onProgress?: (percent: number, eventsProcessed: number) => void
@@ -58,11 +91,18 @@ export class SimulationEngine {
   private readonly metrics: MetricsCollector
   private readonly tracer: RequestTracer
   private readonly nodes = new Map<string, GGcKNode>()
+  private readonly nodeDefinitionsById = new Map<string, ComponentNode>()
+  private readonly traitsByNodeId = new Map<string, readonly NodeBehaviourTrait[]>()
   private readonly nodeErrorRateById = new Map<string, number>()
   private readonly nodeTimeoutUsById = new Map<string, bigint>()
   private readonly securityPolicyByNodeId = new Map<string, SecurityPolicyConfig>()
   private readonly nodeLimitsById = new Map<string, { workers: number; capacity: number }>()
   private readonly nodeUnhealthyUntilUs = new Map<string, bigint>()
+  private readonly healthCheckManagerConfigById = new Map<string, HealthCheckManagerConfig>()
+  private readonly probedNodeIds = new Set<string>()
+  private readonly probeStateByNodeId = new Map<string, ProbeState>()
+  private readonly traitStateByNodeId = new Map<string, Map<string, unknown>>()
+  private readonly activeTransfersByEdgeId = new Map<string, number>()
   private readonly workload?: WorkloadGenerator
 
   private readonly requestById = new Map<string, Request>()
@@ -82,10 +122,14 @@ export class SimulationEngine {
   private forcedTraceRequestId: string | null = null
   private readonly debugEvents: DebugEvent[] = []
 
-  constructor(private readonly topology: TopologyJSON) {
+  constructor(
+    private readonly topology: TopologyJSON,
+    options: SimulationEngineOptions = {}
+  ) {
     const rng = createRandom(topology.global.seed)
+    const traitResolver = options.resolveTraits ?? resolveTraits
     this.distributions = new Distributions(rng)
-    this.routing = new RoutingTable(topology.edges, rng, topology.nodes)
+    this.routing = new RoutingTable(topology.edges, rng, topology.nodes, traitResolver)
     this.metrics = new MetricsCollector({
       warmupDuration: topology.global.warmupDuration,
       nodes: topology.nodes.map((node) => ({
@@ -103,6 +147,8 @@ export class SimulationEngine {
 
     for (const node of topology.nodes) {
       const normalized = this.withNodeDefaults(node)
+      this.nodeDefinitionsById.set(node.id, normalized)
+      this.traitsByNodeId.set(node.id, traitResolver(normalized))
       this.nodes.set(node.id, new GGcKNode(normalized, this.distributions, scheduler))
       this.nodeLimitsById.set(node.id, {
         workers: normalized.queue?.workers ?? 1,
@@ -121,6 +167,22 @@ export class SimulationEngine {
       const securityPolicy = this.readSecurityPolicy(normalized)
       if (securityPolicy) {
         this.securityPolicyByNodeId.set(node.id, securityPolicy)
+      }
+
+      if (normalized.type === 'health-check-manager') {
+        const proberConfig = parseHealthCheckManagerConfig(normalized.config)
+        if (proberConfig) {
+          this.healthCheckManagerConfigById.set(node.id, proberConfig)
+          for (const monitoredNodeId of proberConfig.monitoredNodes) {
+            this.probedNodeIds.add(monitoredNodeId)
+            if (!this.probeStateByNodeId.has(monitoredNodeId)) {
+              this.probeStateByNodeId.set(monitoredNodeId, createInitialProbeState())
+            }
+          }
+          scheduler.schedule(
+            createEvent('health-check', node.id, '', {}, msToMicro(proberConfig.checkIntervalMs))
+          )
+        }
       }
     }
 
@@ -368,6 +430,9 @@ export class SimulationEngine {
         this.nodeUnhealthyUntilUs.delete(event.nodeId)
         this.recordSimulationEvent(event, this.createNodeSnapshot(event.nodeId))
         break
+      case 'health-check':
+        this.handleHealthProbe(event)
+        break
       default:
         // Other event types are integrated in later tickets.
         break
@@ -453,6 +518,7 @@ export class SimulationEngine {
     if (!node || !request) {
       return
     }
+    this.releaseEdgeTransfer(event.data.edgeId)
     this.appendNodeToPath(request, event.nodeId)
     this.recordSimulationEvent(event, this.createNodeSnapshot(event.nodeId))
 
@@ -460,14 +526,107 @@ export class SimulationEngine {
       return
     }
 
-    const result = node.handleArrival(request, this.clock)
-    const nodeSnapshot = this.createNodeSnapshot(event.nodeId)
-    if (result.status === 'rejected') {
-      this.emitAdmissionDecision(request.id, event.nodeId, 'rejected', result.reason, nodeSnapshot)
+    const arrivalTraitDecision = this.runBeforeArrivalTraits(event.nodeId, request)
+    if (arrivalTraitDecision.action === 'rejected') {
       this.eventQueue.insert(
         createEvent(
           'request-rejected',
           event.nodeId,
+          request.id,
+          {
+            request,
+            reason: arrivalTraitDecision.reason,
+            nodeArrivalTime: this.clock
+          },
+          this.clock
+        )
+      )
+      return
+    }
+
+    if (arrivalTraitDecision.action === 'handled') {
+      this.completeRequestViaTrait(event.nodeId, request, arrivalTraitDecision)
+
+      if (arrivalTraitDecision.payload?.forkConsumerRequest === true) {
+        this.forkConsumerRequest(node, event.nodeId, request)
+      }
+      return
+    }
+
+    this.admitToNodeQueue(node, event.nodeId, request)
+  }
+
+  private completeRequestViaTrait(
+    nodeId: string,
+    request: Request,
+    decision: Extract<BeforeArrivalDecision, { action: 'handled' }>
+  ): void {
+    const completionTime = this.clock + decision.latencyUs
+    if (request.deadline <= completionTime) {
+      this.eventQueue.insert(
+        createEvent(
+          'request-timeout',
+          nodeId,
+          request.id,
+          { request, nodeArrivalTime: this.clock, scope: 'trait' },
+          request.deadline
+        )
+      )
+      return
+    }
+
+    const servedFromCache = decision.payload?.servedFromCache === true
+    if (servedFromCache) {
+      request.metadata.servedFromCache = true
+    }
+    request.spans.push({
+      nodeId,
+      arrivalTime: this.clock,
+      queueWait: 0n,
+      serviceTime: decision.latencyUs,
+      departureTime: completionTime
+    })
+    this.eventQueue.insert(
+      createEvent(
+        'request-complete',
+        nodeId,
+        request.id,
+        { request, ...(servedFromCache ? { servedFromCache: true } : {}) },
+        completionTime
+      )
+    )
+  }
+
+  /**
+   * Spawns an independent lifecycle for a request that a trait acknowledged
+   * immediately (e.g. AckAndReleaseTrait) — the clone enters the node's real
+   * queue directly, bypassing beforeArrival traits so the ack doesn't
+   * re-trigger itself in an infinite fork loop.
+   */
+  private forkConsumerRequest(node: GGcKNode, nodeId: string, producerRequest: Request): void {
+    const consumerRequest = this.cloneRequestForBranch(producerRequest)
+    this.requestById.set(consumerRequest.id, consumerRequest)
+    this.tracer.setRequestCreatedAt(consumerRequest.id, consumerRequest.createdAt)
+    this.recordCanonicalEvent({
+      timestampUs: this.clock,
+      type: 'request-generated',
+      priority: EventPriority.ARRIVAL,
+      requestId: consumerRequest.id,
+      nodeId,
+      payload: { request: consumerRequest, branchOfRequestId: producerRequest.id }
+    })
+    this.admitToNodeQueue(node, nodeId, consumerRequest)
+  }
+
+  private admitToNodeQueue(node: GGcKNode, nodeId: string, request: Request): void {
+    const result = node.handleArrival(request, this.clock)
+    const nodeSnapshot = this.createNodeSnapshot(nodeId)
+    if (result.status === 'rejected') {
+      this.emitAdmissionDecision(request.id, nodeId, 'rejected', result.reason, nodeSnapshot)
+      this.eventQueue.insert(
+        createEvent(
+          'request-rejected',
+          nodeId,
           request.id,
           { request, reason: result.reason, nodeArrivalTime: this.clock },
           this.clock
@@ -482,13 +641,13 @@ export class SimulationEngine {
         type: 'request-queued',
         priority: EventPriority.ARRIVAL,
         requestId: request.id,
-        nodeId: event.nodeId,
+        nodeId,
         payload: { request },
         nodeSnapshot
       })
       this.emitAdmissionDecision(
         request.id,
-        event.nodeId,
+        nodeId,
         'queued',
         undefined,
         nodeSnapshot,
@@ -500,13 +659,13 @@ export class SimulationEngine {
         type: 'processing-started',
         priority: EventPriority.PROCESSING,
         requestId: request.id,
-        nodeId: event.nodeId,
+        nodeId,
         payload: { request },
         nodeSnapshot
       })
       this.emitAdmissionDecision(
         request.id,
-        event.nodeId,
+        nodeId,
         'accepted',
         undefined,
         nodeSnapshot,
@@ -514,7 +673,7 @@ export class SimulationEngine {
       )
     }
 
-    this.scheduleNodeTimeout(event.nodeId, request)
+    this.scheduleNodeTimeout(nodeId, request)
   }
 
   private handleProcessingComplete(event: SimulationEvent): void {
@@ -563,8 +722,32 @@ export class SimulationEngine {
       return
     }
 
-    const routeResult = this.resolveRoutes(event.nodeId, request)
+    this.maybeRecordCircuitBreakerOutcome(request, event.nodeId, true)
+
+    const routingTraitDecision = this.runBeforeRoutingTraits(event.nodeId, request)
+    if (routingTraitDecision.action === 'complete') {
+      this.eventQueue.insert(
+        createEvent('request-complete', event.nodeId, request.id, { request }, this.clock)
+      )
+      return
+    }
+
+    if (routingTraitDecision.action === 'rejected') {
+      this.rejectRequestAtNode(
+        event.nodeId,
+        request,
+        routingTraitDecision.reason,
+        completion.completedSpan.arrivalTime
+      )
+      return
+    }
+
+    const routeResult =
+      routingTraitDecision.action === 'reroute'
+        ? this.resolveReroutedTarget(event.nodeId, routingTraitDecision.targetNodeId)
+        : this.resolveRoutes(event.nodeId, request)
     if (routeResult.rejectionReason) {
+      this.maybeRecordCircuitBreakerOutcomeAtNode(event.nodeId, request, false)
       this.rejectRequestAtNode(
         event.nodeId,
         request,
@@ -576,6 +759,7 @@ export class SimulationEngine {
 
     const routes = routeResult.routes
     if (routes.length === 0) {
+      this.maybeRecordCircuitBreakerOutcomeAtNode(event.nodeId, request, true)
       this.eventQueue.insert(
         createEvent('request-complete', event.nodeId, request.id, { request }, this.clock)
       )
@@ -625,6 +809,7 @@ export class SimulationEngine {
     }
 
     this.recordSimulationEvent(event)
+    this.maybeTrackCircuitBreakerRequest(request, edge.source, targetNodeId)
     this.enqueueEdgeTransfer(request, edge, targetNodeId)
   }
 
@@ -660,6 +845,9 @@ export class SimulationEngine {
     }
 
     const scope = typeof event.data.scope === 'string' ? event.data.scope : undefined
+    if (scope === 'in-flight') {
+      this.releaseEdgeTransfer(event.data.edgeId)
+    }
     if (scope === 'node') {
       const arrivalTime = this.nodes.get(event.nodeId)?.cancelRequest(request.id, this.clock)
       if (arrivalTime === null || arrivalTime === undefined) {
@@ -669,6 +857,7 @@ export class SimulationEngine {
       this.markNodeTemporarilyUnhealthy(event.nodeId)
     }
     this.recordSimulationEvent(event, this.createNodeSnapshot(event.nodeId))
+    this.maybeRecordCircuitBreakerOutcome(request, event.nodeId, false)
 
     for (const span of request.spans) {
       this.tracer.recordSpan(request.id, span)
@@ -690,8 +879,10 @@ export class SimulationEngine {
     if (!request) {
       return
     }
+    this.releaseEdgeTransfer(event.data.edgeId)
     this.markNodeUnhealthyForReason(event.nodeId, reason)
     this.recordSimulationEvent(event, this.createNodeSnapshot(event.nodeId))
+    this.maybeRecordCircuitBreakerOutcome(request, event.nodeId, false)
 
     const nodeArrivalTime =
       typeof event.data.nodeArrivalTime === 'bigint' ? event.data.nodeArrivalTime : undefined
@@ -707,9 +898,25 @@ export class SimulationEngine {
     this.markRequestTerminal(request, 'rejected')
   }
 
-  private sampleEdgeLatencyUs(edge: EdgeDefinition): bigint {
-    const latencyMs = Math.max(0, this.distributions.fromConfig(edge.latency.distribution))
-    return msToMicro(latencyMs)
+  private sampleEdgeLatencyUs(
+    edge: EdgeDefinition,
+    request: Request,
+    activeTransfers: number
+  ): bigint {
+    const latencyDistribution = edge.latency.derivedFromPathType
+      ? getPathTypeLatencyProfile(edge.latency.pathType)
+      : edge.latency.distribution
+    const propagationMs = Math.max(0, this.distributions.fromConfig(latencyDistribution))
+    const transmissionMs = request.sizeBytes / (edge.bandwidth * 125)
+    const protocolOverheadMs = getProtocolLatencyOverheadMs(edge.protocol)
+    const utilization =
+      edge.maxConcurrentRequests > 0
+        ? Math.min(0.98, activeTransfers / edge.maxConcurrentRequests)
+        : 0
+    const delayMultiplier = Math.min(50, 1 / Math.max(0.02, 1 - utilization))
+    const totalLatencyMs =
+      Math.max(0, propagationMs * delayMultiplier) + transmissionMs + protocolOverheadMs
+    return msToMicro(totalLatencyMs)
   }
 
   private getRequest(event: SimulationEvent, hydrate = true): Request | undefined {
@@ -808,6 +1015,7 @@ export class SimulationEngine {
       nodes[nodeId] = {
         queueLength: state.queueLength,
         activeWorkers: state.activeWorkers,
+        totalInSystem: state.totalInSystem,
         utilization: state.utilization,
         status: state.status
       }
@@ -936,7 +1144,32 @@ export class SimulationEngine {
     return this.distributions.random() < nodeErrorRate
   }
 
+  private getTraitStateStore(nodeId: string): TraitStateStore {
+    let store = this.traitStateByNodeId.get(nodeId)
+    if (!store) {
+      store = new Map<string, unknown>()
+      this.traitStateByNodeId.set(nodeId, store)
+    }
+    return {
+      get: <T>(key: string) => store!.get(key) as T | undefined,
+      set: <T>(key: string, value: T) => {
+        store!.set(key, value)
+      }
+    }
+  }
+
   private isNodeHealthy(nodeId: string): boolean {
+    // Nodes watched by a Health Check Manager only become (un)healthy once the
+    // prober detects it — this is the detection-latency lesson. Unmonitored
+    // nodes fall back to instantaneous knowledge, a declared simplification.
+    if (this.probedNodeIds.has(nodeId)) {
+      return this.probeStateByNodeId.get(nodeId)?.healthy ?? true
+    }
+
+    return this.isNodeHealthyInstant(nodeId)
+  }
+
+  private isNodeHealthyInstant(nodeId: string): boolean {
     const node = this.nodes.get(nodeId)
     if (!node) {
       return true
@@ -964,15 +1197,76 @@ export class SimulationEngine {
     return true
   }
 
+  private handleHealthProbe(event: SimulationEvent): void {
+    const config = this.healthCheckManagerConfigById.get(event.nodeId)
+    if (!config) {
+      return
+    }
+
+    for (const monitoredNodeId of config.monitoredNodes) {
+      const actualHealthy = this.isNodeHealthyInstant(monitoredNodeId)
+      const previous = this.probeStateByNodeId.get(monitoredNodeId) ?? createInitialProbeState()
+      const next = evaluateProbe(previous, actualHealthy, config)
+      this.probeStateByNodeId.set(monitoredNodeId, next)
+
+      this.recordCanonicalEvent({
+        timestampUs: this.clock,
+        type: 'health-probed',
+        priority: EventPriority.SYSTEM,
+        nodeId: monitoredNodeId,
+        sourceNodeId: event.nodeId,
+        payload: {
+          healthCheckManagerId: event.nodeId,
+          actualHealthy,
+          probedHealthy: next.healthy,
+          consecutiveFailures: next.consecutiveFailures,
+          consecutiveSuccesses: next.consecutiveSuccesses
+        }
+      })
+    }
+
+    this.eventQueue.insert(
+      createEvent(
+        'health-check',
+        event.nodeId,
+        '',
+        {},
+        this.clock + msToMicro(config.checkIntervalMs)
+      )
+    )
+  }
+
   private isEdgeHealthy(edge: EdgeDefinition): boolean {
     return edge.packetLossRate < 1 && edge.errorRate < 1
   }
 
   private resolveRoutes(sourceNodeId: string, request: Request) {
     return this.routing.resolveTargetResult(sourceNodeId, request, {
+      clock: this.clock,
       isTargetHealthy: (nodeId) => this.isNodeHealthy(nodeId),
-      isEdgeHealthy: (edge) => this.isEdgeHealthy(edge)
+      isEdgeHealthy: (edge) => this.isEdgeHealthy(edge),
+      onTraitDecision: (decision) => {
+        this.recordTraitPayloadMetrics(decision.nodeId, decision.payload)
+        this.recordTraitDecision(decision.nodeId, request.id, decision.traitName, decision.hook, {
+          decision: decision.decision,
+          ...(decision.payload ?? {})
+        })
+      }
     })
+  }
+
+  private resolveReroutedTarget(sourceNodeId: string, targetNodeId: string) {
+    const edge = this.routing.getOutgoingEdges(sourceNodeId).find((candidate) => {
+      return candidate.target === targetNodeId
+    })
+
+    if (!edge) {
+      return { routes: [], rejectionReason: 'trait_invalid_reroute' as const }
+    }
+
+    return {
+      routes: [{ targetNodeId, edge }]
+    }
   }
 
   private markNodeUnhealthyForReason(nodeId: string, reason: string): void {
@@ -983,6 +1277,112 @@ export class SimulationEngine {
 
   private markNodeTemporarilyUnhealthy(nodeId: string): void {
     this.nodeUnhealthyUntilUs.set(nodeId, this.clock + LOAD_BALANCER_UNHEALTHY_COOLDOWN_US)
+  }
+
+  private releaseEdgeTransfer(edgeId: unknown): void {
+    if (typeof edgeId !== 'string') {
+      return
+    }
+
+    const activeTransfers = this.activeTransfersByEdgeId.get(edgeId)
+    if (!activeTransfers) {
+      return
+    }
+
+    if (activeTransfers <= 1) {
+      this.activeTransfersByEdgeId.delete(edgeId)
+      return
+    }
+
+    this.activeTransfersByEdgeId.set(edgeId, activeTransfers - 1)
+  }
+
+  private maybeTrackCircuitBreakerRequest(
+    request: Request,
+    sourceNodeId: string,
+    targetNodeId: string
+  ): void {
+    const sourceNode = this.nodeDefinitionsById.get(sourceNodeId)
+    if (!sourceNode || !readCircuitBreakerConfig(sourceNode)) {
+      return
+    }
+
+    attachCircuitBreakerTracking(request, sourceNodeId, targetNodeId)
+  }
+
+  private maybeRecordCircuitBreakerOutcome(
+    request: Request,
+    observedNodeId: string,
+    success: boolean
+  ): void {
+    const tracking = readCircuitBreakerTracking(request)
+    if (!tracking || tracking.targetNodeId !== observedNodeId) {
+      return
+    }
+
+    clearCircuitBreakerTracking(request)
+
+    const trackerNode = this.nodeDefinitionsById.get(tracking.trackerNodeId)
+    if (!trackerNode) {
+      return
+    }
+
+    const outcome = recordCircuitBreakerOutcome(
+      this.getTraitStateStore(tracking.trackerNodeId),
+      trackerNode,
+      success,
+      this.clock
+    )
+
+    if (!outcome.transition) {
+      return
+    }
+
+    this.recordCanonicalEvent({
+      timestampUs: this.clock,
+      type: outcome.transition === 'open' ? 'circuit-breaker-open' : 'circuit-breaker-close',
+      priority: EventPriority.SYSTEM,
+      requestId: request.id,
+      nodeId: tracking.trackerNodeId,
+      payload: {
+        targetNodeId: observedNodeId,
+        outcome: success ? 'success' : 'failure'
+      },
+      nodeSnapshot: this.createNodeSnapshot(tracking.trackerNodeId)
+    })
+  }
+
+  private maybeRecordCircuitBreakerOutcomeAtNode(
+    nodeId: string,
+    request: Request,
+    success: boolean
+  ): void {
+    const node = this.nodeDefinitionsById.get(nodeId)
+    if (!node || !readCircuitBreakerConfig(node)) {
+      return
+    }
+
+    const outcome = recordCircuitBreakerOutcome(
+      this.getTraitStateStore(nodeId),
+      node,
+      success,
+      this.clock
+    )
+    if (!outcome.transition) {
+      return
+    }
+
+    this.recordCanonicalEvent({
+      timestampUs: this.clock,
+      type: outcome.transition === 'open' ? 'circuit-breaker-open' : 'circuit-breaker-close',
+      priority: EventPriority.SYSTEM,
+      requestId: request.id,
+      nodeId,
+      payload: {
+        outcome: success ? 'success' : 'failure'
+      },
+      nodeSnapshot: this.createNodeSnapshot(nodeId)
+    })
   }
 
   private rejectRequestAtNode(
@@ -1041,12 +1441,15 @@ export class SimulationEngine {
       })
     }
 
-    if (this.distributions.random() < edge.packetLossRate) {
-      const timeoutAt = request.deadline > this.clock ? request.deadline : this.clock
-      emitEdgeFlowEvent('packet-loss', timeoutAt, timeoutAt - this.clock)
+    const currentLoad = this.activeTransfersByEdgeId.get(edge.id) ?? 0
+    if (
+      protocolSupportsConnectionLimits(edge.protocol) &&
+      currentLoad >= edge.maxConcurrentRequests
+    ) {
+      emitEdgeFlowEvent('edge-error', this.clock, 0n)
       this.eventQueue.insert(
         createEvent(
-          'request-timeout',
+          'request-rejected',
           targetNodeId,
           request.id,
           {
@@ -1055,13 +1458,41 @@ export class SimulationEngine {
             edgeId: edge.id,
             sourceNodeId: edge.source,
             targetNodeId,
-            nodeArrivalTime: this.clock,
-            scope: 'in-flight'
+            reason: 'connection_refused',
+            nodeArrivalTime: this.clock
           },
-          timeoutAt
+          this.clock
         )
       )
       return
+    }
+
+    let edgeLatencyUs = this.sampleEdgeLatencyUs(edge, request, currentLoad + 1)
+    if (this.distributions.random() < edge.packetLossRate) {
+      if (isReliableProtocol(edge.protocol)) {
+        edgeLatencyUs += edgeLatencyUs
+      } else {
+        const timeoutAt = request.deadline > this.clock ? request.deadline : this.clock
+        emitEdgeFlowEvent('packet-loss', timeoutAt, timeoutAt - this.clock)
+        this.eventQueue.insert(
+          createEvent(
+            'request-timeout',
+            targetNodeId,
+            request.id,
+            {
+              request,
+              edge,
+              edgeId: edge.id,
+              sourceNodeId: edge.source,
+              targetNodeId,
+              nodeArrivalTime: this.clock,
+              scope: 'in-flight'
+            },
+            timeoutAt
+          )
+        )
+        return
+      }
     }
 
     if (this.distributions.random() < edge.errorRate) {
@@ -1086,10 +1517,11 @@ export class SimulationEngine {
       return
     }
 
-    const edgeLatencyUs = this.sampleEdgeLatencyUs(edge)
+    this.activeTransfersByEdgeId.set(edge.id, currentLoad + 1)
     const arrivalTime = this.clock + edgeLatencyUs
     if (request.deadline <= arrivalTime) {
-      emitEdgeFlowEvent('timeout', request.deadline, request.deadline - this.clock)
+      const timeoutAt = request.deadline > this.clock ? request.deadline : this.clock
+      emitEdgeFlowEvent('timeout', timeoutAt, timeoutAt - this.clock)
       this.eventQueue.insert(
         createEvent(
           'request-timeout',
@@ -1104,7 +1536,7 @@ export class SimulationEngine {
             nodeArrivalTime: this.clock,
             scope: 'in-flight'
           },
-          request.deadline
+          timeoutAt
         )
       )
       return
@@ -1116,9 +1548,138 @@ export class SimulationEngine {
         'request-arrival',
         targetNodeId,
         request.id,
-        { request, edge, sourceNodeId: edge.source },
+        { request, edge, edgeId: edge.id, sourceNodeId: edge.source },
         arrivalTime
       )
     )
+  }
+
+  private runBeforeArrivalTraits(nodeId: string, request: Request): BeforeArrivalDecision {
+    const node = this.nodeDefinitionsById.get(nodeId)
+    if (!node) {
+      return { action: 'continue' }
+    }
+
+    for (const trait of this.traitsByNodeId.get(nodeId) ?? []) {
+      if (!trait.beforeArrival) {
+        continue
+      }
+
+      const decision = trait.beforeArrival({
+        node,
+        request,
+        clock: this.clock,
+        random: () => this.distributions.random(),
+        state: this.getTraitStateStore(nodeId),
+        nodeState: this.nodes.get(nodeId)?.getState()
+      })
+      this.recordTraitPayloadMetrics(nodeId, decision.payload)
+      this.recordTraitDecision(nodeId, request.id, trait.name, 'beforeArrival', {
+        decision: decision.action,
+        ...(decision.action === 'handled' ? { latencyUs: decision.latencyUs.toString() } : {}),
+        ...(decision.action === 'rejected' ? { reason: decision.reason } : {}),
+        ...(decision.payload ?? {})
+      })
+
+      if (decision.action !== 'continue') {
+        return decision
+      }
+    }
+
+    return { action: 'continue' }
+  }
+
+  private runBeforeRoutingTraits(nodeId: string, request: Request): BeforeRoutingDecision {
+    const node = this.nodeDefinitionsById.get(nodeId)
+    if (!node) {
+      return { action: 'route' }
+    }
+
+    for (const trait of this.traitsByNodeId.get(nodeId) ?? []) {
+      if (!trait.beforeRouting) {
+        continue
+      }
+
+      const decision = trait.beforeRouting({
+        node,
+        request,
+        clock: this.clock,
+        random: () => this.distributions.random(),
+        state: this.getTraitStateStore(nodeId),
+        nodeState: this.nodes.get(nodeId)?.getState()
+      })
+      this.recordTraitPayloadMetrics(nodeId, decision.payload)
+      this.recordTraitDecision(nodeId, request.id, trait.name, 'beforeRouting', {
+        decision: decision.action,
+        ...(decision.action === 'reroute' ? { targetNodeId: decision.targetNodeId } : {}),
+        ...(decision.action === 'rejected' ? { reason: decision.reason } : {}),
+        ...(decision.payload ?? {})
+      })
+
+      if (decision.action !== 'route') {
+        return decision
+      }
+    }
+
+    return { action: 'route' }
+  }
+
+  private recordTraitDecision(
+    nodeId: string,
+    requestId: string,
+    traitName: string,
+    hook: TraitHookName,
+    payload: Record<string, unknown>
+  ): void {
+    const priority =
+      hook === 'beforeArrival'
+        ? EventPriority.ARRIVAL
+        : hook === 'filterRoutes'
+          ? EventPriority.DEPARTURE
+          : EventPriority.PROCESSING
+
+    this.recordCanonicalEvent({
+      timestampUs: this.clock,
+      type: 'trait-evaluated',
+      priority,
+      requestId,
+      nodeId,
+      payload: {
+        traitName,
+        hook,
+        ...payload
+      },
+      nodeSnapshot: this.createNodeSnapshot(nodeId)
+    })
+  }
+
+  /**
+   * Any trait can report count-style metrics via payload.metricCounters —
+   * this passes every numeric entry through generically so a new trait never
+   * needs an engine-side change to show up in PerNodeMetrics.traitCounters.
+   */
+  private recordTraitPayloadMetrics(
+    nodeId: string,
+    payload: Record<string, unknown> | undefined
+  ): void {
+    if (!payload || typeof payload !== 'object') {
+      return
+    }
+
+    const metricCounters = payload['metricCounters']
+    if (!metricCounters || typeof metricCounters !== 'object') {
+      return
+    }
+
+    const counters: Record<string, number> = {}
+    for (const [key, value] of Object.entries(metricCounters as Record<string, unknown>)) {
+      if (typeof value === 'number' && Number.isFinite(value)) {
+        counters[key] = Math.max(0, value)
+      }
+    }
+
+    if (Object.keys(counters).length > 0) {
+      this.metrics.recordNodeTraitCounters(nodeId, counters)
+    }
   }
 }

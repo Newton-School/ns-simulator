@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useState } from 'react'
-import type { KeyboardEvent } from 'react'
+import type { CSSProperties, KeyboardEvent } from 'react'
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
 import type { SimulationOutput } from '../../../../engine/analysis/output'
 import type { DebugEvent } from '../../../../engine/core/event-stream'
@@ -7,6 +7,7 @@ import { projectToDebugEvent } from '../../../../engine/core/event-stream'
 import type { SimulationStatus } from '../../hooks/useSimulation'
 import useStore from '../../store/useStore'
 import type { EdgeSimulationData, ScenarioRunContext } from '@renderer/types/ui'
+import { failureRateLevelFromRatio } from '@renderer/utils/failureRatePresentation'
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -348,9 +349,7 @@ function SummaryPanel({ output }: { output: SimulationOutput }) {
   const windowEnd = output.simulationDuration / 1000
   const windowLen = windowEnd - windowStart
 
-  // Correct threshold order: >5% is critical, >1% is warning
-  const errorHighlight: 'ok' | 'warn' | 'crit' =
-    summary.errorRate > 0.05 ? 'crit' : summary.errorRate > 0.01 ? 'warn' : 'ok'
+  const errorHighlight: 'ok' | 'warn' | 'crit' = failureRateLevelFromRatio(summary.errorRate)
 
   return (
     <div className="space-y-3">
@@ -501,12 +500,13 @@ function SimulationHealth({ output }: { output: SimulationOutput }) {
       ([, a], [, b]) =>
         b.postWarmupRejected + b.postWarmupTimedOut - (a.postWarmupRejected + a.postWarmupTimedOut)
     )
+  const summaryFailureLevel = failureRateLevelFromRatio(output.summary.errorRate)
   const errorLevel: HealthLevel =
-    output.summary.errorRate === 0
-      ? 'healthy'
-      : output.summary.errorRate > 0.05
-        ? 'breaches'
-        : 'warnings'
+    summaryFailureLevel === 'crit'
+      ? 'breaches'
+      : summaryFailureLevel === 'warn'
+        ? 'warnings'
+        : 'healthy'
 
   const overall = worstLevel([sloLevel, llLevel, conservationLevel, warmupLevel, errorLevel])
 
@@ -846,6 +846,8 @@ function ReplayPreview({
   }
 
   const currentEdge = edgeDisplay(debugEvent, graphLookup)
+  const replayProgress =
+    maxSequence > 0 ? Math.round((clampSequence(sequence, maxSequence) / maxSequence) * 100) : 0
 
   const buttonClass =
     'h-7 w-7 inline-flex items-center justify-center rounded border border-nss-border text-nss-muted hover:text-nss-text hover:bg-nss-surface transition-colors disabled:opacity-40 disabled:hover:bg-transparent'
@@ -885,7 +887,8 @@ function ReplayPreview({
             max={maxSequence}
             value={sequence}
             onChange={(event) => setSequence(Number(event.target.value))}
-            className="min-w-0 flex-1 accent-nss-primary"
+            className="nss-range min-w-0 flex-1"
+            style={{ '--range-progress': `${replayProgress}%` } as CSSProperties}
             aria-label="Replay sequence"
           />
           <button

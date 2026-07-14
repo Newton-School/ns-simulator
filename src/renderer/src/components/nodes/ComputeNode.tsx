@@ -2,23 +2,26 @@ import { memo, useCallback, useMemo } from 'react'
 import { NodeProps } from 'reactflow'
 import { ComputeNodeData } from '@renderer/types/ui'
 import { resolveNodeConfig } from '@renderer/config/nodeRegistry'
-import { ProgressBar } from '@renderer/components/ui/ProgressBar'
-import { MetricItem } from '@renderer/components/properties/MetricItem'
 import { useNodeMetrics } from '@renderer/hooks/useNodeMetrics'
+import { useMetricLens } from '@renderer/hooks/useMetricLens'
 import BaseNode from '@renderer/components/nodes/BaseNode'
 import { InlineEditableLabel } from '@renderer/components/properties/InlineEditable'
 import { useFlowStore } from '@renderer/components/canvas/hooks/useFlowStore'
+import { NodeMetricContent } from './NodeMetricContent'
 import {
   NODE_HEALTH_STYLES,
   getEffectiveNodeStatus,
-  getPreRunSummary,
+  getIdentityChip,
+  getLensCard,
+  getPreRunMetric,
+  isPreRunMetricLens,
   isRuntimeNodeInactive
 } from './nodePresentation'
 
 const ComputeNode = ({ id, data, selected }: NodeProps<ComputeNodeData>) => {
   const { updateNodeData } = useFlowStore()
   const { icon: Icon, theme } = resolveNodeConfig(data.templateId || data.iconKey)
-  const summaryMetrics = getPreRunSummary(data)
+  const identityChip = getIdentityChip(data)
 
   const handleLabelChange = useCallback(
     (newLabel: string) => {
@@ -27,7 +30,21 @@ const ComputeNode = ({ id, data, selected }: NodeProps<ComputeNodeData>) => {
     [id, updateNodeData]
   )
 
-  const { utilization, queueDepth, errorRate, hasRuntime, active } = useNodeMetrics(id)
+  const metrics = useNodeMetrics(id)
+  const {
+    arrived,
+    completed,
+    utilization,
+    queueDepth,
+    errorRate,
+    postWarmupRejected,
+    postWarmupTimedOut,
+    hasRuntime,
+    active
+  } = metrics
+  const lens = useMetricLens()
+  const lensCard = hasRuntime && lens !== 'traffic' ? getLensCard(lens, data, metrics) : null
+  const preRunMetric = isPreRunMetricLens(lens) ? getPreRunMetric(lens, data) : null
   const status = getEffectiveNodeStatus(data, { utilization, errorRate, queueDepth }, hasRuntime)
   const isOverloaded = status === 'critical'
   const isInactive = isRuntimeNodeInactive(hasRuntime, active)
@@ -65,6 +82,7 @@ const ComputeNode = ({ id, data, selected }: NodeProps<ComputeNodeData>) => {
               <InlineEditableLabel
                 value={data.label || 'Compute'}
                 onSave={handleLabelChange}
+                wrapLines={2}
                 textClassName="text-xs font-bold uppercase tracking-wide w-full"
                 inputClassName="text-xs font-bold uppercase tracking-wide w-full"
               />
@@ -77,33 +95,22 @@ const ComputeNode = ({ id, data, selected }: NodeProps<ComputeNodeData>) => {
           </div>
 
           <div className="p-3 space-y-3">
-            {isInactive ? (
-              <p className="text-[10px] text-nss-muted italic text-center py-1">
-                No post-warmup traffic
-              </p>
-            ) : hasRuntime ? (
-              <>
-                <ProgressBar label="Utilization" value={utilization} />
-                <div className="flex items-center justify-between p-2 rounded bg-nss-bg border border-nss-border">
-                  <span className="text-[10px] text-nss-muted font-medium">Queue Depth</span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-nss-primary/20 text-nss-primary">
-                    {Math.max(0, Math.round(queueDepth ?? 0))} reqs
-                  </span>
-                </div>
-              </>
-            ) : (
-              <div className="grid grid-cols-2 gap-3">
-                {summaryMetrics.map((metric) => (
-                  <MetricItem
-                    key={metric.label}
-                    label={metric.label}
-                    value={metric.value}
-                    unit={metric.unit}
-                    textColor={metric.textColor}
-                  />
-                ))}
-              </div>
-            )}
+            <NodeMetricContent
+              isInactive={isInactive}
+              hasRuntime={hasRuntime}
+              lens={lens}
+              arrived={arrived}
+              completed={completed}
+              rejected={postWarmupRejected}
+              timedOut={postWarmupTimedOut}
+              lensCard={lensCard}
+              identityChip={identityChip}
+              preRunMetric={preRunMetric}
+              inactiveClassName="text-[10px] text-nss-muted italic text-center py-1"
+              identityClassName="min-w-0"
+              runtimeClassName="grid grid-cols-2 gap-3"
+              preRunClassName="grid grid-cols-1 gap-3"
+            />
           </div>
         </>
       )}

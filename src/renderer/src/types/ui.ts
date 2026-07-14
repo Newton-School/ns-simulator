@@ -9,6 +9,10 @@ export type ComputeNodeData = CanvasNodeDataV2
 export type SecurityNodeData = CanvasNodeDataV2
 export type VpcNodeData = CanvasNodeDataV2
 
+export type PreRunMetricLens = 'concurrency' | 'queueCapacity' | 'timeout'
+export type RuntimeMetricLens = 'traffic' | 'saturation' | 'latency' | 'errors' | 'throughput'
+export type MetricLens = PreRunMetricLens | RuntimeMetricLens
+
 export interface NodeSimulationMetrics {
   throughput?: number
   postWarmupArrived?: number
@@ -19,6 +23,23 @@ export interface NodeSimulationMetrics {
   utilization?: number
   errorRate?: number
   active?: boolean
+  // Real, already-computed values that used to be dropped between
+  // PerNodeMetrics and the render store — surfaced so cards/panels can show
+  // what a trait actually did instead of only the generic four numbers.
+  avgServiceTime?: number
+  latencyP50?: number
+  latencyP95?: number
+  latencyP99?: number
+  availability?: number
+  cacheHits?: number
+  cacheMisses?: number
+  cacheHitRatio?: number
+  rejectionsByReason?: Record<string, number>
+  traitCounters?: Record<string, number>
+  totalArrived?: number
+  totalRejected?: number
+  peakInSystem?: number
+  finalInSystem?: number
 }
 
 export interface EdgeSimulationData {
@@ -31,6 +52,7 @@ export interface EdgeSimulationData {
   maxConcurrentRequests?: number
   packetLossRate?: number
   errorRate?: number
+  condition?: string
 }
 
 export type NodeType = RendererNodeType

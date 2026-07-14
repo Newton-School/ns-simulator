@@ -2,19 +2,26 @@ import { memo, useCallback } from 'react'
 import { NodeProps } from 'reactflow'
 import { NodeHeader } from '@renderer/components/nodes/NodeHeader'
 import { NodeSettingsMenu } from '@renderer/components/nodes/NodeSettingsMenu'
-import { ProgressBar } from '@renderer/components/ui/ProgressBar'
-import { MetricItem } from '@renderer/components/properties/MetricItem'
 import { SecurityNodeData } from '@renderer/types/ui'
 import { resolveNodeConfig } from '@renderer/config/nodeRegistry'
 import { useNodeMetrics } from '@renderer/hooks/useNodeMetrics'
+import { useMetricLens } from '@renderer/hooks/useMetricLens'
 import BaseNode from '@renderer/components/nodes/BaseNode'
 import { useFlowStore } from '@renderer/components/canvas/hooks/useFlowStore'
-import { getEffectiveNodeStatus, getPreRunSummary, isRuntimeNodeInactive } from './nodePresentation'
+import { NodeMetricContent } from './NodeMetricContent'
+import {
+  getEffectiveNodeStatus,
+  getIdentityChip,
+  getLensCard,
+  getPreRunMetric,
+  isPreRunMetricLens,
+  isRuntimeNodeInactive
+} from './nodePresentation'
 
 const SecurityNode = ({ id, data, selected }: NodeProps<SecurityNodeData>) => {
   const { updateNodeData } = useFlowStore()
   const { icon: IconComponent, theme } = resolveNodeConfig(data.templateId || data.iconKey)
-  const summaryMetrics = getPreRunSummary(data)
+  const identityChip = getIdentityChip(data)
 
   const handleLabelChange = useCallback(
     (newLabel: string) => {
@@ -23,7 +30,21 @@ const SecurityNode = ({ id, data, selected }: NodeProps<SecurityNodeData>) => {
     [id, updateNodeData]
   )
 
-  const { throughput, errorRate, queueDepth, utilization, hasRuntime, active } = useNodeMetrics(id)
+  const metrics = useNodeMetrics(id)
+  const {
+    arrived,
+    completed,
+    errorRate,
+    queueDepth,
+    utilization,
+    postWarmupRejected,
+    postWarmupTimedOut,
+    hasRuntime,
+    active
+  } = metrics
+  const lens = useMetricLens()
+  const lensCard = hasRuntime && lens !== 'traffic' ? getLensCard(lens, data, metrics) : null
+  const preRunMetric = isPreRunMetricLens(lens) ? getPreRunMetric(lens, data) : null
   const status = getEffectiveNodeStatus(data, { utilization, errorRate, queueDepth }, hasRuntime)
   const isInactive = isRuntimeNodeInactive(hasRuntime, active)
 
@@ -52,44 +73,18 @@ const SecurityNode = ({ id, data, selected }: NodeProps<SecurityNodeData>) => {
           </NodeHeader>
 
           <div className="p-4">
-            {isInactive ? (
-              <p className="text-[10px] text-nss-muted italic text-center py-2">
-                No post-warmup traffic
-              </p>
-            ) : hasRuntime ? (
-              <>
-                <div className="grid grid-cols-2 gap-4 mb-3">
-                  <MetricItem label="Throughput" value={throughput} unit="req/s" />
-                  <MetricItem
-                    label="Error Rate"
-                    value={errorRate}
-                    unit="%"
-                    textColor="text-nss-danger"
-                  />
-                  <MetricItem
-                    label="Queue Depth"
-                    value={queueDepth}
-                    unit="req"
-                    textColor="text-nss-warning"
-                  />
-                </div>
-                <ProgressBar label="Utilization" value={utilization} />
-              </>
-            ) : (
-              <>
-                <div className="grid grid-cols-2 gap-4 mb-3">
-                  {summaryMetrics.map((metric) => (
-                    <MetricItem
-                      key={metric.label}
-                      label={metric.label}
-                      value={metric.value}
-                      unit={metric.unit}
-                      textColor={metric.textColor}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
+            <NodeMetricContent
+              isInactive={isInactive}
+              hasRuntime={hasRuntime}
+              lens={lens}
+              arrived={arrived}
+              completed={completed}
+              rejected={postWarmupRejected}
+              timedOut={postWarmupTimedOut}
+              lensCard={lensCard}
+              identityChip={identityChip}
+              preRunMetric={preRunMetric}
+            />
           </div>
         </div>
       )}
