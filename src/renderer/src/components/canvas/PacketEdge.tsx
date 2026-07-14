@@ -20,10 +20,6 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value))
 }
 
-function fmtRequestCount(value: number): string {
-  return Math.round(value).toLocaleString()
-}
-
 function fmtFailureRate(ratio: number): string {
   return `${(clamp(ratio, 0, 1) * 100).toFixed(1)}% fail`
 }
@@ -148,8 +144,10 @@ function patternPhaseLabel(
     case 'bursty': {
       const burst = workload.bursty
       if (!burst) return null
-      const cycle = Math.max(1, burst.burstDuration) + Math.max(1, burst.normalDuration)
-      return elapsed % cycle < Math.max(1, burst.burstDuration) ? 'burst' : 'base'
+      const burstDuration = Math.max(1, burst.burstDuration)
+      const normalDuration = Math.max(1, burst.normalDuration)
+      const cycle = burstDuration + normalDuration
+      return elapsed % cycle < burstDuration ? 'burst' : 'base'
     }
 
     case 'spike': {
@@ -163,9 +161,10 @@ function patternPhaseLabel(
     case 'sawtooth': {
       const sawtooth = workload.sawtooth
       if (!sawtooth) return null
-      const t = (elapsed % Math.max(1, sawtooth.rampDuration)) / Math.max(1, sawtooth.rampDuration)
-      if (t > 0.66) return 'ramp high'
-      if (t > 0.33) return 'ramp mid'
+      const rampDuration = Math.max(1, sawtooth.rampDuration)
+      const progress = (elapsed % rampDuration) / rampDuration
+      if (progress > 0.66) return 'ramp high'
+      if (progress > 0.33) return 'ramp mid'
       return 'ramp low'
     }
 
@@ -291,22 +290,19 @@ export const PacketEdge = ({
     .filter((event) => event.status !== 'success' && now - event.displayAtMs <= FAILED_PULSE_MS)
     .slice(-12)
 
-  const isRunning = flowStatus === 'running'
   const isComplete = flowStatus === 'complete'
   const liveIncomingRate = Math.max(flow?.attemptedPerSecond ?? 0, flow?.avgAttemptedPerSecond ?? 0)
+  const liveSuccessRate = Math.max(flow?.successPerSecond ?? 0, flow?.avgSuccessPerSecond ?? 0)
   const postRunPacketRate = flow?.avgPostWarmupSuccessPerSecond ?? 0
   const arrivedRequestCount = flow?.totalPostWarmupSuccess ?? 0
   const liveFailedRate = Math.max(flow?.failedPerSecond ?? 0, flow?.avgFailedPerSecond ?? 0)
   const liveFailureRatio = liveIncomingRate > 0 ? liveFailedRate / liveIncomingRate : 0
   const postWarmupAttemptedCount = flow?.totalPostWarmupAttempted ?? 0
   const postRunFailureRatio =
-    postWarmupAttemptedCount > 0
-      ? (flow?.totalPostWarmupFailed ?? 0) / postWarmupAttemptedCount
-      : 0
+    postWarmupAttemptedCount > 0 ? (flow?.totalPostWarmupFailed ?? 0) / postWarmupAttemptedCount : 0
   const failureRatio = isComplete ? postRunFailureRatio : liveFailureRatio
   const visualMultiplier = patternMultiplier(runConfig, playback, now, id)
-  const hasObservedLiveTraffic = !isComplete && (flow?.totalAttempted ?? 0) > 0
-  const effectiveLiveRate = Math.max(liveIncomingRate, hasObservedLiveTraffic ? 1 : 0)
+  const steadyRequestRate = isComplete ? postRunPacketRate : liveSuccessRate
   const previewShare =
     routingPreview && routingPreview.totalCount > 0
       ? routingPreview.selectedCount / routingPreview.maxCount
@@ -315,24 +311,21 @@ export const PacketEdge = ({
     ? routingPreview?.isSelected
       ? 40 + previewShare * 140
       : 0
-    : isComplete
-      ? postRunPacketRate
-      : effectiveLiveRate * visualMultiplier
-  const basePacketCount = compressedPacketCount(
-    isComplete ? postRunPacketRate : effectiveLiveRate
-  )
+    : steadyRequestRate * visualMultiplier
+  const basePacketCount = compressedPacketCount(steadyRequestRate)
   const streamPacketCount = isRoutingPreviewEdge
     ? routingPreview?.isSelected
       ? clamp(Math.round(2 + previewShare * 6), 2, 8)
       : 0
-    : patternPacketCount(basePacketCount, isComplete ? 1 : visualMultiplier)
-  const phaseLabel = patternPhaseLabel(runConfig, playback, now)
+    : patternPacketCount(basePacketCount, visualMultiplier)
   const isInactiveAfterRun = flowStatus === 'complete' && !flow
+  const phaseLabel =
+    isRoutingPreviewEdge || isInactiveAfterRun ? null : patternPhaseLabel(runConfig, playback, now)
   const hasFlow = isRoutingPreviewEdge
     ? Boolean(routingPreview?.isSelected)
     : isComplete
       ? arrivedRequestCount > 0
-      : effectiveLiveRate > 0
+      : liveIncomingRate > 0
   const trafficStrokeWidth = isRoutingPreviewEdge
     ? hasFlow
       ? clamp(2.5 + previewShare * 1.2, 2.5, 3.7)
@@ -355,7 +348,7 @@ export const PacketEdge = ({
       : 'not selected'
     : isInactiveAfterRun
       ? 'inactive'
-      : `${fmtRequestCount(arrivedRequestCount)} arrived / ${fmtFailureRate(failureRatio)}${isRunning && phaseLabel ? ` - ${phaseLabel}` : ''}`
+      : [phaseLabel, fmtFailureRate(failureRatio)].filter(Boolean).join(' / ')
   const flowLabelClassName = [
     'bg-nss-bg px-2 py-0.5 text-[18px] font-bold leading-none tracking-wide',
     isRoutingPreviewEdge
@@ -367,8 +360,8 @@ export const PacketEdge = ({
         : failureLevel === 'crit'
           ? 'text-nss-danger'
           : failureLevel === 'warn'
-          ? 'text-nss-warning'
-          : 'text-nss-primary'
+            ? 'text-nss-warning'
+            : 'text-nss-primary'
   ].join(' ')
 
   const pointForProgress = (progress: number) => {

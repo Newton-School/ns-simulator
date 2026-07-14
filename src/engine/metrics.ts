@@ -41,6 +41,8 @@ export interface PerNodeMetrics {
   avgTimeInSystem: number
   avgInSystem: number
   peakQueueLength: number
+  peakInSystem: number
+  finalInSystem: number
   utilization: number
   throughput: number
   errorRate: number
@@ -96,6 +98,8 @@ interface InternalNodeMetrics {
   inSystemSamples: number
   inSystemSum: number
   peakQueueLength: number
+  peakInSystem: number
+  finalInSystem: number
   utilizationSamples: number
   utilizationSum: number
   latencySamplesMs: number[]
@@ -281,6 +285,8 @@ export class MetricsCollector {
     node.peakQueueLength = Math.max(node.peakQueueLength, state.queueLength)
     node.inSystemSum += state.totalInSystem
     node.inSystemSamples++
+    node.peakInSystem = Math.max(node.peakInSystem, state.totalInSystem)
+    node.finalInSystem = state.totalInSystem
 
     const utilization = Number.isFinite(state.utilization) ? state.utilization : 0
     const clampedUtilization = Math.min(1, Math.max(0, utilization))
@@ -362,8 +368,7 @@ export class MetricsCollector {
       const latencyP99 = this.percentileSorted(sortedLatencies, 0.99)
       const cacheHits = metrics?.cacheHits ?? 0
       const cacheMisses = metrics?.cacheMisses ?? 0
-      const cacheHitRatio =
-        cacheHits + cacheMisses > 0 ? cacheHits / (cacheHits + cacheMisses) : 0
+      const cacheHitRatio = cacheHits + cacheMisses > 0 ? cacheHits / (cacheHits + cacheMisses) : 0
 
       // Post-warmup W: sojourn time averaged over spans whose arrivalTime is post-warmup
       const pwProcessed = metrics?.postWarmupProcessed ?? 0
@@ -408,6 +413,8 @@ export class MetricsCollector {
             ? metrics.inSystemSum / metrics.inSystemSamples
             : 0,
         peakQueueLength: metrics?.peakQueueLength ?? 0,
+        peakInSystem: metrics?.peakInSystem ?? 0,
+        finalInSystem: metrics?.finalInSystem ?? 0,
         utilization:
           metrics && metrics.utilizationSamples > 0
             ? metrics.utilizationSum / metrics.utilizationSamples
@@ -492,6 +499,8 @@ export class MetricsCollector {
       inSystemSamples: 0,
       inSystemSum: 0,
       peakQueueLength: 0,
+      peakInSystem: 0,
+      finalInSystem: 0,
       utilizationSamples: 0,
       utilizationSum: 0,
       latencySamplesMs: [],

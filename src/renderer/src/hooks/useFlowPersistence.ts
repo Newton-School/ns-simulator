@@ -3,6 +3,7 @@ import useStore from '@renderer/store/useStore'
 import { useFileHandlers } from './useFileHandlers'
 import { convertFlatToNested, convertNestedToFlat } from '@renderer/utils/nodeTransformers'
 import type { NestedFileData } from '@renderer/utils/nodeTransformers'
+import { isTopologyJsonLike, topologyToCanvasFileData } from '@renderer/utils/topologyCanvasAdapter'
 import { migrateCanvasNodes } from '../../../engine/catalog/legacyCanvasMigration'
 import { normalizeScenarioState } from '@renderer/types/ui'
 
@@ -62,9 +63,10 @@ export const useFlowPersistence = (confirmDiscardChanges: () => Promise<boolean>
   const handleLoadFileData = useCallback(
     (fileContent: string | object, fileName?: string): boolean => {
       try {
-        const data = (
-          typeof fileContent === 'string' ? JSON.parse(fileContent) : fileContent
-        ) as NestedFileData
+        const parsedData = typeof fileContent === 'string' ? JSON.parse(fileContent) : fileContent
+        const data = isTopologyJsonLike(parsedData)
+          ? topologyToCanvasFileData(parsedData)
+          : (parsedData as NestedFileData)
 
         if (!data?.nodes) throw new Error('Invalid file format')
 
@@ -133,12 +135,12 @@ export const useFlowPersistence = (confirmDiscardChanges: () => Promise<boolean>
     await handleOpen()
   }, [confirmIfUnsaved, handleOpen])
 
-  const handleLoadSample = useCallback(
-    async (sampleContent: string | object, sampleName: string): Promise<boolean> => {
+  const loadFromData = useCallback(
+    async (fileContent: string | object, fileName?: string): Promise<boolean> => {
       const ok = await confirmIfUnsaved()
       if (!ok) return false
 
-      return handleLoadFileData(sampleContent, sampleName)
+      return handleLoadFileData(fileContent, fileName)
     },
     [confirmIfUnsaved, handleLoadFileData]
   )
@@ -168,9 +170,5 @@ export const useFlowPersistence = (confirmDiscardChanges: () => Promise<boolean>
     setUnsaved(currentSnapshot !== lastPersistedContentRef.current)
   }, [edges, handleGetFileData, nodes, scenario, setUnsaved])
 
-  return {
-    handleSave: handleSaveWrapper,
-    handleOpen: handleOpenWithCheckIfSaved,
-    handleLoadSample
-  }
+  return { handleSave: handleSaveWrapper, handleOpen: handleOpenWithCheckIfSaved, loadFromData }
 }

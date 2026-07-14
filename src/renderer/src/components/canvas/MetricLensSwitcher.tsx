@@ -7,13 +7,13 @@ import useStore from '@renderer/store/useStore'
 type MetricLensOption<T extends MetricLens = MetricLens> = { id: T; label: string }
 
 const PRE_RUN_LENSES: Array<MetricLensOption<PreRunMetricLens>> = [
-  { id: 'workers', label: 'Workers' },
-  { id: 'capacity', label: 'Capacity' },
+  { id: 'concurrency', label: 'Concurrency' },
+  { id: 'queueCapacity', label: 'Queue Capacity' },
   { id: 'timeout', label: 'Timeout' }
 ]
 
 const RUNTIME_LENSES: Array<MetricLensOption<RuntimeMetricLens>> = [
-  { id: 'results', label: 'Results' },
+  { id: 'traffic', label: 'Traffic' },
   { id: 'saturation', label: 'Saturation' },
   { id: 'latency', label: 'Latency' },
   { id: 'errors', label: 'Errors' },

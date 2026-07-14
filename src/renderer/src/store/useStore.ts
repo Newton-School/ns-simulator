@@ -185,7 +185,7 @@ const useStore = create<RFState>((set, get) => ({
   nodes: [],
   edges: [],
   simulationMetricsByNode: {},
-  metricLens: 'workers',
+  metricLens: 'concurrency',
   edgeFlowById: {},
   edgeFlowPlayback: null,
   edgeFlowStatus: 'idle',
@@ -307,7 +307,7 @@ const useStore = create<RFState>((set, get) => ({
   },
 
   setSimulationMetrics: (simulationMetricsByNode) => {
-    set({ simulationMetricsByNode, metricLens: 'results' })
+    set({ simulationMetricsByNode, metricLens: 'traffic' })
   },
 
   setMetricLens: (metricLens) => {
@@ -315,7 +315,7 @@ const useStore = create<RFState>((set, get) => ({
   },
 
   clearSimulationMetrics: () => {
-    set({ simulationMetricsByNode: {}, metricLens: 'workers' })
+    set({ simulationMetricsByNode: {}, metricLens: 'concurrency' })
   },
 
   recordEdgeFlowEvent: (event) => {
@@ -344,10 +344,8 @@ const useStore = create<RFState>((set, get) => ({
     const totalAttempted = previous.totalAttempted + 1
     const totalSuccess = previous.totalSuccess + (event.status === 'success' ? 1 : 0)
     const totalFailed = totalAttempted - totalSuccess
-    const totalPostWarmupAttempted =
-      previous.totalPostWarmupAttempted + (isPostWarmupEvent ? 1 : 0)
-    const totalPostWarmupSuccess =
-      previous.totalPostWarmupSuccess + (isPostWarmupSuccess ? 1 : 0)
+    const totalPostWarmupAttempted = previous.totalPostWarmupAttempted + (isPostWarmupEvent ? 1 : 0)
+    const totalPostWarmupSuccess = previous.totalPostWarmupSuccess + (isPostWarmupSuccess ? 1 : 0)
     const totalPostWarmupFailed = totalPostWarmupAttempted - totalPostWarmupSuccess
     const firstStartedAtMs =
       previous.totalAttempted === 0 ? event.startedAtMs : previous.firstStartedAtMs

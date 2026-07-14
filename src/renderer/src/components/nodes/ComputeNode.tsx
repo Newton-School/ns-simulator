@@ -31,9 +31,19 @@ const ComputeNode = ({ id, data, selected }: NodeProps<ComputeNodeData>) => {
   )
 
   const metrics = useNodeMetrics(id)
-  const { arrived, completed, utilization, queueDepth, errorRate, hasRuntime, active } = metrics
+  const {
+    arrived,
+    completed,
+    utilization,
+    queueDepth,
+    errorRate,
+    postWarmupRejected,
+    postWarmupTimedOut,
+    hasRuntime,
+    active
+  } = metrics
   const lens = useMetricLens()
-  const lensCard = hasRuntime && lens !== 'results' ? getLensCard(lens, data, metrics) : null
+  const lensCard = hasRuntime && lens !== 'traffic' ? getLensCard(lens, data, metrics) : null
   const preRunMetric = isPreRunMetricLens(lens) ? getPreRunMetric(lens, data) : null
   const status = getEffectiveNodeStatus(data, { utilization, errorRate, queueDepth }, hasRuntime)
   const isOverloaded = status === 'critical'
@@ -72,6 +82,7 @@ const ComputeNode = ({ id, data, selected }: NodeProps<ComputeNodeData>) => {
               <InlineEditableLabel
                 value={data.label || 'Compute'}
                 onSave={handleLabelChange}
+                wrapLines={2}
                 textClassName="text-xs font-bold uppercase tracking-wide w-full"
                 inputClassName="text-xs font-bold uppercase tracking-wide w-full"
               />
@@ -90,12 +101,13 @@ const ComputeNode = ({ id, data, selected }: NodeProps<ComputeNodeData>) => {
               lens={lens}
               arrived={arrived}
               completed={completed}
-              failureRate={errorRate}
+              rejected={postWarmupRejected}
+              timedOut={postWarmupTimedOut}
               lensCard={lensCard}
               identityChip={identityChip}
               preRunMetric={preRunMetric}
               inactiveClassName="text-[10px] text-nss-muted italic text-center py-1"
-              identityClassName="flex items-baseline gap-1.5"
+              identityClassName="min-w-0"
               runtimeClassName="grid grid-cols-2 gap-3"
               preRunClassName="grid grid-cols-1 gap-3"
             />

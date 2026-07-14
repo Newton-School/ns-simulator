@@ -31,9 +31,19 @@ const ServiceNode = ({ id, data, selected }: NodeProps<ServiceNodeData>) => {
   )
 
   const metrics = useNodeMetrics(id)
-  const { arrived, completed, errorRate, queueDepth, utilization, hasRuntime, active } = metrics
+  const {
+    arrived,
+    completed,
+    errorRate,
+    queueDepth,
+    utilization,
+    postWarmupRejected,
+    postWarmupTimedOut,
+    hasRuntime,
+    active
+  } = metrics
   const lens = useMetricLens()
-  const lensCard = hasRuntime && lens !== 'results' ? getLensCard(lens, data, metrics) : null
+  const lensCard = hasRuntime && lens !== 'traffic' ? getLensCard(lens, data, metrics) : null
   const preRunMetric = isPreRunMetricLens(lens) ? getPreRunMetric(lens, data) : null
   const status = getEffectiveNodeStatus(data, { utilization, errorRate, queueDepth }, hasRuntime)
 
@@ -72,7 +82,8 @@ const ServiceNode = ({ id, data, selected }: NodeProps<ServiceNodeData>) => {
               lens={lens}
               arrived={arrived}
               completed={completed}
-              failureRate={errorRate}
+              rejected={postWarmupRejected}
+              timedOut={postWarmupTimedOut}
               lensCard={lensCard}
               identityChip={identityChip}
               preRunMetric={preRunMetric}

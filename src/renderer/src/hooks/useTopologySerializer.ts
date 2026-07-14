@@ -9,6 +9,7 @@ import type {
 import { getComponentSpec } from '../../../engine/catalog/componentSpecs'
 import { getPaletteTemplate } from '../../../engine/catalog/paletteTemplates'
 import type { CanvasNodeDataV2 } from '../../../engine/catalog/nodeSpecTypes'
+import { getPathTypeLatencyProfile, inferEdgeDefaults } from '../../../engine/defaults/edgeDefaults'
 import useStore from '../store/useStore'
 import type { ScenarioRunContext, ScenarioState } from '@renderer/types/ui'
 import { normalizeScenarioState } from '@renderer/types/ui'
@@ -27,16 +28,6 @@ type EdgeRuntimeData = {
   condition?: string
 }
 
-const EDGE_DEFAULTS = {
-  latencyMu: 2.3,
-  latencySigma: 0.5,
-  pathType: 'same-dc' as const,
-  bandwidth: 1000,
-  maxConcurrentRequests: 100,
-  packetLossRatePercent: 0,
-  errorRatePercent: 0.1
-}
-
 function asPositiveNumber(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : null
 }
@@ -52,13 +43,6 @@ function asProbabilityFromPercent(value: unknown): number | null {
   }
 
   return value / 100
-}
-
-function asNonEmptyString(value: unknown): string | undefined {
-  if (typeof value !== 'string') return undefined
-
-  const trimmed = value.trim()
-  return trimmed.length > 0 ? trimmed : undefined
 }
 
 function normalizePercentToRatio(value: unknown, defaultPercent: number): number {
@@ -120,24 +104,6 @@ function buildScenarioGlobal(global: ScenarioState['global']): GlobalConfig {
   }
 }
 
-function inferProtocol(targetNode: CanvasNodeDataV2 | undefined): EdgeDefinition['protocol'] {
-  if (!targetNode?.componentType) return 'https'
-
-  if (
-    targetNode.componentType === 'queue' ||
-    targetNode.componentType === 'message-broker' ||
-    targetNode.componentType === 'pub-sub'
-  ) {
-    return 'amqp'
-  }
-
-  if (targetNode.componentType === 'stream') {
-    return 'kafka'
-  }
-
-  return 'https'
-}
-
 function serializeEdge(
   rfEdge: Edge,
   serializedNodeIds: Set<string>,
@@ -149,14 +115,20 @@ function serializeEdge(
   }
 
   const targetData = dataByNodeId.get(target)
+  const sourceData = dataByNodeId.get(source)
   const targetTemplate = getPaletteTemplate(targetData?.templateId)
   const targetSpec = getComponentSpec(targetData?.componentType)
   const edgeData = (rfEdge.data ?? {}) as EdgeRuntimeData
+  const inferredDefaults = inferEdgeDefaults(sourceData, targetData)
+  const pathType = asPathType(edgeData.pathType) ?? inferredDefaults.pathType
+  const pathLatencyProfile = getPathTypeLatencyProfile(pathType)
+  const explicitLatencyMu = asPositiveNumber(edgeData.latencyMu)
+  const explicitLatencySigma = asPositiveNumber(edgeData.latencySigma)
+  const hasExplicitLatency = explicitLatencyMu !== null || explicitLatencySigma !== null
 
   const mode =
     asEdgeMode(edgeData.mode) ??
     (targetTemplate?.asyncBoundary || targetSpec?.asyncBoundary ? 'asynchronous' : 'synchronous')
-  const condition = asNonEmptyString(edgeData.condition)
 
   return {
     id: id || `${source}->${target}`,
@@ -164,24 +136,28 @@ function serializeEdge(
     target,
     label: typeof rfEdge.label === 'string' ? rfEdge.label : undefined,
     mode,
-    protocol: asProtocol(edgeData.protocol) ?? inferProtocol(targetData),
+    protocol: asProtocol(edgeData.protocol) ?? inferredDefaults.protocol,
     latency: {
       distribution: {
         type: 'log-normal',
-        mu: asPositiveNumber(edgeData.latencyMu) ?? EDGE_DEFAULTS.latencyMu,
-        sigma: asPositiveNumber(edgeData.latencySigma) ?? EDGE_DEFAULTS.latencySigma
+        mu: explicitLatencyMu ?? pathLatencyProfile.mu,
+        sigma: explicitLatencySigma ?? pathLatencyProfile.sigma
       },
-      pathType: asPathType(edgeData.pathType) ?? EDGE_DEFAULTS.pathType
+      pathType,
+      derivedFromPathType: !hasExplicitLatency
     },
-    bandwidth: asPositiveNumber(edgeData.bandwidth) ?? EDGE_DEFAULTS.bandwidth,
+    bandwidth: asPositiveNumber(edgeData.bandwidth) ?? inferredDefaults.bandwidth,
     maxConcurrentRequests:
-      asPositiveInt(edgeData.maxConcurrentRequests) ?? EDGE_DEFAULTS.maxConcurrentRequests,
+      asPositiveInt(edgeData.maxConcurrentRequests) ?? inferredDefaults.maxConcurrentRequests,
     packetLossRate: normalizePercentToRatio(
       edgeData.packetLossRate,
-      EDGE_DEFAULTS.packetLossRatePercent
+      inferredDefaults.packetLossRatePercent
     ),
-    errorRate: normalizePercentToRatio(edgeData.errorRate, EDGE_DEFAULTS.errorRatePercent),
-    ...(condition ? { condition } : {})
+    errorRate: normalizePercentToRatio(edgeData.errorRate, inferredDefaults.errorRatePercent),
+    condition:
+      typeof edgeData.condition === 'string' && edgeData.condition.trim().length > 0
+        ? edgeData.condition.trim()
+        : undefined
   }
 }
 

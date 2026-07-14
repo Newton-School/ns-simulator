@@ -52,6 +52,18 @@ export interface SummaryMetric {
   textColor?: string
 }
 
+type CountNoun = {
+  singular: string
+  plural: string
+}
+
+type PreRunMetricVocabulary = {
+  concurrencyLabel: string
+  concurrencyUnit: CountNoun | string
+  queueLabel: string
+  queueUnit: CountNoun | string
+}
+
 export function getNodeStatus(data: AnyNodeData): NodeHealthStatus {
   return data.ui?.overloadPreview ? 'critical' : 'healthy'
 }
@@ -151,29 +163,126 @@ export function getIdentityChip(data: AnyNodeData): IdentityChip | null {
   return null
 }
 
-export function isPreRunMetricLens(lens: MetricLens): lens is PreRunMetricLens {
-  return lens === 'workers' || lens === 'capacity' || lens === 'timeout'
+function formatInteger(value: number): string {
+  return Math.max(0, Math.round(value)).toLocaleString()
 }
 
-export function getPreRunMetric(lens: PreRunMetricLens, data: AnyNodeData): SummaryMetric {
+function formatCount(value: number, unit: CountNoun | string): string {
+  const amount = formatInteger(value)
+  if (typeof unit === 'string') {
+    return `${amount} ${unit}`
+  }
+
+  return `${amount} ${value === 1 ? unit.singular : unit.plural}`
+}
+
+function getPreRunMetricVocabulary(data: AnyNodeData): PreRunMetricVocabulary {
+  const componentKey = data.componentType ?? data.templateId
+
+  switch (componentKey) {
+    case 'load-balancer':
+    case 'load-balancer-l4':
+    case 'load-balancer-l7':
+      return {
+        concurrencyLabel: 'Connections',
+        concurrencyUnit: { singular: 'connection', plural: 'connections' },
+        queueLabel: 'Connection Queue',
+        queueUnit: { singular: 'connection', plural: 'connections' }
+      }
+    case 'api-gateway':
+    case 'ingress-controller':
+    case 'reverse-proxy':
+      return {
+        concurrencyLabel: 'Request Slots',
+        concurrencyUnit: 'req',
+        queueLabel: 'Request Queue',
+        queueUnit: 'req'
+      }
+    case 'relational-db':
+    case 'primary-db':
+    case 'read-replica':
+      return {
+        concurrencyLabel: 'Connections',
+        concurrencyUnit: { singular: 'connection', plural: 'connections' },
+        queueLabel: 'Query Queue',
+        queueUnit: { singular: 'query', plural: 'queries' }
+      }
+    case 'in-memory-cache':
+    case 'redis-cache':
+      return {
+        concurrencyLabel: 'Operations',
+        concurrencyUnit: 'ops',
+        queueLabel: 'Operation Queue',
+        queueUnit: 'ops'
+      }
+    case 'queue':
+    case 'message-queue':
+      return {
+        concurrencyLabel: 'Consumers',
+        concurrencyUnit: { singular: 'consumer', plural: 'consumers' },
+        queueLabel: 'Backlog',
+        queueUnit: 'msg'
+      }
+    case 'service-registry':
+    case 'dns-server':
+      return {
+        concurrencyLabel: 'Lookups',
+        concurrencyUnit: { singular: 'lookup', plural: 'lookups' },
+        queueLabel: 'Lookup Queue',
+        queueUnit: { singular: 'lookup', plural: 'lookups' }
+      }
+    default:
+      return {
+        concurrencyLabel: 'Workers',
+        concurrencyUnit: { singular: 'worker', plural: 'workers' },
+        queueLabel: 'Queue',
+        queueUnit: 'req'
+      }
+  }
+}
+
+export function isPreRunMetricLens(lens: MetricLens): lens is PreRunMetricLens {
+  return lens === 'concurrency' || lens === 'queueCapacity' || lens === 'timeout'
+}
+
+export function getPreRunMetric(lens: PreRunMetricLens, data: AnyNodeData): SummaryMetric | null {
+  if (data.profile === 'source') {
+    return null
+  }
+
+  const vocabulary = getPreRunMetricVocabulary(data)
+
   switch (lens) {
-    case 'workers':
-      return {
-        label: 'Workers',
-        value: data.sim?.queue?.workers ?? '-'
+    case 'concurrency': {
+      const workers = data.sim?.queue?.workers
+      if (workers === undefined) {
+        return null
       }
-    case 'capacity':
       return {
-        label: 'Capacity',
-        value: data.sim?.queue?.capacity ?? '-',
-        unit: data.sim?.queue?.capacity === undefined ? undefined : 'req'
+        label: vocabulary.concurrencyLabel,
+        value: formatCount(workers, vocabulary.concurrencyUnit)
       }
-    case 'timeout':
+    }
+    case 'queueCapacity': {
+      const capacity = data.sim?.queue?.capacity
+      if (capacity === undefined) {
+        return null
+      }
+      return {
+        label: vocabulary.queueLabel,
+        value: formatCount(capacity, vocabulary.queueUnit)
+      }
+    }
+    case 'timeout': {
+      const timeout = data.sim?.processing?.timeout
+      if (timeout === undefined) {
+        return null
+      }
       return {
         label: 'Timeout',
-        value: data.sim?.processing?.timeout ?? '-',
-        unit: data.sim?.processing?.timeout === undefined ? undefined : 'ms'
+        value: `${formatInteger(timeout)} ms`
       }
+    }
   }
 }
 
@@ -274,9 +383,13 @@ export function getLensCard(
         return null
       }
       const why =
-        metrics.cacheHitRatio !== undefined && metrics.cacheHitRatio > 0
-          ? `${metrics.cacheHitRatio.toFixed(0)}% served from cache`
-          : 'click for detail'
+        data.componentType === 'stream' &&
+        metrics.finalInSystem !== undefined &&
+        metrics.peakInSystem !== undefined
+          ? `${metrics.finalInSystem.toFixed(0)} lag at end · peak ${metrics.peakInSystem.toFixed(0)}`
+          : metrics.cacheHitRatio !== undefined && metrics.cacheHitRatio > 0
+            ? `${metrics.cacheHitRatio.toFixed(0)}% served from cache`
+            : 'click for detail'
       return {
         value: metrics.throughput.toFixed(1),
         limit: 'req/s',

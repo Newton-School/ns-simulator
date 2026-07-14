@@ -112,7 +112,6 @@ export class RoutingTable {
         )
         .map((node) => node.id)
     )
-
   }
 
   /**
@@ -251,6 +250,31 @@ export class RoutingTable {
       }
     }
 
+    const metadataExpr = normalized.match(
+      /^request\.metadata\.([A-Za-z0-9_]+)\s*(===|==|!==|!=)\s*["']([^"']+)["']$/
+    )
+    if (metadataExpr) {
+      const field = metadataExpr[1]
+      const operator = metadataExpr[2]
+      const expectedValue = metadataExpr[3]
+      const actualValue = request.metadata[field]
+      const normalizedActual =
+        typeof actualValue === 'string' || typeof actualValue === 'number'
+          ? String(actualValue)
+          : undefined
+
+      switch (operator) {
+        case '===':
+        case '==':
+          return normalizedActual === expectedValue
+        case '!==':
+        case '!=':
+          return normalizedActual !== expectedValue
+        default:
+          return false
+      }
+    }
+
     return false
   }
 
@@ -301,8 +325,8 @@ export class RoutingTable {
       this.traitStateBySourceId.set(sourceNodeId, store)
     }
     return {
-      get: <T,>(key: string) => store!.get(key) as T | undefined,
-      set: <T,>(key: string, value: T) => {
+      get: <T>(key: string) => store!.get(key) as T | undefined,
+      set: <T>(key: string, value: T) => {
         store!.set(key, value)
       }
     }

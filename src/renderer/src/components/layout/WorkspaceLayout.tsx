@@ -22,6 +22,7 @@ import { FlowCanvas } from '../canvas/FlowCanvas'
 import { Header } from './Header'
 import { SampleScenarioPicker } from '../samples/SampleScenarioPicker'
 import { SAMPLE_SCENARIOS, type SampleScenario } from '@renderer/config/sampleScenarios'
+import { CURATED_SCENARIOS } from '../../../../scenarios/curatedScenarios'
 
 // Atoms
 import { ResizeHandle } from '../ui/ResizeHandle'
@@ -61,7 +62,8 @@ function titleCaseField(field: string): string {
 
 function formatValidationIssue(
   error: ValidationError,
-  nodes: ReturnType<typeof useStore.getState>['nodes']
+  nodes: ReturnType<typeof useStore.getState>['nodes'],
+  edges: ReturnType<typeof useStore.getState>['edges']
 ): string {
   if (error.path === 'workload.sourceNodeId') {
     return error.message
@@ -80,6 +82,30 @@ function formatValidationIssue(
     }
 
     return `${nodeLabel}: ${titleCaseField(lastSegment)} - ${error.message}`
+  }
+
+  const edgeMatch = error.path.match(/^edges(?:\.|\[)(\d+)(?:\]|\.)?(.+)?$/)
+  if (edgeMatch) {
+    const edgeIndex = Number(edgeMatch[1])
+    const edge = edges[edgeIndex]
+    const sourceNode = nodes.find((node) => node.id === edge?.source)
+    const targetNode = nodes.find((node) => node.id === edge?.target)
+    const sourceLabel = (sourceNode?.data as CanvasNodeDataV2 | undefined)?.label ?? edge?.source
+    const targetLabel = (targetNode?.data as CanvasNodeDataV2 | undefined)?.label ?? edge?.target
+    const edgeLabel =
+      typeof edge?.label === 'string' && edge.label.length > 0
+        ? edge.label
+        : sourceLabel && targetLabel
+          ? `${sourceLabel} -> ${targetLabel}`
+          : (edge?.id ?? `Edge ${edgeIndex + 1}`)
+
+    if (error.message.includes('received undefined')) {
+      const rawFieldPath = edgeMatch[2]?.replace(/^\./, '') ?? ''
+      const lastSegment = rawFieldPath.split('.').pop() ?? 'field'
+      return `${edgeLabel}: ${titleCaseField(lastSegment)} is missing.`
+    }
+
+    return `${edgeLabel}: ${error.message}`
   }
 
   return error.path ? `${error.path}: ${error.message}` : error.message
@@ -124,6 +150,7 @@ export const WorkspaceLayout = () => {
   const fileName = useStore((s) => s.fileName)
   const isUnsaved = useStore((s) => s.isUnsaved)
   const nodes = useStore((s) => s.nodes)
+  const edges = useStore((s) => s.edges)
   const scenario = useStore((s) => s.scenario)
   const updateScenario = useStore((s) => s.updateScenario)
   const setSimulationMetrics = useStore((s) => s.setSimulationMetrics)
@@ -143,7 +170,7 @@ export const WorkspaceLayout = () => {
     [confirm]
   )
 
-  const { handleSave, handleOpen, handleLoadSample } = useFlowPersistence(confirmDiscardChanges)
+  const { handleSave, handleOpen, loadFromData } = useFlowPersistence(confirmDiscardChanges)
 
   const selectedNodeId = nodes.find((n) => n.selected)?.id
   const hasElectronCloseBridge = typeof window.nssimulator?.onCloseRequest === 'function'
@@ -198,8 +225,35 @@ export const WorkspaceLayout = () => {
 
   // Simulation
   const sim = useSimulation()
-  const { reset: resetSimulation } = sim
   const { serialize } = useTopologySerializer()
+  const handleLoadScenario = useCallback(
+    async (scenarioId: string) => {
+      const scenarioDefinition = CURATED_SCENARIOS.find((entry) => entry.id === scenarioId)
+      if (!scenarioDefinition) {
+        setRunIssues({ messages: [`Unknown scenario '${scenarioId}'.`], tone: 'error' })
+        return
+      }
+
+      const loaded = await loadFromData(
+        scenarioDefinition.topology,
+        `${scenarioDefinition.id}.json`
+      )
+
+      if (!loaded) {
+        return
+      }
+
+      sim.reset()
+      clearSimulationMetrics()
+      setShowResults(false)
+      setLastRunContext(null)
+      setRunIssues({ messages: [], tone: 'warning' })
+      setRoutingVisualization(null)
+      selectGraphElements({})
+      setIsRightOpen(false)
+    },
+    [clearSimulationMetrics, loadFromData, selectGraphElements, setRoutingVisualization, sim]
+  )
 
   useEffect(() => {
     if (!sim.results) return
@@ -228,7 +282,9 @@ export const WorkspaceLayout = () => {
           rejectionsByReason: metrics.rejectionsByReason,
           traitCounters: metrics.traitCounters,
           totalArrived: metrics.totalArrived,
-          totalRejected: metrics.totalRejected
+          totalRejected: metrics.totalRejected,
+          peakInSystem: metrics.peakInSystem,
+          finalInSystem: metrics.finalInSystem
         }
       ])
     )
@@ -256,7 +312,7 @@ export const WorkspaceLayout = () => {
     const validation = validateTopology(topology)
     if (!validation.valid) {
       const validationErrors = validation.errors?.map((error) =>
-        formatValidationIssue(error, nodes)
+        formatValidationIssue(error, nodes, edges)
       ) ?? ['Topology validation failed.']
       setRunIssues({ messages: validationErrors, tone: 'error' })
       return
@@ -283,17 +339,17 @@ export const WorkspaceLayout = () => {
 
   const handleSampleLoad = useCallback(
     async (sample: SampleScenario) => {
-      const loaded = await handleLoadSample(sample.raw, `${sample.id}.json`)
+      const loaded = await loadFromData(sample.raw, `${sample.id}.json`)
       if (!loaded) return
 
-      resetSimulation()
+      sim.reset()
       clearSimulationMetrics()
       setShowResults(false)
       setLastRunContext(null)
       setRunIssues({ messages: [], tone: 'warning' })
       setShowSamples(false)
     },
-    [clearSimulationMetrics, handleLoadSample, resetSimulation]
+    [clearSimulationMetrics, loadFromData, sim]
   )
 
   const isRunning = sim.status === 'running'
@@ -376,7 +432,7 @@ export const WorkspaceLayout = () => {
             order={1}
             id="left-panel"
           >
-            <LibrarySidebarContent activeTab={leftSidebarTab} />
+            <LibrarySidebarContent activeTab={leftSidebarTab} onLoadScenario={handleLoadScenario} />
           </Panel>
           <ResizeHandle vertical id="resize-left-catalog" />
 
