@@ -189,7 +189,8 @@ export const EdgePropertiesPanel = ({
             value={selectedLatencyDistributionType}
             onChange={(e) =>
               onChange({
-                latencyDistributionType: e.target.value as EdgeSimulationData['latencyDistributionType'],
+                latencyDistributionType: e.target
+                  .value as EdgeSimulationData['latencyDistributionType'],
                 ...(e.target.value === 'constant' && value.latencyValue === undefined
                   ? { latencyValue: defaultConstantLatencyMs }
                   : {})

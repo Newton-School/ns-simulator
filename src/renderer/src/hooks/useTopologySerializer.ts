@@ -125,7 +125,9 @@ export function resolveEdgeLatencyDistribution(
       ? 'constant'
       : edgeData.latencyDistributionType === 'log-normal'
         ? 'log-normal'
-        : explicitLatencyValue !== null && explicitLatencyMu === null && explicitLatencySigma === null
+        : explicitLatencyValue !== null &&
+            explicitLatencyMu === null &&
+            explicitLatencySigma === null
           ? 'constant'
           : 'log-normal'
 

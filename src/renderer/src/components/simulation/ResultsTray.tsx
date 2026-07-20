@@ -7,7 +7,10 @@ import { projectToDebugEvent } from '../../../../engine/core/event-stream'
 import type { SimulationStatus } from '../../hooks/useSimulation'
 import useStore from '../../store/useStore'
 import type { EdgeSimulationData, ScenarioRunContext } from '@renderer/types/ui'
-import { ERROR_CAUSE_LABELS, dominantTimeToErrorCause } from '@renderer/utils/errorCausePresentation'
+import {
+  ERROR_CAUSE_LABELS,
+  dominantTimeToErrorCause
+} from '@renderer/utils/errorCausePresentation'
 import { failureRateLevelFromRatio } from '@renderer/utils/failureRatePresentation'
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -1544,9 +1547,9 @@ function ComponentDrilldown({
             </div>
 
             <div className="text-[10px] text-nss-muted">
-              CV 0 means perfectly even spacing; CV ≈ 1 looks Poisson. When this node's arrival
-              CV exceeds the offered CV, upstream edge jitter or congestion bunched requests
-              before they hit this queue.
+              CV 0 means perfectly even spacing; CV ≈ 1 looks Poisson. When this node&apos;s arrival
+              CV exceeds the offered CV, upstream edge jitter or congestion bunched requests before
+              they hit this queue.
             </div>
 
             <div className="grid gap-3 lg:grid-cols-2">

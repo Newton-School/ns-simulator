@@ -9,7 +9,10 @@ import {
   failureRateLevelFromRatio,
   formatFailurePercentLabel
 } from '@renderer/utils/failureRatePresentation'
-import { ERROR_CAUSE_LABELS, dominantTimeToErrorCause } from '@renderer/utils/errorCausePresentation'
+import {
+  ERROR_CAUSE_LABELS,
+  dominantTimeToErrorCause
+} from '@renderer/utils/errorCausePresentation'
 import { ACK_AND_RELEASE_COMPONENT_TYPES } from '../../../../engine/traits/ackAndRelease'
 import { HEALTH_AWARE_COMPONENT_TYPES } from '../../../../engine/traits/healthAwareRouting'
 

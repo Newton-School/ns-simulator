@@ -1,5 +1,8 @@
 import type { useNodeMetrics } from '@renderer/hooks/useNodeMetrics'
-import { ERROR_CAUSE_LABELS, dominantTimeToErrorCause } from '@renderer/utils/errorCausePresentation'
+import {
+  ERROR_CAUSE_LABELS,
+  dominantTimeToErrorCause
+} from '@renderer/utils/errorCausePresentation'
 import { MetricItem } from './MetricItem'
 
 type NodeMetrics = ReturnType<typeof useNodeMetrics>
@@ -8,7 +11,10 @@ interface NodeMetricsDetailProps {
   metrics: NodeMetrics
 }
 
-function latencyMetricItem(value: number | null | undefined): { value?: string | number; unit?: string } {
+function latencyMetricItem(value: number | null | undefined): {
+  value?: string | number
+  unit?: string
+} {
   if (value === undefined) return {}
   if (value === null) return { value: 'N/A' }
   return { value, unit: 'ms' }
