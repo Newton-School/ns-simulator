@@ -15,6 +15,7 @@ import {
   EventStreamRecorder,
   NodeSnapshot,
   RequestLifecycle,
+  RequestOutcomeRecord,
   TerminalRequestStatus,
   eventInputFromSimulationEvent,
   projectToDebugEvent
@@ -132,6 +133,12 @@ export class SimulationEngine {
 
   private readonly requestById = new Map<string, Request>()
   private readonly terminalStatusByRequestId = new Map<string, TerminalRequestStatus>()
+  /**
+   * Complete, unsampled per-request outcome ledger, filled at the single
+   * `markRequestTerminal` funnel. In-flight survivors are appended at cutoff in
+   * {@link generateResults}, so every generated request is accounted for exactly once.
+   */
+  private readonly requestOutcomeById = new Map<string, RequestOutcomeRecord>()
   private readonly simulationDurationUs: bigint
   private readonly snapshotIntervalUs = secToMicro(1)
 
@@ -1453,7 +1460,55 @@ export class SimulationEngine {
   private markRequestTerminal(request: Request, status: TerminalRequestStatus): void {
     request.metadata.__terminal = status
     this.terminalStatusByRequestId.set(request.id, status)
+    // First terminal wins: races are already tombstoned upstream, but guard so a
+    // stray second transition can never double-count a request in the ledger.
+    if (!this.requestOutcomeById.has(request.id)) {
+      const createdAtMs = microToMs(request.createdAt)
+      const terminalAtMs = microToMs(this.clock)
+      this.requestOutcomeById.set(request.id, {
+        requestId: request.id,
+        status,
+        createdAtMs,
+        terminalAtMs,
+        nodeId: request.path.length > 0 ? request.path[request.path.length - 1] : null,
+        attempts: (request.retryCount ?? 0) + 1,
+        latencyMs: Math.max(0, terminalAtMs - createdAtMs)
+      })
+    }
     this.requestById.delete(request.id)
+  }
+
+  /**
+   * Snapshot in-flight survivors at cutoff as explicit `in-flight` outcome rows,
+   * then return the full ledger sorted by terminal time (in-flight last, ordered
+   * by creation). Requests still in {@link requestById} never reached
+   * `markRequestTerminal`, so they are neither completed nor failed — surfacing
+   * them keeps the log honest instead of letting arrival/completion counts differ
+   * with no visible explanation.
+   */
+  private buildRequestOutcomes(): RequestOutcomeRecord[] {
+    for (const request of this.requestById.values()) {
+      if (this.requestOutcomeById.has(request.id)) {
+        continue
+      }
+      this.requestOutcomeById.set(request.id, {
+        requestId: request.id,
+        status: 'in-flight',
+        createdAtMs: microToMs(request.createdAt),
+        terminalAtMs: null,
+        nodeId: request.path.length > 0 ? request.path[request.path.length - 1] : null,
+        attempts: (request.retryCount ?? 0) + 1,
+        latencyMs: null
+      })
+    }
+
+    return [...this.requestOutcomeById.values()].sort((a, b) => {
+      const aKey = a.terminalAtMs ?? Number.POSITIVE_INFINITY
+      const bKey = b.terminalAtMs ?? Number.POSITIVE_INFINITY
+      if (aKey !== bKey) return aKey - bKey
+      if (a.createdAtMs !== b.createdAtMs) return a.createdAtMs - b.createdAtMs
+      return a.requestId.localeCompare(b.requestId)
+    })
   }
 
   private takeSnapshot(): TimeSeriesSnapshot {
@@ -1517,7 +1572,8 @@ export class SimulationEngine {
       {
         eventLog,
         debuggedLifecycle,
-        statusTimeline: this.buildStatusTimeline()
+        statusTimeline: this.buildStatusTimeline(),
+        requestOutcomes: this.buildRequestOutcomes()
       }
     )
   }
