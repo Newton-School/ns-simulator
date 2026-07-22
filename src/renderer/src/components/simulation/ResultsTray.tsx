@@ -48,7 +48,7 @@ function fmtMs(ms: number | null): string {
   // `null` means no successful samples in this population/window — show N/A, never a fake 0.
   if (ms === null) return 'N/A'
   if (ms === 0) return '—'
-  if (ms < 1) return `${(ms * 1000).toFixed(0)}µs`
+  if (ms < 1) return `${ms.toFixed(3)}ms`
   if (ms < 1000) return `${ms.toFixed(2)}ms`
   return `${(ms / 1000).toFixed(2)}s`
 }
