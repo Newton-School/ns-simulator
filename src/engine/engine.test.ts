@@ -1114,6 +1114,39 @@ describe('SimulationEngine', () => {
 
     expect(crossRegionArrival).toBeGreaterThan(sameRackArrival)
   })
+  it('amortizes protocol overhead for streaming edges', () => {
+    const makeOutput = (mode: EdgeDefinition['mode']) =>
+      new SimulationEngine(
+        makeTopology({
+          global: { simulationDuration: 20, defaultTimeout: 1_000, traceSampleRate: 1 },
+          nodes: [makeNode('source'), makeNode('dst')],
+          edges: [
+            makeEdge('source-to-dst', 'source', 'dst', {
+              mode,
+              protocol: 'websocket',
+              latency: { distribution: { type: 'constant', value: 0 }, pathType: 'same-dc' }
+            })
+          ],
+          workload: {
+            sourceNodeId: 'source',
+            pattern: 'constant',
+            baseRps: 1,
+            requestDistribution: [{ type: 'GET', weight: 1, sizeBytes: 100 }]
+          }
+        })
+      ).run()
+
+    const syncArrival = makeOutput('synchronous').eventStream.find(
+      (event) => event.type === 'request-arrived'
+    )
+    const streamingArrival = makeOutput('streaming').eventStream.find(
+      (event) => event.type === 'request-arrived'
+    )
+
+    expect(Number(syncArrival?.timestampUs)).toBeGreaterThan(90)
+    expect(Number(streamingArrival?.timestampUs)).toBeLessThan(40)
+    expect(Number(streamingArrival?.timestampUs)).toBeLessThan(Number(syncArrival?.timestampUs))
+  })
 
   it('forks requests on async fan-out so each branch has a distinct request id', () => {
     const topology = makeTopology({

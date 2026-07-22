@@ -1226,7 +1226,10 @@ export class SimulationEngine {
       : edge.latency.distribution
     const propagationMs = Math.max(0, this.distributions.fromConfig(latencyDistribution))
     const transmissionMs = request.sizeBytes / (edge.bandwidth * 125)
-    const protocolOverheadMs = getProtocolLatencyOverheadMs(edge.protocol)
+    // Streaming links reuse an already-open channel, so only a small framing
+    // cost remains on each message instead of the full per-request setup cost.
+    const protocolOverheadMs =
+      getProtocolLatencyOverheadMs(edge.protocol) * (edge.mode === 'streaming' ? 0.25 : 1)
     const utilization =
       edge.maxConcurrentRequests > 0
         ? Math.min(0.98, activeTransfers / edge.maxConcurrentRequests)
