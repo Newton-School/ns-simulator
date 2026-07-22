@@ -26,8 +26,7 @@ export const EDGE_MODE_PRESENTATION: Record<EdgeModeValue, EdgeModePresentation>
     title: 'Synchronous',
     shortLabel: 'SYNC',
     summary: 'Caller sends work and waits for the downstream hop to finish.',
-    simulationEffect:
-      'Competes with other non-async edges; the router picks one route per hop.',
+    simulationEffect: 'Competes with other non-async edges; the router picks one route per hop.',
     strokeDasharray: 'none',
     badgeClassName: 'border-nss-border bg-nss-surface text-nss-muted'
   },
@@ -35,8 +34,7 @@ export const EDGE_MODE_PRESENTATION: Record<EdgeModeValue, EdgeModePresentation>
     title: 'Asynchronous',
     shortLabel: 'ASYNC',
     summary: 'Fire-and-forget delivery to downstream async boundaries such as queues or brokers.',
-    simulationEffect:
-      'Every matching async edge is selected, so requests fan out in parallel.',
+    simulationEffect: 'Every matching async edge is selected, so requests fan out in parallel.',
     strokeDasharray: '12 7',
     badgeClassName: 'border-nss-success/30 bg-nss-success/10 text-nss-success'
   },
@@ -46,8 +44,7 @@ export const EDGE_MODE_PRESENTATION: Record<EdgeModeValue, EdgeModePresentation>
     summary: 'Represents a long-lived channel such as WebSocket or bidirectional RPC.',
     simulationEffect:
       'Competes like a synchronous edge for route selection, but amortizes protocol overhead to model a persistent channel.',
-    note:
-      'Useful for teaching stream topology today; full session state and multiplexed message behavior are still not modeled.',
+    note: 'Useful for teaching stream topology today; full session state and multiplexed message behavior are still not modeled.',
     strokeDasharray: '4 6',
     badgeClassName: 'border-nss-primary/30 bg-nss-primary/10 text-nss-primary'
   },
@@ -55,8 +52,7 @@ export const EDGE_MODE_PRESENTATION: Record<EdgeModeValue, EdgeModePresentation>
     title: 'Conditional',
     shortLabel: 'IF',
     summary: 'Route is only eligible when its condition matches the request payload or metadata.',
-    simulationEffect:
-      'Competes like a synchronous edge, but only after the condition gate passes.',
+    simulationEffect: 'Competes like a synchronous edge, but only after the condition gate passes.',
     strokeDasharray: '14 6 2 6',
     badgeClassName: 'border-nss-warning/30 bg-nss-warning/10 text-nss-warning'
   }
@@ -82,19 +78,18 @@ export const EDGE_PROPERTY_HELP = {
   },
   pathType: {
     title: 'Path Type',
-    summary: 'Physical distance and network locality: same rack, same DC, cross-zone, cross-region, or internet.',
+    summary:
+      'Physical distance and network locality: same rack, same DC, cross-zone, cross-region, or internet.',
     simulationEffect:
       'Only drives runtime latency when the edge is still using the path-type-derived log-normal profile.',
-    note:
-      'If you switch to constant latency or set explicit mu/sigma, path type becomes descriptive metadata.'
+    note: 'If you switch to constant latency or set explicit mu/sigma, path type becomes descriptive metadata.'
   },
   condition: {
     title: 'Condition',
     summary: 'Predicate that filters traffic by request type or request metadata.',
     simulationEffect:
       'A non-empty condition gates the edge even outside conditional mode; conditional mode simply makes it required.',
-    note:
-      'Supported forms today are request.type and request.metadata.<field> with ==, ===, !=, or !==.'
+    note: 'Supported forms today are request.type and request.metadata.<field> with ==, ===, !=, or !==.'
   },
   latencyModel: {
     title: 'Latency Model',
@@ -110,7 +105,8 @@ export const EDGE_PROPERTY_HELP = {
   },
   latencyMu: {
     title: 'Latency Mu (log-space)',
-    summary: 'Natural-log median of the base latency distribution before transmission and protocol overhead.',
+    summary:
+      'Natural-log median of the base latency distribution before transmission and protocol overhead.',
     simulationEffect:
       'Higher mu shifts the whole latency distribution upward and increases the typical hop time.'
   },
@@ -128,7 +124,8 @@ export const EDGE_PROPERTY_HELP = {
   },
   maxConcurrentRequests: {
     title: 'Max Concurrent',
-    summary: 'How many transfers the edge can carry at once before it behaves like a saturated connection pool.',
+    summary:
+      'How many transfers the edge can carry at once before it behaves like a saturated connection pool.',
     simulationEffect:
       'Near the cap, latency inflates; at or above the cap, reliable protocols reject new transfers with connection_refused.'
   },
@@ -160,7 +157,8 @@ export const EDGE_PROTOCOL_HELP: Record<EdgeProtocolValue, EdgeHelpEntry> = {
   tcp: {
     title: 'TCP',
     summary: 'Raw reliable transport used by databases, caches, and lower-level services.',
-    simulationEffect: 'No extra protocol overhead beyond transport, but connection limits still apply.'
+    simulationEffect:
+      'No extra protocol overhead beyond transport, but connection limits still apply.'
   },
   udp: {
     title: 'UDP',
@@ -177,12 +175,14 @@ export const EDGE_PROTOCOL_HELP: Record<EdgeProtocolValue, EdgeHelpEntry> = {
   amqp: {
     title: 'AMQP',
     summary: 'Broker-style messaging protocol used for queues and work distribution.',
-    simulationEffect: 'Higher fixed overhead with reliable delivery semantics and broker-style async routing.'
+    simulationEffect:
+      'Higher fixed overhead with reliable delivery semantics and broker-style async routing.'
   },
   kafka: {
     title: 'Kafka',
     summary: 'Durable streaming/broker protocol used for event logs and stream processing.',
-    simulationEffect: 'Higher fixed overhead with reliable delivery semantics and async fan-out topologies.'
+    simulationEffect:
+      'Higher fixed overhead with reliable delivery semantics and async fan-out topologies.'
   }
 }
 
@@ -232,7 +232,10 @@ export function inferCanvasEdgeMode(
     return edgeData.mode
   }
 
-  if (edgeData?.protocol === 'websocket' || targetNodeData?.componentType === 'websockets-gateway') {
+  if (
+    edgeData?.protocol === 'websocket' ||
+    targetNodeData?.componentType === 'websockets-gateway'
+  ) {
     return 'streaming'
   }
 

@@ -9,7 +9,6 @@ import type {
   WorkloadProfile
 } from '../../../engine/core/types'
 import { getComponentSpec } from '../../../engine/catalog/componentSpecs'
-import { getPaletteTemplate } from '../../../engine/catalog/paletteTemplates'
 import type { CanvasNodeDataV2 } from '../../../engine/catalog/nodeSpecTypes'
 import { getPathTypeLatencyProfile, inferEdgeDefaults } from '../../../engine/defaults/edgeDefaults'
 import { inferCanvasEdgeMode } from '@renderer/config/edgeSemantics'
@@ -176,8 +175,6 @@ function serializeEdge(
 
   const targetData = dataByNodeId.get(target)
   const sourceData = dataByNodeId.get(source)
-  const targetTemplate = getPaletteTemplate(targetData?.templateId)
-  const targetSpec = getComponentSpec(targetData?.componentType)
   const edgeData = (rfEdge.data ?? {}) as EdgeRuntimeData
   const inferredDefaults = inferEdgeDefaults(sourceData, targetData)
   const pathType = asPathType(edgeData.pathType) ?? inferredDefaults.pathType

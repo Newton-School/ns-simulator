@@ -1,10 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { BaseEdge, getSmoothStepPath, EdgeProps, EdgeLabelRenderer } from 'reactflow'
 import type { AnyNodeData, EdgeSimulationData } from '@renderer/types/ui'
-import {
-  getEdgeModePresentation,
-  inferCanvasEdgeMode
-} from '@renderer/config/edgeSemantics'
+import { getEdgeModePresentation, inferCanvasEdgeMode } from '@renderer/config/edgeSemantics'
 import useStore, { type EdgeFlowRunConfig, type EdgeFlowState } from '@renderer/store/useStore'
 import { getRoutingPreviewSnapshot } from '@renderer/utils/routingStrategyPreview'
 import { failureRateLevelFromRatio } from '@renderer/utils/failureRatePresentation'

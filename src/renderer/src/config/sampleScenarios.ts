@@ -43,7 +43,7 @@ export const SAMPLE_SCENARIOS: SampleScenario[] = [
     diagram: 'Client App --(constant edge)--> API Server',
     primaryUseCase: 'A constant source over a constant-latency edge: perfectly even arrivals.',
     simulatorValue:
-      'The clean baseline — one worker near capacity never queues, so there are zero rejects. Pair it with "Jittered Arrivals" to see what variance adds.',
+      'The clean baseline - one worker near capacity never queues, so there are zero rejects. Pair it with "Jittered Arrivals" to see what variance adds.',
     difficulty: 'starter',
     raw: directClientServerCleanRaw
   },
@@ -54,7 +54,7 @@ export const SAMPLE_SCENARIOS: SampleScenario[] = [
     diagram: 'Client App --(jittery edge)--> API Server',
     primaryUseCase: 'The same server, but the edge varies each hop so arrivals bunch.',
     simulatorValue:
-      'Identical to the clean baseline except the edge is log-normal — now capacity_exceeded rejects appear below nominal capacity. Compare offered vs arrival CV to see why.',
+      'Identical to the clean baseline except the edge is log-normal - now capacity_exceeded rejects appear below nominal capacity. Compare offered vs arrival CV to see why.',
     difficulty: 'starter',
     raw: directClientServerJitterRaw
   },

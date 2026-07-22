@@ -1,7 +1,11 @@
 import { Waypoints } from 'lucide-react'
 import { EdgeSimulationData } from '@renderer/types/ui'
 import { TooltipInfo } from '@renderer/components/ui/Tooltip'
-import { EDGE_PROPERTY_HELP, type EdgeHelpEntry, inferCanvasEdgeMode } from '@renderer/config/edgeSemantics'
+import {
+  EDGE_PROPERTY_HELP,
+  type EdgeHelpEntry,
+  inferCanvasEdgeMode
+} from '@renderer/config/edgeSemantics'
 import type { CanvasNodeDataV2 } from '../../../../engine/catalog/nodeSpecTypes'
 import { getEdgeConstraints } from '../../../../engine/defaults/edgeConstraints'
 import { inferEdgeDefaults } from '../../../../engine/defaults/edgeDefaults'
@@ -344,7 +348,6 @@ export const EdgePropertiesPanel = ({
         <div className="rounded border border-nss-border bg-nss-surface px-2 py-2 text-[10px] leading-relaxed text-nss-muted">
           {latencySummary}
         </div>
-
       </div>
     </div>
   )

@@ -9,28 +9,27 @@ describe('inferCanvasEdgeMode', () => {
 
   it('infers streaming for websocket-style targets', () => {
     expect(
-      inferCanvasEdgeMode(
-        { protocol: 'websocket' },
-        { componentType: 'websockets-gateway' } as CanvasNodeDataV2
-      )
+      inferCanvasEdgeMode({ protocol: 'websocket' }, {
+        componentType: 'websockets-gateway'
+      } as CanvasNodeDataV2)
     ).toBe('streaming')
   })
 
   it('infers asynchronous for async-boundary targets when mode is unset', () => {
     expect(
-      inferCanvasEdgeMode(
-        { protocol: 'amqp' },
-        { componentType: 'queue', templateId: 'queue' } as CanvasNodeDataV2
-      )
+      inferCanvasEdgeMode({ protocol: 'amqp' }, {
+        componentType: 'queue',
+        templateId: 'queue'
+      } as CanvasNodeDataV2)
     ).toBe('asynchronous')
   })
 
   it('falls back to synchronous for ordinary request-response edges', () => {
     expect(
-      inferCanvasEdgeMode(
-        { protocol: 'grpc' },
-        { componentType: 'microservice', templateId: 'microservice' } as CanvasNodeDataV2
-      )
+      inferCanvasEdgeMode({ protocol: 'grpc' }, {
+        componentType: 'microservice',
+        templateId: 'microservice'
+      } as CanvasNodeDataV2)
     ).toBe('synchronous')
   })
 })
