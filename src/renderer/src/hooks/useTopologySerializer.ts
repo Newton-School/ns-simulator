@@ -12,6 +12,7 @@ import { getComponentSpec } from '../../../engine/catalog/componentSpecs'
 import { getPaletteTemplate } from '../../../engine/catalog/paletteTemplates'
 import type { CanvasNodeDataV2 } from '../../../engine/catalog/nodeSpecTypes'
 import { getPathTypeLatencyProfile, inferEdgeDefaults } from '../../../engine/defaults/edgeDefaults'
+import { inferCanvasEdgeMode } from '@renderer/config/edgeSemantics'
 import useStore from '../store/useStore'
 import type { ScenarioRunContext, ScenarioState } from '@renderer/types/ui'
 import { normalizeScenarioState } from '@renderer/types/ui'
@@ -186,9 +187,13 @@ function serializeEdge(
     pathLatencyProfile
   )
 
-  const mode =
-    asEdgeMode(edgeData.mode) ??
-    (targetTemplate?.asyncBoundary || targetSpec?.asyncBoundary ? 'asynchronous' : 'synchronous')
+  const mode = inferCanvasEdgeMode(
+    {
+      mode: asEdgeMode(edgeData.mode) ?? undefined,
+      protocol: asProtocol(edgeData.protocol) ?? undefined
+    },
+    targetData
+  )
 
   return {
     id: id || `${source}->${target}`,
