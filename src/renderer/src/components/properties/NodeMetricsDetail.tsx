@@ -65,8 +65,8 @@ export const SourceNodeMetricsDetail = ({
       </Section>
 
       <p className="text-xs text-nss-muted">
-        This is a traffic source. It generates requests rather than processing them, so
-        throughput, latency, and error metrics apply to the downstream nodes it feeds - not here.
+        This is a traffic source. It generates requests rather than processing them, so throughput,
+        latency, and error metrics apply to the downstream nodes it feeds - not here.
       </p>
     </div>
   )

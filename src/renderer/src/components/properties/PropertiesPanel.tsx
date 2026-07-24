@@ -433,12 +433,8 @@ function RunInspector({
               const staticWorkload = (node.data as Partial<CanvasNodeDataV2>).source
                 ?.defaultWorkload
               const isRunSource = runConfig?.workload.sourceNodeId === node.id
-              const offeredRps = isRunSource
-                ? runConfig?.workload.baseRps
-                : staticWorkload?.baseRps
-              const pattern = isRunSource
-                ? runConfig?.workload.pattern
-                : staticWorkload?.pattern
+              const offeredRps = isRunSource ? runConfig?.workload.baseRps : staticWorkload?.baseRps
+              const pattern = isRunSource ? runConfig?.workload.pattern : staticWorkload?.pattern
               const emitted = source ? sourceEmittedCount(node.id, edges, edgeFlowById) : 0
 
               return (
